@@ -1,8 +1,12 @@
 # engine
 import(data.table)
 import(R6)
-# cube api
-export(build.cube)
+# to cube
+export(as.cube)
+S3method(as.cube, default)
+S3method(as.cube, array)
+S3method(as.cube, list)
+# cube
 export(cube)
 export(capply)
 S3method("[", cube)

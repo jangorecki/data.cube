@@ -104,9 +104,11 @@ cube = R6Class(
                 # - [ ] for each dimension
                 for(dim in names(dim_filter)[dim_filter]){
                     dim_attrs = names(args[[dim]])
+                    dim_attrs_filter = sapply(dim_attrs, function(attr) !is.null(args[[dim]][[attr]]))
                     # - [ ] each filtered attribute in dimension
-                    dim_attrs_filter = lapply(dim_attrs, function(attr) as.call(list(quote(`%in%`), as.name(attr), args[[dim]][[attr]])))
-                    qi = Reduce(function(a,b) bquote(.(a) & .(b)), dim_attrs_filter)
+                    dim_attrs_filter_cols = names(dim_attrs_filter)[dim_attrs_filter]
+                    dim_attrs_filter_calls = lapply(setNames(dim_attrs_filter_cols, dim_attrs_filter_cols), function(attr) as.call(list(quote(`%in%`), as.name(attr), args[[dim]][[attr]])))
+                    qi = Reduce(function(a,b) bquote(.(a) & .(b)), dim_attrs_filter_calls)
                     # use data.table index on dimensions while filter - this has to be done on client side when creating cube
                     # prepare for join
                     joincol = key(self$db[[dim]])

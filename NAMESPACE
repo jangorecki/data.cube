@@ -6,12 +6,15 @@ export(as.cube)
 S3method(as.cube, default)
 S3method(as.cube, array)
 S3method(as.cube, list)
+S3method(as.cube, data.table)
 # cube
 export(cube)
 export(capply)
 S3method("[", cube)
-# array
-S3method(as.data.table, array)
+# from cube
+S3method(as.data.table, cube)
+S3method(as.list, cube)
 S3method(as.array, cube)
-# sample data
+# others
+S3method(as.data.table, array)
 export(populate_star)

@@ -8,16 +8,16 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
 - [x] base R `array` like API, see [olap-operation-r](https://dzone.com/articles/olap-operation-r) and [r-script](https://gist.github.com/jangorecki/4aa6218b6011360338f2)
   - [x] `[.cube` uses base R `[.array` method API for *slice* and *dice*, see [tests/subset_cube.R](tests/subset_cube.R)
   - [ ] `capply`/`aggregate.cube` uses base R `apply` function API for *rollup*, *drilldown* and *pivot*
-- [x] base R `array` API is extended by accepting named list instead of vectors, you can use known `.()` wrapper, see [tests/subset_cube.R](tests/subset_cube.R)
+- [x] base R `array` API is extended by accepting named list instead of vectors, see [tests/subset_cube.R](tests/subset_cube.R)
   - [x] slice and dice on multiple attributes from dimensions hierarchies
   - [ ] rollup, drilldown and pivot on multiple attributes from dimensions hierarchies
   - [x] NULL list elements in `[` to lookup column without filter
   - [x] NULL to `[` to lookup all the columns from dimension
 - [ ] `query` combines `[.cube` and `capply` into single logical query call
-- [x] direct access to *cube* class methods and attributes, use `ls.str(x)` / `ls.str(x$db)` on your cube object
+- [x] direct access to *cube* class methods and attributes, use `ls.str(x)` / `ls.str(x$db)` on *cube* object
 - [ ] logging of all queries
 - [x] query optimization
-  - [x] uses blazingly fast data.table's *binary search* on fact and dimension tables
+  - [x] uses blazingly fast data.table's *binary search* where possible
 - [x] share dimensions between cubes
 
 Contribution welcome!  

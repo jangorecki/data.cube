@@ -9,7 +9,7 @@ cube = R6Class(
         nr = integer(),
         nc = integer(),
         mb = numeric(),
-        initialize = function(fact, dims, aggregate, db){
+        initialize = function(fact, dims, aggregate, db, ...){
             stopifnot(is.list(fact), length(fact)==1L)
             if(!missing(db)) stopifnot(is.environment(db)) else db = new.env(parent = topenv())
             self$db = db
@@ -28,7 +28,7 @@ cube = R6Class(
                 if(missing(aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate` argument is missing. Sub-aggregated your fact table or provide aggregate function."))
                 if(!is.function(aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate` argument is not a function. Sub-aggregated your fact table or provide aggregate function."))
                 # - [x] sub-aggregate fact table
-                fact[[self$fact]] = fact[[self$fact]][, lapply(.SD, aggregate), c(self$keys)]
+                fact[[self$fact]] = fact[[self$fact]][, lapply(.SD, aggregate, ...), c(self$keys)]
             }
             self$db[[self$fact]] = fact[[self$fact]]
             setkeyv(self$db[[self$fact]], unname(self$keys))
@@ -74,60 +74,62 @@ cube = R6Class(
             args = lapply(.dots, subarg)
             stopifnot(length(args) <= length(self$dims))
             names(args) = self$dims[seq_along(args)]
-            completed = character()
+            completed = lapply(self$keys, I)
             r = NULL
-            # - [ ] check if all cols exists in dims, filters having NULL or vector are not checked as it refers to no filter and fact-filter
+            # - [x] check if all cols exists in dims, filters having NULL or vector are not checked as it refers to no filter and fact-filter
             cols_missing = sapply(names(args), function(arg) if(is.null(args[[arg]])) FALSE else if(!is.list(args[[arg]])) FALSE else !all(names(args[[arg]]) %in% names(self$db[[arg]])))
             if(any(cols_missing)) stop(sprintf("Field used in subset does not exists in dimensions %s.", paste(names(cols_missing)[cols_missing], collapse=", ")))
-            # - [ ] categorize filters into fact-filters and dimension-filters
+            # - [x] categorize filters into fact-filters and dimension-filters
             fact_filter = sapply(args, function(x) !is.list(x) && length(x))
             dim_filter = sapply(args, function(x) (is.list(x) && length(x)) || is.null(x))
-            # - [ ] check if binary search possible, only leading fact filters
+            # - [x] check if binary search possible, only leading fact filters
             if(isTRUE(fact_filter[[1L]])){
-                # data.table#1419 workaround
+                # data.table#1419 workaround, fixed in 1.9.7
                 nm = names(fact_filter)
                 binsearch_cols = rleid(fact_filter)==1L
                 names(binsearch_cols) = nm
                 names(fact_filter) = nm
                 # workaround end
-                # - [ ] do binary search for key-leading cols for fact-filters
+                # - [x] do binary search for key-leading cols for fact-filters
                 r = self$db[[self$fact]][i = args[binsearch_cols], nomatch = 0L]
-                completed = c(completed, names(binsearch_cols)[binsearch_cols])
-            }
-            # - [ ] fact-filter after the gap as vector scans
-            if(any(!(ff <- names(fact_filter)[fact_filter]) %in% completed)){
-                for(fff in ff[!ff %in% completed]){
+                completed_binsearch = names(binsearch_cols)[binsearch_cols]
+            } else completed_binsearch = character()
+            # - [x] fact-filter after the gap as vector scans
+            if(any(!(ff <- names(fact_filter)[fact_filter]) %in% completed_binsearch)){
+                for(fff in ff[!ff %in% completed_binsearch]){
                     qi = as.call(list(quote(`%in%`), as.name(self$keys[[fff]]), args[[fff]]))
                     r = if(is.null(r)) self$db[[self$fact]][eval(qi)] else r[eval(qi)]
-                    completed = c(completed, fff)
                 }
             }
-            # - [ ] dimension-filters
+            # - [x] dimension-filters just before the join
             if(any(dim_filter)){
-                # - [ ] for each dimension
+                # - [x] for each dimension
                 for(dim in names(dim_filter)[dim_filter]){
                     joincol = key(self$db[[dim]])
                     if(identical(args[[dim]],list(NULL))){ # lookup all columns from dim
+                        completed[[dim]] = unique(c(joincol, names(self$db[[dim]])))
                         qdim = quote(self$db[[dim]])
                         qfact = if(is.null(r)) quote(self$db[[self$fact]]) else quote(r)
                     } else {
                         dim_attrs = names(args[[dim]])
                         if(length(unique(dim_attrs))!=length(args[[dim]])) stop(sprintf("Dimensions hierarchy attributes has to be uniquely named `.(a1=..., a2=...)`, only lookup all dimension attributes does not require names and can be used as `.(NULL)`."))
                         dim_attrs_filter = sapply(dim_attrs, function(attr) !is.null(args[[dim]][[attr]]))
-                        # - [ ] each filtered attribute in dimension
+                        # - [x] handle filters of multiple attributes in single dimension
                         dim_attrs_filter_cols = names(dim_attrs_filter)[dim_attrs_filter]
                         dim_attrs_filter_calls = lapply(setNames(dim_attrs_filter_cols, dim_attrs_filter_cols), function(attr) as.call(list(quote(`%in%`), as.name(attr), args[[dim]][[attr]])))
                         qi = Reduce(function(a,b) bquote(.(a) & .(b)), dim_attrs_filter_calls)
                         # use data.table index on dimensions while filter - this has to be done on client side when creating cube
                         # prepare for join
+                        completed[[dim]] = unique(c(joincol, dim_attrs))
                         qj = as.call(lapply(c("list", unique(c(joincol, dim_attrs))), as.symbol))
                         qdim = if(is.null(qi)) quote(self$db[[dim]][, eval(qj)]) else quote(self$db[[dim]][eval(qi), eval(qj)])
                         qfact = if(is.null(r)) quote(self$db[[self$fact]]) else quote(r)
                     }
-                    r = eval(qfact)[eval(qdim), on = c(joincol), nomatch = 0L]
-                    completed = c(completed, dim)
+                    r = eval(qdim)[eval(qfact), on = c(joincol), nomatch = 0L]
                 }
             }
+            # - [x] reorder returned columns to match dimensions sequence in cube object
+            setcolorder(r, c(unlist(completed), self$measures))
             return(r)
         },
         apply = function(MARGIN, FUN, ...){
@@ -160,6 +162,9 @@ cube = R6Class(
             self$apply()
             Call = self$qcall()
             eval(match.call((getFromNamespace("[.data.table", "data.table")), Call), envir = self$db)
+        },
+        denormalize = function(){
+            self$subset(.dots = lapply(self$dims, function(x) list(NULL)))
         }
     )
 )
@@ -191,6 +196,33 @@ as.cube.array = function(x, fact, dims, na.rm=TRUE, ...){
 as.cube.list = function(x, aggregate, ...){
     stopifnot(is.list(x), all(c("fact","dims") %in% names(x)))
     cube$new(fact = x$fact, dims = x$dims, aggregate = aggregate)
+}
+
+as.cube.data.table = function(x, fact, dims, aggregate = sum, ...){
+    stopifnot(is.data.table(x), is.character(fact), is.list(dims), length(dims), length(names(dims))==uniqueN(names(dims)), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(aggregate))
+    fact_cols = c(sapply(dims, `[`, 1L), names(x)[!names(x) %in% unlist(dims)])
+    cube$new(fact = setNames(list(x[, fact_cols, with=FALSE]), fact),
+             dims = lapply(dims, function(cols) x[, cols, with=FALSE]),
+             aggregate = aggregate,
+             ...)
+}
+
+# as.others.cube ----------------------------------------------------------
+
+as.array.cube = function(x, measure){
+    if(missing(measure)) measure = x$measures[1L]
+    dimnms = lapply(setNames(x$dims, x$dims), function(dim) as.character(x$db[[dim]][[1L]]))
+    array(data = x$db[[x$fact]][do.call(CJ, dimnms), eval(as.name(measure))],
+          dim = sapply(dimnms, length),
+          dimnames = dimnms)
+}
+
+as.data.table.cube = function(x){
+    x$denormalize()
+}
+
+as.list.cube = function(x){
+    list(fact = x$db[[x$fact]], dims = lapply(setNames(x$dims, x$dims), function(dim) x$db[[dim]]))
 }
 
 # capply ------------------------------------------------------------------

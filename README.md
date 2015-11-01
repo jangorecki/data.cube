@@ -11,8 +11,8 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
 - [x] base R `array` API is extended by accepting named list instead of vectors, you can use known `.()` wrapper, see [tests/subset_cube.R](tests/subset_cube.R)
   - [x] slice and dice on multiple attributes from dimensions hierarchies
   - [ ] rollup, drilldown and pivot on multiple attributes from dimensions hierarchies
-  - [x] NULL list elements to lookup column without filter
-  - [ ] NULL to `[` to will lookup all the columns from dimension
+  - [x] NULL list elements in `[` to lookup column without filter
+  - [x] NULL to `[` to will lookup all the columns from dimension
 - [ ] `query` combines `[.cube` and `capply` into single logical query call
 - [x] direct access to *cube* class methods and attributes, use `ls.str()` on your cube object
 - [ ] logging of all queries

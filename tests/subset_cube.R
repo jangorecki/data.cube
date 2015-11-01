@@ -23,7 +23,7 @@ cb[,"2015",c("UK","IN")]
 # subset cube -------------------------------------------------------------
 
 # as.cube.list - investigate X to see structure
-X = populate_star(N=1e6, surrogate.keys = FALSE)
+X = populate_star(N=1e5, surrogate.keys = FALSE)
 cb = as.cube(X)
 cb
 cb$keys
@@ -39,13 +39,18 @@ cb[,, c("CNY","BTC"), c("GA","IA","AD")]
 cb["Mazda RX4",,.(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
 cb[,,.(curr_type = "crypto"),.(geog_abb = c("AL","AK","CA"), geog_division_name = "Pacific")]
 
-# lookup new columns with not filter on it by using NULL
+# lookup new columns without filter on them, use NULL
 cb[.(prod_cyl = 4L, prod_vs = 1L, prod_am = NULL),,, .(geog_abb = c("AL","TX","NV"), geog_division_name = NULL, geog_region_name = NULL)]
 
-# lookup whole dimension
-cb[NULL,, .(curr_type = "crypto")] # TO DO
+# lookup all columns from dimension, use `.(NULL)` on dimension
+cb[.(NULL),, .(NULL)]
 
-# cube `[` operator returns data.table so it can be chainable
+# some NULL/missing handling
+cb[,,.(NULL)] # cb[,,.(curr_name = NULL, curr_type = NULL)]
+cb[,,c("CAD","EUR"),] # cb[NULL,NULL,c("CAD","EUR"),NULL]
+cb[.(),,] # cb[,,]
+
+# cube `[` operator returns data.table so it is chainable with further data.table queries
 cb[,,, .(geog_abb = c("AL","TX","NV"), geog_division_name = NULL, geog_region_name = NULL)
    ][, .N, .(geog_region_name, geog_division_name)]
 

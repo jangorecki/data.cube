@@ -16,6 +16,8 @@ sales <- data.table(
 )
 sales = sales[,.(amount=sum(amount)),.(prod,geog,time,curr)]
 
+# for nice reading see https://dzone.com/articles/olap-operation-r
+
 array_cube = tapply(sales$amount, sales[,c("prod", "geog", "time", "curr"),  with=FALSE], FUN=function(x){return(sum(x, na.rm=TRUE))})
 
 # Slice

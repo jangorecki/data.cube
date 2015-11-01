@@ -28,7 +28,7 @@ cube = R6Class(
                 fact[[self$fact]] = fact[[self$fact]][, lapply(.SD, aggregate), c(self$keys)]
             }
             self$db[[self$fact]] = fact[[self$fact]]
-            setkeyv(self$db[[self$fact]], self$keys)
+            setkeyv(self$db[[self$fact]], unname(self$keys))
             lapply(self$dims, function(dim){
                 if(is.null(dims[[dim]])){
                     if(missing(db)) stop("Dimensions can be NULL only if they exists in db environment already which has not been provided as `db` argument.")
@@ -44,7 +44,7 @@ cube = R6Class(
             })
             self$nr = sapply(c(self$fact, self$dims), function(tbl) nrow(self$db[[tbl]]))
             self$nc = sapply(c(self$fact, self$dims), function(tbl) ncol(self$db[[tbl]]))
-            if(any(self$nc < 2L)) stop("Each table must have at least 2 columns.")
+            #if(any(self$nc < 2L)) stop("Each table must have at least 2 columns.")
             self$mb = sapply(c(self$fact, self$dims), function(tbl) as.numeric(object.size(self$db[[tbl]]))/1024/1024)
             invisible(self)
         },
@@ -117,7 +117,7 @@ cube = R6Class(
                     completed = c(completed, dim)
                 }
             }
-            r
+            return(r)
         },
         apply = function(MARGIN, FUN, ...){
             stopifnot(is.character(MARGIN) | is.list(MARGIN), is.function(FUN))
@@ -153,15 +153,43 @@ cube = R6Class(
     )
 )
 
-build.cube = function(x, aggregate){
+# as.cube -----------------------------------------------------------------
+
+as.cube = function(x, ...){
+    UseMethod("as.cube")
+}
+
+as.cube.default = function(x, ...){
+    as.cube(as.array(x, ...))
+}
+
+as.cube.array = function(x, fact, dims){
+    dt = as.data.table(x)
+    dim_cols = names(dt)[-length(dt)]
+    dim_cols = if(missing(dims)){
+        setNames(dim_cols, dim_cols)
+    } else {
+        stopifnot(is.character(dims), length(dims)==length(dim_cols))
+        setNames(dim_cols, dims)
+    }
+    fact = if(missing(fact)) "fact" else stopifnot(is.character(fact), length(fact)==1L)
+    cube$new(fact = setNames(list(dt), fact),
+             dims = lapply(dim_cols, function(dim_col) setDT(setNames(list(unique(dt[[dim_col]]))), key = dim_col)))
+}
+
+as.cube.list = function(x, aggregate){
     stopifnot(is.list(x), all(c("fact","dims") %in% names(x)))
     cube$new(fact = x$fact, dims = x$dims, aggregate = aggregate)
 }
+
+# capply ------------------------------------------------------------------
 
 capply = aggregate.cube = function(x, MARGIN, FUN, ...){
     stopifnot(inherits(x, "cube"))
     x$apply(MARGIN, FUN, ...)
 }
+
+# `[.cube` ----------------------------------------------------------------
 
 "[.cube" = function(x, ...){
     x$subset(.dots = match.call(expand.dots = FALSE)$`...`)

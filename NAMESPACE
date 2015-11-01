@@ -10,7 +10,8 @@ S3method(as.cube, list)
 export(cube)
 export(capply)
 S3method("[", cube)
-# from array
+# array
 S3method(as.data.table, array)
+S3method(as.array, cube)
 # sample data
 export(populate_star)

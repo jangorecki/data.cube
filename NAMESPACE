@@ -1,0 +1,12 @@
+# engine
+import(data.table)
+import(R6)
+# cube api
+export(build.cube)
+export(cube)
+export(capply)
+S3method("[", cube)
+# from array
+S3method(as.data.table, array)
+# sample data
+export(populate_star)

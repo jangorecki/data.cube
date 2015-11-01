@@ -24,8 +24,10 @@ cb[,"2015",c("UK","IN")]
 
 # as.cube.list - investigate X to see structure
 X = populate_star(N=1e5, surrogate.keys = FALSE)
+lapply(X, sapply, ncol)
+lapply(X, sapply, nrow)
 cb = as.cube(X)
-cb
+print(cb)
 cb$keys
 
 # slice
@@ -36,8 +38,14 @@ cb["Mazda RX4",,"BTC"]
 cb[,, c("CNY","BTC"), c("GA","IA","AD")]
 
 # use dimensions hierarchy attributes for slice and dice, mix filters from various levels in hierarchy
-cb["Mazda RX4",,.(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
-cb[,,.(curr_type = "crypto"),.(geog_abb = c("AL","AK","CA"), geog_division_name = "Pacific")]
+cb["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+# same as above but more verbose
+cb$dims
+cb[product = "Mazda RX4",
+   customer = NULL,
+   currency = .(curr_type = "crypto"),
+   geography = NULL,
+   time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
 
 # lookup new columns without filter on them, use NULL
 cb[.(prod_cyl = 4L, prod_vs = 1L, prod_am = NULL),,, .(geog_abb = c("AL","TX","NV"), geog_division_name = NULL, geog_region_name = NULL)]

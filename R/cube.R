@@ -5,6 +5,7 @@ cube = R6Class(
         dims = character(),
         fact = character(),
         keys = character(),
+        measures = character(),
         nr = integer(),
         nc = integer(),
         mb = numeric(),
@@ -18,6 +19,7 @@ cube = R6Class(
             # - [ ] check: all dimensions keys must be of length 1L
             if(!all(single_key <- sapply(keycols, length)==1L)) stop(sprintf("Dimension tables must be keyed by single columns, preferably surrogate keys. This is not true for %s.", paste(self$dims[single_key], collapse=", ")))
             self$keys = unlist(keycols)
+            self$measures = self$fact[!self$fact %in% self$keys]
             # - [ ] check: keys to dimensions must exists in fact table
             if(!all(missing_key_col <- self$keys %in% names(fact[[self$fact]]))) stop(sprintf("Dimension key columns do not exists in fact table: %s.", paste(self$keys[missing_key_col], collapse=", ")))
             # - [ ] check: fact table is already sub-aggregated to all dimensions

@@ -1,3 +1,18 @@
+# Example dataset [RStudio CRAN logs of packages downloads](http://cran-logs.rstudio.com) from last 3 days aggregated into 3 artificial dimensions:  
+#     - *time* dimension, natural key: `date`
+# - *environment* dimension, client environment setup, natural keys: `r_version`, `arch`, `os`
+# - *package version* dimension, natural key: `package`, `version`
+
+# library(data.cube)
+# 
+# # download logs from last 3 days and build cube
+# source(system.file("cubes","cranlogs.R", package="data.cube"))
+# print(cranlogs)
+# 
+# # slice dice
+# pkgs = c("RSQLite", "RPostgreSQL", "RMySQL", "ROracle", "RODBC", "RJDBC", "RSQLServer")
+# cranlogs[,,.(package = pkgs)]
+
 library(data.table)
 library(data.cube)
 

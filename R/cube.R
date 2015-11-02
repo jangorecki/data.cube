@@ -16,14 +16,14 @@ cube = R6Class(
             self$dims = names(dims)
             self$fact = names(fact)
             keycols = lapply(setNames(dims, self$dims), key)
-            # - [ ] check: all dimensions keys must be of length 1L
+            # - [x] check: all dimensions keys must be of length 1L
             if(!all(single_key <- sapply(keycols, length)==1L)) stop(sprintf("Dimension tables must be keyed by single columns, preferably surrogate keys. This is not true for %s.", paste(self$dims[single_key], collapse=", ")))
             self$keys = unlist(keycols)
             fact_col_names = names(fact[[self$fact]])
             self$measures = fact_col_names[!fact_col_names %in% self$keys]
-            # - [ ] check: keys to dimensions must exists in fact table
+            # - [x] check: keys to dimensions must exists in fact table
             if(!all(missing_key_col <- self$keys %in% fact_col_names)) stop(sprintf("Dimension key columns do not exists in fact table: %s.", paste(self$keys[missing_key_col], collapse=", ")))
-            # - [ ] check: fact table is already sub-aggregated to all dimensions
+            # - [x] check: fact table is already sub-aggregated to all dimensions
             if(fact[[self$fact]][, .(count = .N), c(self$keys)][, any(count > 1L)]){
                 if(missing(aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate` argument is missing. Sub-aggregated your fact table or provide aggregate function."))
                 if(!is.function(aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate` argument is not a function. Sub-aggregated your fact table or provide aggregate function."))
@@ -81,7 +81,7 @@ cube = R6Class(
             if(any(cols_missing)) stop(sprintf("Field used in subset does not exists in dimensions %s.", paste(names(cols_missing)[cols_missing], collapse=", ")))
             # - [x] categorize filters into fact-filters and dimension-filters
             fact_filter = sapply(args, function(x) !is.list(x) && length(x))
-            dim_filter = sapply(args, function(x) (is.list(x) && length(x)) || is.null(x))
+            dim_filter = sapply(args, function(x) is.list(x))
             # - [x] check if binary search possible, only leading fact filters
             if(isTRUE(fact_filter[[1L]])){
                 # data.table#1419 workaround, fixed in 1.9.7
@@ -212,7 +212,9 @@ as.cube.data.table = function(x, fact, dims, aggregate = sum, ...){
 as.array.cube = function(x, measure){
     if(missing(measure)) measure = x$measures[1L]
     dimnms = lapply(setNames(x$dims, x$dims), function(dim) as.character(x$db[[dim]][[1L]]))
-    array(data = x$db[[x$fact]][do.call(CJ, dimnms), eval(as.name(measure))],
+    r = do.call(CJ, dimnms)
+    r = setkeyv(r, rev(names(r)))[]
+    array(data = x$db[[x$fact]][r, eval(as.name(measure)), on = c(key(r))],
           dim = sapply(dimnms, length),
           dimnames = dimnms)
 }

@@ -66,10 +66,26 @@ cb["green",, c("active","inactive")]
 library(data.cube)
 set.seed(1L)
 
-cb = as.cube(populate_star(1e4))
+X = populate_star(1e5)
+lapply(X, sapply, ncol)
+lapply(X, sapply, nrow)
+cb = as.cube(X)
 
 # slice and dice on dimension hierarchy
-cb
+cb["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+cb$dims
+cb[product = "Mazda RX4",
+   customer = NULL,
+   currency = .(curr_type = "crypto"),
+   geography = NULL,
+   time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+
+# lookup columns and whole dimensions while subset
+cb[,
+   .(cust_hair = c("Black","Blond"), cust_sex = NULL), # filter and lookup column without filter
+   .(NULL), # lookup whole dimension
+   ,
+   .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
 
 # rollup, drilldown and pivot on dimension hierarchy
 # capply
@@ -79,12 +95,14 @@ cb$denormalize()
 
 # out
 sr = as.list(cb)
-dt = as.data.table(cb)
-ar = as.array(cb)
+dt = as.data.table(cb) # wraps to cb$denormalize
+#ar = as.array(cb) # array not scale in memory, have process manager at hand
 
 # in
+#as.cube(ar)
 as.cube(sr)
 dim_cols = lapply(setNames(cb$dims, cb$dims), function(dim) names(cb$db[[dim]]))
+print(dim_cols)
 as.cube(dt, fact = "sales", dims = dim_cols)
 ```
 
@@ -94,7 +112,10 @@ as.cube(dt, fact = "sales", dims = dim_cols)
 library(data.cube)
 set.seed(1L)
 
-cb = as.cube(populate_star(1e4))
+cb = as.cube(populate_star(1e5))
+
+# use crossdim to see how long array would need to be for single measure
+cb$crossdim
 
 # binary search, index
 options("datatable.verbose" = TRUE)

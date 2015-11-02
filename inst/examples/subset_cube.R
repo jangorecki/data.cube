@@ -62,7 +62,7 @@ cb[.(),,] # cb[,,]
 cb[,,, .(geog_abb = c("AL","TX","NV"), geog_division_name = NULL, geog_region_name = NULL)
    ][, .N, .(geog_region_name, geog_division_name)]
 
-# estimated size of memory required to store an base R `array` for single measure
+# estimated size of memory required to store an base R `array` for single numeric measure in amount of 100k
 sprintf("array: %.2f GB", (prod(cb$nr[cb$dims]) * 8)/(1024^3))
 # `cube` object with multiple measures, 
 sprintf("cube: %.2f GB", sum(cb$mb)/1024)

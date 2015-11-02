@@ -32,7 +32,84 @@ install.packages("data.cube", repos = paste0("https://",
 
 # Usage
 
+## Basics
+
 ```r
 library(data.cube)
-# array-data.cube example
+set.seed(1L)
+
+dimnames = list(color = sort(c("green","yellow","red")), 
+                year = 2011:2015, 
+                status = sort(c("active","inactive","archived","removed")))
+ar = array(sample(c(rep(NA, 4), 4:7/2), prod(sapply(dimnames, length)), TRUE), 
+           sapply(dimnames, length), 
+           dimnames)
+print(ar)
+
+cb = as.cube(ar)
+print(cb)
+ar2 = as.array(cb)
+all.equal(ar, ar2)
+
+# slice and dice using array syntax
+ar["green",, c("active","inactive")]
+cb["green",, c("active","inactive")]
+
+# rollup, drilldown and pivot using array syntax
+# apply()
+# capply()
 ```
+
+## Extensions to array
+
+```r
+library(data.cube)
+set.seed(1L)
+
+cb = as.cube(populate_star(1e4))
+
+# slice and dice on dimension hierarchy
+cb
+
+# rollup, drilldown and pivot on dimension hierarchy
+# capply
+
+# denormalize
+cb$denormalize()
+
+# out
+sr = as.list(cb)
+dt = as.data.table(cb)
+ar = as.array(cb)
+
+# in
+as.cube(sr)
+dim_cols = lapply(setNames(cb$dims, cb$dims), function(dim) names(cb$db[[dim]]))
+as.cube(dt, fact = "sales", dims = dim_cols)
+```
+
+## Advanced
+
+```r
+library(data.cube)
+set.seed(1L)
+
+cb = as.cube(populate_star(1e4))
+
+# binary search, index
+options("datatable.verbose" = TRUE)
+cb["Mazda RX4", c("1","6"), c("AZN","SEK")] # binary search
+cb["Mazda RX4",, c("AZN","SEK")] # binary search + vector scan/index
+cb["Mazda RX4",, .(curr_type = c("fiat","crypto"))] # lookup to currency hierarchy
+# set2keyv(cb$db$time, "time_year") # uncomment after data.table#1422
+# cb["Mazda RX4",, .(curr_type = c("fiat","crypto"))]
+options("datatable.verbose" = FALSE)
+
+# shared dimensions
+
+```
+
+
+# Contact
+
+`j.gorecki@wit.edu.pl`

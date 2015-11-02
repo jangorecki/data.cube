@@ -9,7 +9,7 @@ cube = R6Class(
         nr = integer(),
         nc = integer(),
         mb = numeric(),
-        initialize = function(fact, dims, aggregate, db, ...){
+        initialize = function(fact, dims, aggregate.fun, db, ...){
             stopifnot(is.list(fact), length(fact)==1L)
             if(!missing(db)) stopifnot(is.environment(db)) else db = new.env(parent = topenv())
             self$db = db
@@ -25,10 +25,10 @@ cube = R6Class(
             if(!all(missing_key_col <- self$keys %in% fact_col_names)) stop(sprintf("Dimension key columns do not exists in fact table: %s.", paste(self$keys[missing_key_col], collapse=", ")))
             # - [x] check: fact table is already sub-aggregated to all dimensions
             if(fact[[self$fact]][, .(count = .N), c(self$keys)][, any(count > 1L)]){
-                if(missing(aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate` argument is missing. Sub-aggregated your fact table or provide aggregate function."))
-                if(!is.function(aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate` argument is not a function. Sub-aggregated your fact table or provide aggregate function."))
+                if(missing(aggregate.fun)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate.fun` argument is missing. Sub-aggregated your fact table or provide aggregate function."))
+                if(!is.function(aggregate.fun)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate.fun` argument is not a function. Sub-aggregated your fact table or provide aggregate function."))
                 # - [x] sub-aggregate fact table
-                fact[[self$fact]] = fact[[self$fact]][, lapply(.SD, aggregate, ...), c(self$keys)]
+                fact[[self$fact]] = fact[[self$fact]][, lapply(.SD, aggregate.fun, ...), c(self$keys)]
             }
             self$db[[self$fact]] = fact[[self$fact]]
             setkeyv(self$db[[self$fact]], unname(self$keys))
@@ -91,7 +91,7 @@ cube = R6Class(
                 names(fact_filter) = nm
                 # workaround end
                 # - [x] do binary search for key-leading cols for fact-filters
-                r = self$db[[self$fact]][i = args[binsearch_cols], nomatch = 0L]
+                r = self$db[[self$fact]][i = do.call(CJ, args[binsearch_cols]), nomatch = 0L]
                 completed_binsearch = names(binsearch_cols)[binsearch_cols]
             } else completed_binsearch = character()
             # - [x] fact-filter after the gap as vector scans
@@ -193,18 +193,21 @@ as.cube.array = function(x, fact, dims, na.rm=TRUE, ...){
              dims = lapply(dim_cols, function(dim_col) setDT(setNames(list(unique(dt[[dim_col]])), dim_col), key = dim_col)))
 }
 
-as.cube.list = function(x, aggregate, ...){
+as.cube.list = function(x, aggregate.fun, ...){
     stopifnot(is.list(x), all(c("fact","dims") %in% names(x)))
-    cube$new(fact = x$fact, dims = x$dims, aggregate = aggregate)
+    cube$new(fact = x$fact, 
+             dims = x$dims, 
+             aggregate.fun = aggregate.fun,
+             ... = ...)
 }
 
-as.cube.data.table = function(x, fact, dims, aggregate = sum, ...){
-    stopifnot(is.data.table(x), is.character(fact), is.list(dims), length(dims), length(names(dims))==uniqueN(names(dims)), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(aggregate))
+as.cube.data.table = function(x, fact, dims, aggregate.fun = sum, ...){
+    stopifnot(is.data.table(x), is.character(fact), is.list(dims), as.logical(length(dims)), length(names(dims))==length(unique(names(dims))), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(aggregate.fun))
     fact_cols = c(sapply(dims, `[`, 1L), names(x)[!names(x) %in% unlist(dims)])
     cube$new(fact = setNames(list(x[, fact_cols, with=FALSE]), fact),
-             dims = lapply(dims, function(cols) x[, cols, with=FALSE]),
-             aggregate = aggregate,
-             ...)
+             dims = lapply(dims, function(cols) setkeyv(x[, unique(.SD), .SDcols = c(cols)], cols[1L])),
+             aggregate.fun = aggregate.fun,
+             ... = ...)
 }
 
 # as.others.cube ----------------------------------------------------------
@@ -224,7 +227,7 @@ as.data.table.cube = function(x){
 }
 
 as.list.cube = function(x){
-    list(fact = x$db[[x$fact]], dims = lapply(setNames(x$dims, x$dims), function(dim) x$db[[dim]]))
+    list(fact = setNames(list(x$db[[x$fact]]), "fact"), dims = lapply(setNames(x$dims, x$dims), function(dim) x$db[[dim]]))
 }
 
 # capply ------------------------------------------------------------------

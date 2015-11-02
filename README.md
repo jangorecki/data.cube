@@ -6,9 +6,9 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
 - [x] scalable multidimensional `array` alternative, data normalized to star schema
 - [x] uses [data.table](https://github.com/Rdatatable/data.table) under the hood
 - [x] base R `array` like API, see [olap-operation-r](https://dzone.com/articles/olap-operation-r) and [r-script](https://gist.github.com/jangorecki/4aa6218b6011360338f2)
-  - [x] `[.cube` uses base R `[.array` method API for *slice* and *dice*, see [tests/subset_cube.R](tests/subset_cube.R)
+  - [x] `[.cube` uses base R `[.array` method API for *slice* and *dice*, see [inst/examples/subset_cube.R](inst/examples/subset_cube.R)
   - [ ] `capply`/`aggregate.cube` uses base R `apply` function API for *rollup*, *drilldown* and *pivot*
-- [x] base R `array` API is extended by accepting named list instead of vectors, see [tests/subset_cube.R](tests/subset_cube.R)
+- [x] base R `array` API is extended by accepting named list instead of vectors, see [inst/examples/subset_cube.R](inst/examples/subset_cube.R)
   - [x] slice and dice on multiple attributes from dimensions and hierarchies
   - [ ] rollup, drilldown and pivot on multiple attributes from dimensions and hierarchies
   - [x] NULL list elements in `[` to lookup column without filter

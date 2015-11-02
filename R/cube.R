@@ -9,6 +9,7 @@ cube = R6Class(
         nr = integer(),
         nc = integer(),
         mb = numeric(),
+        crossdim = numeric(), # should be big int
         initialize = function(fact, dims, aggregate.fun, db, ...){
             stopifnot(is.list(fact), length(fact)==1L)
             if(!missing(db)) stopifnot(is.environment(db)) else db = new.env(parent = topenv())
@@ -47,8 +48,8 @@ cube = R6Class(
             })
             self$nr = sapply(c(self$fact, self$dims), function(tbl) nrow(self$db[[tbl]]))
             self$nc = sapply(c(self$fact, self$dims), function(tbl) ncol(self$db[[tbl]]))
-            #if(any(self$nc < 2L)) stop("Each table must have at least 2 columns.")
             self$mb = sapply(c(self$fact, self$dims), function(tbl) as.numeric(object.size(self$db[[tbl]]))/1024/1024)
+            self$crossdim = prod(self$nr[self$dims])
             invisible(self)
         },
         print = function(){

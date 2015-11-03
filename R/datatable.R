@@ -5,3 +5,12 @@ as.data.table.array = function(x, na.rm=TRUE){
     if(na.rm) r = r[!is.na(value)]
     r
 }
+
+as.array.data.table = function(x, dimnames, measure){
+    stopifnot(is.list(dimnames), !is.null(names(dimnames)), length(names(dimnames))==length(unique(names(dimnames))), all(sapply(dimnames, is.character)), all(sapply(dimnames, length)), is.character(measure))
+    revkey = rev(names(dimnames))
+    crossdims = quote(setkeyv(do.call(CJ, dimnames), revkey))
+    array(data = x[eval(crossdims), eval(as.name(measure)), on = c(revkey)],
+          dim = sapply(dimnames, length),
+          dimnames = dimnames)
+}

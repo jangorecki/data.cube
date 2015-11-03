@@ -216,11 +216,7 @@ as.cube.data.table = function(x, fact, dims, aggregate.fun = sum, ...){
 as.array.cube = function(x, measure){
     if(missing(measure)) measure = x$measures[1L]
     dimnms = lapply(setNames(x$dims, x$dims), function(dim) as.character(x$db[[dim]][[1L]]))
-    r = do.call(CJ, dimnms)
-    r = setkeyv(r, rev(names(r)))[]
-    array(data = x$db[[x$fact]][r, eval(as.name(measure)), on = c(key(r))],
-          dim = sapply(dimnms, length),
-          dimnames = dimnms)
+    as.array(x = x$db[[x$fact]], dimnames = dimnms, measure = measure)
 }
 
 as.data.table.cube = function(x){
@@ -240,6 +236,15 @@ capply = aggregate.cube = function(x, MARGIN, FUN, ...){
 
 # `[.cube` ----------------------------------------------------------------
 
-"[.cube" = function(x, ...){
-    x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
+#' @title subset cube
+#' @param x cube object
+#' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy
+#' @param drop logical default TRUE. FALSE not yet implemented.
+#' @return When *drop* arg is TRUE then tabular results as *data.table* object, if *drop* is FALSE then *cube* object is returned.
+"[.cube" = function(x, ..., drop = TRUE){
+    if(isTRUE(drop)){
+        x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
+    } else {
+        stop("drop FALSE not yet implemented.")
+    }
 }

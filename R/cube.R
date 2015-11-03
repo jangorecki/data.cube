@@ -9,7 +9,7 @@ cube = R6Class(
         nr = integer(),
         nc = integer(),
         mb = numeric(),
-        crossdim = numeric(), # should be big int
+        dim = integer(),
         initialize = function(fact, dims, aggregate.fun, db, ...){
             stopifnot(is.list(fact), length(fact)==1L)
             if(!missing(db)) stopifnot(is.environment(db)) else db = new.env(parent = topenv())
@@ -25,7 +25,7 @@ cube = R6Class(
             # - [x] check: keys to dimensions must exists in fact table
             if(!all(missing_key_col <- self$keys %in% fact_col_names)) stop(sprintf("Dimension key columns do not exists in fact table: %s.", paste(self$keys[missing_key_col], collapse=", ")))
             # - [x] check: fact table is already sub-aggregated to all dimensions
-            if(fact[[self$fact]][, .(count = .N), c(self$keys)][, any(count > 1L)]){
+            if(!is.unique.data.table(fact[[self$fact]])){
                 if(missing(aggregate.fun)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate.fun` argument is missing. Sub-aggregated your fact table or provide aggregate function."))
                 if(!is.function(aggregate.fun)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate.fun` argument is not a function. Sub-aggregated your fact table or provide aggregate function."))
                 # - [x] sub-aggregate fact table
@@ -33,6 +33,7 @@ cube = R6Class(
             }
             self$db[[self$fact]] = fact[[self$fact]]
             setkeyv(self$db[[self$fact]], unname(self$keys))
+            # dimensions
             lapply(self$dims, function(dim){
                 if(is.null(dims[[dim]])){
                     if(missing(db)) stop("Dimensions can be NULL only if they exists in db environment already which has not been provided as `db` argument.")
@@ -42,14 +43,15 @@ cube = R6Class(
                     if(!(dim_key <- key(self$db[[dim]])) %in% self$keys) stop(sprintf("You are trying to reuse dimension %s which key column does not exists in fact table.", dim))
                     if(!identical(class(self$db[[dim]][[dim_key]]), class(self$db[[self$fact]][[dim_key]]))) stop(sprintf("You are trying to reuse dimension %s which key column class is not identical to same column in fact table.", dim))
                 } else {
+                    if(!is.unique.data.table(dims[[dim]])) stop(sprintf("Provided dimension %s has key which is not unique. Use your uid as first column and setkey on it."))
                     self$db[[dim]] = dims[[dim]]
                 }
                 invisible(TRUE)
             })
             self$nr = sapply(c(self$fact, self$dims), function(tbl) nrow(self$db[[tbl]]))
             self$nc = sapply(c(self$fact, self$dims), function(tbl) ncol(self$db[[tbl]]))
-            self$mb = sapply(c(self$fact, self$dims), function(tbl) as.numeric(object.size(self$db[[tbl]]))/1024/1024)
-            self$crossdim = prod(self$nr[self$dims])
+            self$mb = sapply(c(self$fact, self$dims), function(tbl) as.numeric(object.size(self$db[[tbl]]))/(1024^2))
+            self$dim = self$nr[self$dims]
             invisible(self)
         },
         print = function(){
@@ -242,9 +244,14 @@ capply = aggregate.cube = function(x, MARGIN, FUN, ...){
 #' @param drop logical default TRUE. FALSE not yet implemented.
 #' @return When *drop* arg is TRUE then tabular results as *data.table* object, if *drop* is FALSE then *cube* object is returned.
 "[.cube" = function(x, ..., drop = TRUE){
+    if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
     if(isTRUE(drop)){
         x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
     } else {
         stop("drop FALSE not yet implemented.")
     }
+}
+
+dim.cube = function(x){
+    x$dim
 }

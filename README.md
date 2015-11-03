@@ -116,8 +116,8 @@ set.seed(1L)
 
 cb = as.cube(populate_star(1e5))
 
-# use crossdim to see how long array would need to be for single measure
-cb$crossdim
+# use dim attribute to see how long array would need to be for single measure
+prod(dim(cb))
 
 # binary search, index
 options("datatable.verbose" = TRUE)

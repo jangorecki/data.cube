@@ -11,10 +11,12 @@ S3method(as.cube, data.table)
 export(cube)
 export(capply)
 S3method("[", cube)
+S3method(dim, cube)
 # from cube
 S3method(as.data.table, cube)
 S3method(as.list, cube)
 S3method(as.array, cube)
 # others
 S3method(as.data.table, array)
+S3method(as.array, data.table)
 export(populate_star)

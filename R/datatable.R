@@ -14,3 +14,7 @@ as.array.data.table = function(x, dimnames, measure){
           dim = sapply(dimnames, length),
           dimnames = dimnames)
 }
+
+is.unique.data.table = function(x, by = key(x)){
+    nrow(x)==nrow(unique(x, by = by))
+}

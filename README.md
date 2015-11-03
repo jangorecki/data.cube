@@ -39,7 +39,7 @@ library(data.cube)
 set.seed(1L)
 
 dimnames = list(color = sort(c("green","yellow","red")), 
-                year = 2011:2015, 
+                year = as.character(2011:2015), 
                 status = sort(c("active","inactive","archived","removed")))
 ar = array(sample(c(rep(NA, 4), 4:7/2), prod(sapply(dimnames, length)), TRUE), 
            sapply(dimnames, length), 
@@ -52,6 +52,8 @@ ar2 = as.array(cb)
 all.equal(ar, ar2)
 
 # slice and dice using array syntax
+ar["green","2015","active"]
+cb["green","2015","active"]
 ar["green",, c("active","inactive")]
 cb["green",, c("active","inactive")]
 

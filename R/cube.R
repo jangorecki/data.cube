@@ -10,6 +10,7 @@ cube = R6Class(
         nc = integer(),
         mb = numeric(),
         dim = integer(),
+        dimcolnames = list(),
         initialize = function(fact, dims, aggregate.fun, db, ...){
             stopifnot(is.list(fact), length(fact)==1L)
             if(!missing(db)) stopifnot(is.environment(db)) else db = new.env(parent = topenv())
@@ -52,6 +53,7 @@ cube = R6Class(
             self$nc = sapply(c(self$fact, self$dims), function(tbl) ncol(self$db[[tbl]]))
             self$mb = sapply(c(self$fact, self$dims), function(tbl) as.numeric(object.size(self$db[[tbl]]))/(1024^2))
             self$dim = self$nr[self$dims]
+            self$dimcolnames = lapply(setNames(self$dims, self$dims), function(dim) names(self$db[[dim]]))
             invisible(self)
         },
         print = function(){

@@ -23,7 +23,7 @@ cb[,"2015",c("UK","IN")]
 # subset cube -------------------------------------------------------------
 
 # as.cube.list - investigate X to see structure
-X = populate_star(N=1e5, surrogate.keys = FALSE)
+X = populate_star(N=1e5)
 lapply(X, sapply, ncol)
 lapply(X, sapply, nrow)
 cb = as.cube(X)

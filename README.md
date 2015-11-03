@@ -97,15 +97,15 @@ cb$denormalize()
 
 # out
 sr = as.list(cb)
-dt = as.data.table(cb) # wraps to cb$denormalize
+dt = data.table::as.data.table(cb) # wraps to cb$denormalize
 #ar = as.array(cb) # array not scale in memory, have process manager at hand
 
 # in
 #as.cube(ar)
 as.cube(sr)
-dim_cols = lapply(setNames(cb$dims, cb$dims), function(dim) names(cb$db[[dim]]))
-print(dim_cols)
-as.cube(dt, fact = "sales", dims = dim_cols)
+dimcolnames = cb$dimcolnames
+print(dimcolnames)
+as.cube(dt, fact = "sales", dims = dimcolnames)
 ```
 
 ## Advanced

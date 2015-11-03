@@ -17,9 +17,12 @@ cube = R6Class(
             self$db = db
             self$dims = names(dims)
             self$fact = names(fact)
-            keycols = lapply(setNames(dims, self$dims), key)
+            keycols = lapply(setNames(dims, self$dims), function(x){
+                if(!haskey(x)) setkeyv(x, names(x)[1L])
+                key(x)
+            })
             # - [x] check: all dimensions keys must be of length 1L
-            if(!all(single_key <- sapply(keycols, length)==1L)) stop(sprintf("Dimension tables must be keyed by single columns, preferably surrogate keys. This is not true for %s.", paste(self$dims[single_key], collapse=", ")))
+            if(!all(single_key <- sapply(keycols, length)==1L)) stop(sprintf("Dimension tables must be keyed by single columns, preferably surrogate keys. This is not true for: %s.", paste(self$dims[!single_key], collapse=", ")))
             self$keys = unlist(keycols)
             fact_col_names = names(fact[[self$fact]])
             self$measures = fact_col_names[!fact_col_names %in% self$keys]
@@ -44,7 +47,7 @@ cube = R6Class(
                     if(!(dim_key <- key(self$db[[dim]])) %in% self$keys) stop(sprintf("You are trying to reuse dimension %s which key column does not exists in fact table.", dim))
                     if(!identical(class(self$db[[dim]][[dim_key]]), class(self$db[[self$fact]][[dim_key]]))) stop(sprintf("You are trying to reuse dimension %s which key column class is not identical to same column in fact table.", dim))
                 } else {
-                    if(!is.unique.data.table(dims[[dim]])) stop(sprintf("Provided dimension %s has key which is not unique. Use your uid as first column and setkey on it."))
+                    if(!is.unique.data.table(dims[[dim]])) stop(sprintf("Provided dimension %s has key which is not unique. Use your uid as first column and setkey on it.", dim))
                     self$db[[dim]] = dims[[dim]]
                 }
                 invisible(TRUE)
@@ -135,6 +138,7 @@ cube = R6Class(
             }
             # - [x] reorder returned columns to match dimensions sequence in cube object
             setcolorder(r, c(unlist(completed), self$measures))
+            setkeyv(r, unname(sapply(completed, `[`, 1L)))
             return(r)
         },
         apply = function(MARGIN, FUN, ...){
@@ -170,6 +174,11 @@ cube = R6Class(
         },
         denormalize = function(){
             self$subset(.dots = lapply(self$dims, function(x) list(NULL)))
+        },
+        dimspace = function(drop=TRUE){
+            lapply(setNames(self$dims, self$dims), function(dim){
+                if(drop) self$db[[dim]][[1L]] else if(!drop) self$db[[dim]][, 1L, with=FALSE] else stop("dimspace method allows `drop` arg to be TRUE or FALSE.")
+            })
         }
     )
 )
@@ -206,7 +215,7 @@ as.cube.list = function(x, aggregate.fun, ...){
              ... = ...)
 }
 
-as.cube.data.table = function(x, fact, dims, aggregate.fun = sum, ...){
+as.cube.data.table = function(x, fact = "fact", dims, aggregate.fun = sum, ...){
     stopifnot(is.data.table(x), is.character(fact), is.list(dims), as.logical(length(dims)), length(names(dims))==length(unique(names(dims))), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(aggregate.fun))
     fact_cols = c(sapply(dims, `[`, 1L), names(x)[!names(x) %in% unlist(dims)])
     cube$new(fact = setNames(list(x[, fact_cols, with=FALSE]), fact),
@@ -217,17 +226,16 @@ as.cube.data.table = function(x, fact, dims, aggregate.fun = sum, ...){
 
 # as.others.cube ----------------------------------------------------------
 
-as.array.cube = function(x, measure){
+as.array.cube = function(x, measure, ...){
     if(missing(measure)) measure = x$measures[1L]
-    dimnms = lapply(setNames(x$dims, x$dims), function(dim) as.character(x$db[[dim]][[1L]]))
-    as.array(x = x$db[[x$fact]], dimnames = dimnms, measure = measure)
+    as.array(x = x$db[[x$fact]], dimnames = x$dimspace(), measure = measure)
 }
 
 as.data.table.cube = function(x){
     x$denormalize()
 }
 
-as.list.cube = function(x){
+as.list.cube = function(x, ...){
     list(fact = setNames(list(x$db[[x$fact]]), "fact"), dims = lapply(setNames(x$dims, x$dims), function(dim) x$db[[dim]]))
 }
 

@@ -65,6 +65,7 @@ cb["green",, c("active","inactive")]
 ## Extensions to array
 
 ```r
+library(data.table)
 library(data.cube)
 set.seed(1L)
 
@@ -96,13 +97,13 @@ cb[,
 cb$denormalize()
 
 # out
-sr = as.list(cb)
-dt = data.table::as.data.table(cb) # wraps to cb$denormalize
+X = as.list(cb)
+dt = as.data.table(cb) # wraps to cb$denormalize
 #ar = as.array(cb) # array not scale in memory, have process manager at hand
 
 # in
 #as.cube(ar)
-as.cube(sr)
+as.cube(X)
 dimcolnames = cb$dimcolnames
 print(dimcolnames)
 as.cube(dt, fact = "sales", dims = dimcolnames)

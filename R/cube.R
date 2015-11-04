@@ -401,9 +401,7 @@ as.array.cube = function(x, measure, ...){
 
 as.data.table.cube = function(x, na.fill = FALSE, dcast = FALSE, ...){
     r = x$denormalize(na.fill = na.fill)
-    if(isTRUE(dcast)){
-        dcast.data.table(r, ...)
-    } else r
+    if(isTRUE(dcast)) dcast.data.table(r, ...) else r
 }
 
 as.list.cube = function(x, fact = "fact", ...){

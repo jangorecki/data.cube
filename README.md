@@ -64,7 +64,8 @@ ar["green",, c("active","inactive")]
 r = cb["green",, c("active","inactive")]
 as.array(r)
 as.data.table(r)
-as.data.table(r, na.fill=TRUE)
+as.data.table(r, na.fill = TRUE)
+as.data.table(r, na.fill = TRUE, dcast = TRUE, formula = year ~ status)
 
 # rollup, drilldown and pivot using array syntax
 # apply()

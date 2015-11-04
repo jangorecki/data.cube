@@ -1,4 +1,6 @@
 image: jangorecki/r-base-dev
+before_script:
+  - Rscript -e 'install.packages(c("R6","data.table"), repos="https://cran.rstudio.com")'
 test:
   script:
     - R CMD build . --no-build-vignettes --no-manual

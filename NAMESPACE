@@ -11,6 +11,7 @@ S3method(as.cube, data.table)
 export(cube)
 export(capply)
 S3method("[", cube)
+S3method("[[", cube)
 S3method(dim, cube)
 # from cube
 S3method(as.data.table, cube)

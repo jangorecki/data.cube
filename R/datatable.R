@@ -15,7 +15,7 @@ as.array.data.table = function(x, dimnames, measure, ...){
     stopifnot(is.character(measure), length(measure)==1L)
     crossdims = quote(setkeyv(do.call(CJ, dimnames), revkey))
     array(data = x[eval(crossdims), eval(as.name(measure)), on = c(revkey)],
-          dim = sapply(dimnames, length),
+          dim = unname(sapply(dimnames, length)),
           dimnames = dimnames)
 }
 

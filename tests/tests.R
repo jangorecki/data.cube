@@ -49,11 +49,8 @@ stopifnot(
 # subset drop argument
 stopifnot(
     all.equal(as.array(cb["green",drop=FALSE]), ar["green",,,drop=FALSE])
+    , all.equal(as.array(cb["green",drop=TRUE]), ar["green",,,drop=TRUE])
 )
-
-# remove drop of dim keys?
-# as.data.table(as.array(cb["green",drop=FALSE]))
-# ar["green",,,drop=TRUE]
 
 # subset using list to refer hierarchies
 

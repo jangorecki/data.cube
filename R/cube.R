@@ -197,7 +197,7 @@ cube = R6Class(
             # - [x] iterate over dimensions - cleaner than mapply
             dim.env = new.env()
             for(dim in self$dims){
-                if(getOption("datacube.verbose", TRUE)) cat(sprintf("data.cube: Filtering dimension '%s'.\n", dim))
+                if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: Filtering dimension '%s'.\n", dim))
                 # dimensions are not automatically dropped at that point
                 qi = filter[[dim]]
                 qj = as.call(lapply(c("list", select[[dim]]), as.symbol)) # .SD made locked result so building `j` manually
@@ -229,30 +229,37 @@ cube = R6Class(
             # - [x] return cube with all dimensions filtered
             as.cube(x = list(), fact = setNames(list(if(is.null(r)) copy(self$db[[self$fact]]) else r), self$fact), dims = as.list(dim.env)[self$dims])
         },
-        drop = function(){
+        drop = function(drop=1L){
             # Direct access to cube object method by `$drop()` should not be used on cubes that shares dimensions, still you can use drop on `[.cube` subset safety
-            # - [x] drop dimensions where cardinality = 1
-            cardinality =  self$db[[self$fact]][, lapply(.SD, uniqueN), .SDcols = c(self$keys)]
-            dims_to_drop = sapply(cardinality, `==`, 1L)
-            self$dims = self$dims[!self$dims %in% names(dims_to_drop)[dims_to_drop]]
-            rm(envir = self$db, list = names(dims_to_drop)[dims_to_drop])
-            self$keys = sapply(self$dims, function(dim) key(self$db[[dim]]))
-            self$nc = self$nc[c(self$fact, self$dims)]
-            self$mb = self$mb[c(self$fact, self$dims)]
-            # - [x] drop dimension members not present in fact table
-            dim_keys_to_drop = sapply(self$dims, function(dim) self$nr[[dim]] > cardinality[[dim]])
-            if(any(dim_keys_to_drop)){
-                sapply(names(dim_keys_to_drop)[dim_keys_to_drop],
-                       function(dim){
-                           self$db[[dim]] = self$db[[dim]][.(unique(self$db[[self$fact]][[self$keys[[dim]]]]))]
-                           setkeyv(self$db[[dim]], self$keys[[dim]])
-                           self$nr[[dim]] = nrow(self$db[[dim]])
-                           self$mb[[dim]] = as.numeric(object.size(self$db[[dim]]))/(1024^2)
-                           TRUE
-                       })
+            if(drop >= 1L){
+                # - [x] drop dimensions where cardinality = 1
+                cardinality =  self$db[[self$fact]][, lapply(.SD, uniqueN), .SDcols = c(self$keys)]
+                dims_to_drop = sapply(cardinality, `==`, 1L)
+                self$dims = self$dims[!self$dims %in% names(dims_to_drop)[dims_to_drop]]
+                rm(envir = self$db, list = names(dims_to_drop)[dims_to_drop])
+                self$keys = sapply(self$dims, function(dim) key(self$db[[dim]]))
+                self$nr = self$nr[c(self$fact, self$dims)]
+                self$nc = self$nc[c(self$fact, self$dims)]
+                self$mb = self$mb[c(self$fact, self$dims)]
             }
-            self$dim = self$nr[self$dims]
-            self$dimcolnames = self$dimcolnames[self$dims]
+            if(drop >= 2L){
+                # - [x] drop dimension members not present in fact table
+                dim_keys_to_drop = sapply(self$dims, function(dim) self$nr[[dim]] > cardinality[[dim]])
+                if(any(dim_keys_to_drop)){
+                    sapply(names(dim_keys_to_drop)[dim_keys_to_drop],
+                           function(dim){
+                               self$db[[dim]] = self$db[[dim]][.(unique(self$db[[self$fact]][[self$keys[[dim]]]]))]
+                               setkeyv(self$db[[dim]], self$keys[[dim]])
+                               self$nr[[dim]] = nrow(self$db[[dim]])
+                               self$mb[[dim]] = as.numeric(object.size(self$db[[dim]]))/(1024^2)
+                               TRUE
+                           })
+                }
+            }
+            if(drop >= 1L){
+                self$dim = self$nr[self$dims]
+                self$dimcolnames = self$dimcolnames[self$dims]
+            }
             self
         },
         apply = function(MARGIN, FUN, ...){

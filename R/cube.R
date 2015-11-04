@@ -76,14 +76,15 @@ cube = R6Class(
         print = function(){
             prnt = character()
             prnt["head"] = "<cube>"
-            prnt["tbls"] = sprintf("fact:\n  %s %s rows (%.2f MB)\ndims:\n%s",self$fact, self$nr[self$fact], self$mb[[self$fact]], paste(paste(" ",self$dims, self$nr[self$dims], "rows",sprintf("(%.2f MB)", self$mb[self$dims])), collapse="\n"))
+            prnt["fact"] = sprintf("fact:\n  %s %s rows (%.2f MB)", self$fact, self$nr[self$fact], self$mb[[self$fact]])
+            if(length(self$dims)) prnt["dims"] = sprintf("dims:\n%s", paste(paste(" ",self$dims, self$nr[self$dims], "rows",sprintf("(%.2f MB)", self$mb[self$dims])), collapse="\n"))
             prnt["size"] = sprintf("total size: %.2f MB", sum(self$mb))
             cat(prnt, sep="\n")
         },
-        join = function(x, dim, cols){
+        lookup = function(x, dim, cols){
             x[self$db[[dim]],
               (cols) := mget(paste0("i.", cols)),
-              on = c(key(self$db[[dim]]))]
+              on = c(self$keys[[dim]])]
         },
         extract = function(..., .dots){
             # - [x] catch dots, preprocess, evaluate
@@ -206,8 +207,9 @@ cube = R6Class(
             }
             # - [x] check if binary search possible, only leading fact filters
             fact_filter = !sapply(filter, is.null)
-            r = NULL
-            if(isTRUE(fact_filter[[1L]])){
+            null_subset = any(sapply(filter, identical, 0L))
+            r = if(null_subset) self$db[[self$fact]][0L] else NULL
+            if(!null_subset & isTRUE(fact_filter[[1L]])){
                 # data.table#1419 workaround, fixed in 1.9.7
                 nm = names(fact_filter)
                 binarysearch_dims = rleid(fact_filter)==1L
@@ -216,11 +218,12 @@ cube = R6Class(
                 # workaround end
                 # - [x] do binary search for key-leading cols for fact-filters
                 true_binarysearch_dims = names(binarysearch_dims)[binarysearch_dims]
+                if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: Filtering fact using binary search on '%s'.\n", paste(true_binarysearch_dims, collapse=", ")))
                 binsearch_vals = lapply(setNames(true_binarysearch_dims, self$keys[true_binarysearch_dims]), function(dim) dim.env[[dim]][[1L]])
-                r = self$db[[self$fact]][i = do.call(CJ, binsearch_vals), nomatch = 0L]
+                r = self$db[[self$fact]][i = do.call(CJ, binsearch_vals), nomatch = NA]
             } else binarysearch_dims = setNames(rep(FALSE, length(fact_filter)), names(fact_filter))
             # - [x] fact-filter after the gap as vector scans
-            if(any(!(ff <- names(fact_filter)[fact_filter]) %in% binarysearch_dims[binarysearch_dims])){
+            if(!null_subset & any(!(ff <- names(fact_filter)[fact_filter]) %in% binarysearch_dims[binarysearch_dims])){
                 filter_after_gap = ff[!ff %in% binarysearch_dims[binarysearch_dims]]
                 dim.id = lapply(setNames(filter_after_gap, self$keys[filter_after_gap]), function(dim) dim.env[[dim]][[1L]])
                 qi = Reduce(function(a, b) bquote(.(a) & .(b)), lapply(names(dim.id), function(col) as.call(list(quote(`%in%`), as.name(col), dim.id[[col]]))))
@@ -230,11 +233,17 @@ cube = R6Class(
             as.cube(x = list(), fact = setNames(list(if(is.null(r)) copy(self$db[[self$fact]]) else r), self$fact), dims = as.list(dim.env)[self$dims])
         },
         drop = function(drop=1L){
+            # drop=1L - drop dimension
+            # drop=2L - drop dimension keys
             # Direct access to cube object method by `$drop()` should not be used on cubes that shares dimensions, still you can use drop on `[.cube` subset safety
             if(drop >= 1L){
                 # - [x] drop dimensions where cardinality = 1
-                cardinality =  self$db[[self$fact]][, lapply(.SD, uniqueN), .SDcols = c(self$keys)]
-                dims_to_drop = sapply(cardinality, `==`, 1L)
+                if(nrow(self$db[[self$fact]])){
+                    cardinality = self$db[[self$fact]][, lapply(.SD, uniqueN), .SDcols = c(self$keys)]
+                    dims_to_drop = sapply(cardinality, `==`, 1L)
+                } else {
+                    dims_to_drop = sapply(self$dim, `==`, 1L)
+                }
                 self$dims = self$dims[!self$dims %in% names(dims_to_drop)[dims_to_drop]]
                 rm(envir = self$db, list = names(dims_to_drop)[dims_to_drop])
                 self$keys = sapply(self$dims, function(dim) key(self$db[[dim]]))
@@ -244,7 +253,11 @@ cube = R6Class(
             }
             if(drop >= 2L){
                 # - [x] drop dimension members not present in fact table
-                dim_keys_to_drop = sapply(self$dims, function(dim) self$nr[[dim]] > cardinality[[dim]])
+                if(nrow(self$db[[self$fact]])){
+                    dim_keys_to_drop = sapply(self$dims, function(dim) self$nr[[dim]] > cardinality[[dim]])
+                } else {
+                    dim_keys_to_drop = setNames(rep(TRUE,length(self$dims)), self$dims)
+                }
                 if(any(dim_keys_to_drop)){
                     sapply(names(dim_keys_to_drop)[dim_keys_to_drop],
                            function(dim){
@@ -293,8 +306,13 @@ cube = R6Class(
             Call = self$qcall()
             eval(match.call((getFromNamespace("[.data.table", "data.table")), Call), envir = self$db)
         },
-        denormalize = function(){
-            self$subset(.dots = lapply(self$dims, function(x) list()))
+        denormalize = function(dims){
+            if(missing(dims)) dims = self$dims
+            r = copy(self$db[[self$fact]])
+            sapply(dims, function(dim){
+                self$lookup(r, dim, self$dimcolnames[[dim]])
+            })
+            setkeyv(r, unname(self$keys))[]
         },
         dimspace = function(dims, drop=TRUE){
             if(missing(dims)) dims = self$dims
@@ -359,7 +377,7 @@ as.cube.data.table = function(x, fact = "fact", dims, aggregate.fun = sum, ...){
              ... = ...)
 }
 
-# as.others.cube ----------------------------------------------------------
+# as.*.cube ---------------------------------------------------------------
 
 as.array.cube = function(x, measure, ...){
     if(missing(measure)) measure = x$measures[1L]

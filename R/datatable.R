@@ -7,16 +7,24 @@ as.data.table.array = function(x, na.rm=TRUE){
 }
 
 as.array.data.table = function(x, dimnames, measure, ...){
-    stopifnot(is.list(dimnames), !is.null(names(dimnames)), length(names(dimnames))==length(unique(names(dimnames))), all(sapply(dimnames, is.character)), all(sapply(dimnames, length)))
+    stopifnot(is.list(dimnames), !is.null(names(dimnames)), length(names(dimnames))==length(unique(names(dimnames))), all(sapply(dimnames, is.character)))
     revkey = rev(names(dimnames))
     if(missing(measure)){
-        if(length(x)==length(revkey)+1L) measure = names(x)[length(x)] # if only one measure then use as default for `measure` arg
+        if(length(x)==length(revkey)+1L) measure = names(x)[length(x)] # if only one measure then use it as default for `measure` arg
     }
     stopifnot(is.character(measure), length(measure)==1L)
-    crossdims = quote(setkeyv(do.call(CJ, dimnames), revkey))
-    array(data = x[eval(crossdims), eval(as.name(measure)), on = c(revkey)],
-          dim = unname(sapply(dimnames, length)),
-          dimnames = dimnames)
+    if(!length(dimnames)) return(x[, eval(as.name(measure))])
+    if(nrow(x)){
+        crossdims = quote(setkeyv(do.call(CJ, dimnames), revkey))
+        r = array(data = x[eval(crossdims), eval(as.name(measure)), on = c(revkey)],
+                  dim = unname(sapply(dimnames, length)),
+                  dimnames = dimnames)
+    } else {
+        r = array(data = x[, eval(as.name(measure))],
+                  dim = unname(sapply(dimnames, length)),
+                  dimnames = dimnames)
+    }
+    if(length(dimnames)==1L) c(r) else r
 }
 
 is.unique.data.table = function(x, by = key(x)){

@@ -5,7 +5,7 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
 
 - [x] scalable multidimensional `array` alternative, data normalized to star schema
 - [x] uses [data.table](https://github.com/Rdatatable/data.table) under the hood
-- [x] base R `array` like API, see [olap-operation-r](https://dzone.com/articles/olap-operation-r) and [r-script](https://gist.github.com/jangorecki/4aa6218b6011360338f2)
+- [x] use base R `array` query API, see [olap-operation-r](https://dzone.com/articles/olap-operation-r) and [r-script](https://gist.github.com/jangorecki/4aa6218b6011360338f2)
   - [x] `[.cube` uses base R `[.array` method API for *slice* and *dice*, see [inst/examples/subset_cube.R](inst/examples/subset_cube.R)
   - [ ] `capply`/`aggregate.cube` uses base R `apply` function API for *rollup*, *drilldown* and *pivot*
 - [x] base R `array` API is extended by accepting named list instead of vectors, see [inst/examples/subset_cube.R](inst/examples/subset_cube.R)
@@ -35,6 +35,7 @@ install.packages("data.cube", repos = paste0("https://",
 ## Basics
 
 ```r
+library(data.table)
 library(data.cube)
 set.seed(1L)
 
@@ -42,20 +43,28 @@ dimnames = list(color = sort(c("green","yellow","red")),
                 year = as.character(2011:2015), 
                 status = sort(c("active","inactive","archived","removed")))
 ar = array(sample(c(rep(NA, 4), 4:7/2), prod(sapply(dimnames, length)), TRUE), 
-           sapply(dimnames, length), 
+           unname(sapply(dimnames, length)),
            dimnames)
 print(ar)
 
 cb = as.cube(ar)
 print(cb)
-ar2 = as.array(cb)
-all.equal(ar, ar2)
+all.equal(ar, as.array(cb))
 
 # slice and dice using array syntax
+
 ar["green","2015","active"]
-cb["green","2015","active"]
+r = cb["green","2015","active"]
+print(r)
+as.array(r)
+as.data.table(r)
+as.list(r)
+
 ar["green",, c("active","inactive")]
-cb["green",, c("active","inactive")]
+r = cb["green",, c("active","inactive")]
+as.array(r)
+as.data.table(r)
+as.data.table(r, na.fill=TRUE)
 
 # rollup, drilldown and pivot using array syntax
 # apply()

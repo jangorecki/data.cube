@@ -25,7 +25,7 @@ cube = R6Class(
         mb = numeric(),
         dim = integer(),
         dimcolnames = list(),
-        initialize = function(fact, dims, aggregate.fun, db, ...){
+        initialize = function(fact, dims, fun.aggregate, db, ...){
             stopifnot(is.list(fact), length(fact)==1L)
             if(!missing(db)) stopifnot(is.environment(db)) else db = new.env(parent = topenv())
             self$db = db
@@ -44,10 +44,10 @@ cube = R6Class(
             if(!all(missing_key_col <- self$keys %in% fact_col_names)) stop(sprintf("Dimension key columns do not exists in fact table: %s.", paste(self$keys[missing_key_col], collapse=", ")))
             # - [x] check: fact table is already sub-aggregated to all dimensions
             if(!is.unique.data.table(fact[[self$fact]])){
-                if(missing(aggregate.fun)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate.fun` argument is missing. Sub-aggregated your fact table or provide aggregate function."))
-                if(!is.function(aggregate.fun)) stop(sprintf("Fact table is not sub-aggregated and the `aggregate.fun` argument is not a function. Sub-aggregated your fact table or provide aggregate function."))
+                if(missing(fun.aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `fun.aggregate` argument is missing. Sub-aggregated your fact table or provide aggregate function."))
+                if(!is.function(fun.aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `fun.aggregate` argument is not a function. Sub-aggregated your fact table or provide aggregate function."))
                 # - [x] sub-aggregate fact table
-                fact[[self$fact]] = fact[[self$fact]][, lapply(.SD, aggregate.fun, ...), c(self$keys)]
+                fact[[self$fact]] = fact[[self$fact]][, lapply(.SD, fun.aggregate, ...), c(self$keys)]
             }
             self$db[[self$fact]] = fact[[self$fact]]
             setkeyv(self$db[[self$fact]], unname(self$keys))
@@ -85,6 +85,12 @@ cube = R6Class(
             x[self$db[[dim]],
               (cols) := mget(paste0("i.", cols)),
               on = c(self$keys[[dim]])]
+            # workaround for data.table#1166
+            if(!all(cols %in% names(x))){
+                if(any(cols %in% names(x))) stop(sprintf("Column name collision between fact and '%s' dimension.", dim))
+                r[, (cols) := as.list(self$db[[dim]][0L, cols, with=FALSE][1L])]
+            }
+            TRUE
         },
         extract = function(..., .dots){
             # - [x] catch dots, preprocess, evaluate
@@ -244,12 +250,15 @@ cube = R6Class(
                 } else {
                     dims_to_drop = sapply(self$dim, `==`, 1L)
                 }
-                self$dims = self$dims[!self$dims %in% names(dims_to_drop)[dims_to_drop]]
-                rm(envir = self$db, list = names(dims_to_drop)[dims_to_drop])
-                self$keys = sapply(self$dims, function(dim) key(self$db[[dim]]))
-                self$nr = self$nr[c(self$fact, self$dims)]
-                self$nc = self$nc[c(self$fact, self$dims)]
-                self$mb = self$mb[c(self$fact, self$dims)]
+                if(any(dims_to_drop)){
+                    self$dims = self$dims[!self$dims %in% names(dims_to_drop)[dims_to_drop]]
+                    rm(envir = self$db, list = names(dims_to_drop)[dims_to_drop])
+                    self$db[[self$fact]][, c(self$keys[names(dims_to_drop)[dims_to_drop]]) := NULL]
+                    self$keys = sapply(self$dims, function(dim) key(self$db[[dim]]))
+                    self$nr = self$nr[c(self$fact, self$dims)]
+                    self$nc = self$nc[c(self$fact, self$dims)]
+                    self$mb = self$mb[c(self$fact, self$dims)]
+                }
             }
             if(drop >= 2L){
                 # - [x] drop dimension members not present in fact table
@@ -269,7 +278,7 @@ cube = R6Class(
                            })
                 }
             }
-            if(drop >= 1L){
+            if(drop >= 1L & any(dims_to_drop)){
                 self$dim = self$nr[self$dims]
                 self$dimcolnames = self$dimcolnames[self$dims]
             }
@@ -306,13 +315,19 @@ cube = R6Class(
             Call = self$qcall()
             eval(match.call((getFromNamespace("[.data.table", "data.table")), Call), envir = self$db)
         },
-        denormalize = function(dims){
+        denormalize = function(dims, na.fill = FALSE){
             if(missing(dims)) dims = self$dims
-            r = copy(self$db[[self$fact]])
+            if(!length(dims)) return(copy(self$db[[self$fact]]))
+            all_lkp_cols = unlist(self$dimcolnames[dims])
+            if(!length(all_lkp_cols)==length(unique(all_lkp_cols))) stop("Cannot lookup dimension attributes due to the column names duplicated between dimensions.")
+            r = if(!na.fill) copy(self$db[[self$fact]]) else self$db[[self$fact]][i = do.call(CJ, self$dimspace(dims=dims)), nomatch=NA, on = c(self$keys[dims])]
             sapply(dims, function(dim){
-                self$lookup(r, dim, self$dimcolnames[[dim]])
+                cols = self$dimcolnames[[dim]]
+                cols = cols[!cols %in% self$keys[[dim]]]
+                if(!length(cols)) return(TRUE)
+                self$lookup(r, dim, cols)
             })
-            setkeyv(r, unname(self$keys))[]
+            setkeyv(r, unname(self$keys[dims]))[]
         },
         dimspace = function(dims, drop=TRUE){
             if(missing(dims)) dims = self$dims
@@ -352,28 +367,28 @@ as.cube.array = function(x, fact = "fact", dims, na.rm=TRUE, ...){
              dims = lapply(dim_cols, function(dim_col) setDT(setNames(list(unique(dt[[dim_col]])), dim_col), key = dim_col)))
 }
 
-as.cube.list = function(x, aggregate.fun, ..., fact, dims){
+as.cube.list = function(x, fun.aggregate, ..., fact, dims){
     if(!missing(fact) & !missing(dims)){
         stopifnot(is.list(fact), length(fact)==1L, is.data.table(fact[[1L]]), is.list(dims), all(sapply(dims, is.data.table)))
         cube$new(fact = fact, 
                  dims = dims, 
-                 aggregate.fun = aggregate.fun,
+                 fun.aggregate = fun.aggregate,
                  ... = ...)
     } else {
         stopifnot(is.list(x), all(c("fact","dims") %in% names(x)))
         cube$new(fact = x$fact, 
                  dims = x$dims, 
-                 aggregate.fun = aggregate.fun,
+                 fun.aggregate = fun.aggregate,
                  ... = ...)
     }
 }
 
-as.cube.data.table = function(x, fact = "fact", dims, aggregate.fun = sum, ...){
-    stopifnot(is.data.table(x), is.character(fact), is.list(dims), as.logical(length(dims)), length(names(dims))==length(unique(names(dims))), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(aggregate.fun))
+as.cube.data.table = function(x, fact = "fact", dims, fun.aggregate = sum, ...){
+    stopifnot(is.data.table(x), is.character(fact), is.list(dims), as.logical(length(dims)), length(names(dims))==length(unique(names(dims))), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(fun.aggregate))
     fact_cols = c(sapply(dims, `[`, 1L), names(x)[!names(x) %in% unlist(dims)])
     cube$new(fact = setNames(list(x[, fact_cols, with=FALSE]), fact),
              dims = lapply(dims, function(cols) setkeyv(x[, unique(.SD), .SDcols = c(cols)], cols[1L])),
-             aggregate.fun = aggregate.fun,
+             fun.aggregate = fun.aggregate,
              ... = ...)
 }
 
@@ -384,12 +399,15 @@ as.array.cube = function(x, measure, ...){
     as.array(x = x$db[[x$fact]], dimnames = x$dimspace(), measure = measure)
 }
 
-as.data.table.cube = function(x){
-    x$denormalize()
+as.data.table.cube = function(x, na.fill = FALSE, dcast = FALSE, ...){
+    r = x$denormalize(na.fill = na.fill)
+    if(isTRUE(dcast)){
+        dcast.data.table(r, ...)
+    } else r
 }
 
 as.list.cube = function(x, fact = "fact", ...){
-    list(fact = setNames(list(x$db[[x$fact]]), fact), dims = lapply(selfNames(x$dims), function(dim) x$db[[dim]]))
+    list(fact = setNames(list(x$db[[x$fact]][]), fact), dims = lapply(selfNames(x$dims), function(dim) x$db[[dim]][]))
 }
 
 # capply ------------------------------------------------------------------
@@ -409,9 +427,9 @@ capply = aggregate.cube = function(x, MARGIN, FUN, ...){
 #' @title subset cube
 #' @param x cube object
 #' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy
-#' @param drop logical, default may switch to TRUE while implemented.
-#' @return When *drop* arg is TRUE then 1-cardinality dimensions will be removed, also dimension members not linked to fact will be removed.
-"[.cube" = function(x, ..., drop = FALSE){
+#' @param drop logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.
+#' @return Cube class object
+"[.cube" = function(x, ..., drop = TRUE){
     if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
     r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
     if(isTRUE(drop)) r$drop() else r

@@ -3,17 +3,17 @@
 \alias{[.cube}
 \title{subset cube}
 \usage{
-\method{[}{cube}(x, ..., drop = FALSE)
+\method{[}{cube}(x, ..., drop = TRUE)
 }
 \arguments{
 \item{x}{cube object}
 
 \item{...}{values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy}
 
-\item{drop}{logical, default may switch to TRUE while implemented.}
+\item{drop}{logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.}
 }
 \value{
-When *drop* arg is TRUE then 1-cardinality dimensions will be removed, also dimension members not linked to fact will be removed.
+Cube class object
 }
 \description{
 subset cube

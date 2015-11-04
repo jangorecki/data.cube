@@ -6,6 +6,12 @@ subarg = function(x){
 
 selfNames = function(x) setNames(x, x)
 
+#' @title OLAP cube class
+#' @docType class
+#' @format An R6 class object.
+#' @name cube
+#' @details Generates cube class objects.
+#' @aliases data.cube
 cube = R6Class(
     classname = "cube",
     public = list(
@@ -294,6 +300,11 @@ cube = R6Class(
 
 # as.cube -----------------------------------------------------------------
 
+#' @title Cast to OLAP cube
+#' @param x R object
+#' @param \dots arguments passed to methods
+#' @description Converts arguments to *cube* class. Supports *list*, *array* (no hierarchies), *data.table*.
+#' @return *cube* class object.
 as.cube = function(x, ...){
     UseMethod("as.cube")
 }
@@ -358,6 +369,11 @@ as.list.cube = function(x, fact = "fact", ...){
 
 # capply ------------------------------------------------------------------
 
+#' @title apply over cube dimensions
+#' @param x cube object
+#' @param MARGIN character or list
+#' @param FUN function
+#' @param ... arguments passed to *FUN*
 capply = aggregate.cube = function(x, MARGIN, FUN, ...){
     stopifnot(inherits(x, "cube"))
     x$apply(MARGIN, FUN, ...)

@@ -17,7 +17,7 @@ stopifnot(all.equal(ar, as.array(dt, dimnames)))
 
 ## cube in-out ----------------------------------------------------------------------
 
-l = list(fact = list(fact=dt), dims = mapply(process_dim, names(dimnames), dimnames, SIMPLIFY = FALSE))
+l = list(fact = list(fact=dt), dims = mapply(process.dim, names(dimnames), dimnames, SIMPLIFY = FALSE))
 str(l, 2L, give.attr = FALSE)
 
 # in

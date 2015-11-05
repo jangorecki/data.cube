@@ -23,7 +23,7 @@ as.cube.array = function(x, fact = "fact", na.rm=TRUE, ...){
 #' @param dim character scalar name of dimension
 #' @param x list value for element *dim*
 #' @description Helps in processing dimension data for results of *dimnames.array* function. It also check *key* and it's uniqueness.
-process_dim = function(dim, x){
+process.dim = function(dim, x){
     if(!is.data.table(x)){
         if(is.atomic(x)) x = setDT(setNames(list(unique(x)), dim))
         else if(is.data.frame(x)) setDT(x)
@@ -46,7 +46,7 @@ as.cube.data.table = function(x, fact = "fact", dims, fun.aggregate = sum, ...){
     measure_cols = names(x)[!names(x) %in% unlist(dims)]
     cube$new(list(
         fact = setNames(list(x[, lapply(.SD, fun.aggregate, ...), c(key_cols), .SDcols = measure_cols]), fact), 
-        dims = lapply(selfNames(names(dims)), function(dim) process_dim(dim, x = x[[dim]]))
+        dims = lapply(selfNames(names(dims)), function(dim) process.dim(dim, x = x[[dim]]))
     ))
 }
 
@@ -58,7 +58,7 @@ as.cube.list = function(x, fact, dims, fun.aggregate = sum, ...){
     }
     stopifnot(is.list(x), all(c("fact","dims") %in% names(x)))
     # - [ ] decode base R *dimnames* structure `list(dim1=c(...),dim2=c(...))` to support it as an input
-    x$dims = lapply(selfNames(names(x$dims)), function(dim) process_dim(dim, x = x$dims[[dim]]))
+    x$dims = lapply(selfNames(names(x$dims)), function(dim) process.dim(dim, x = x$dims[[dim]]))
     fact = names(x$fact)
     if(!is.unique.data.table(x$fact[[fact]])){
         if(missing(fun.aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `fun.aggregate` argument is missing. Sub-aggregated your fact table or provide aggregate function to be used on all measures."))

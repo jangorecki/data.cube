@@ -9,6 +9,8 @@ lookup = function(fact, dim, cols){
     TRUE
 }
 
+# cube --------------------------------------------------------------------
+
 #' @title OLAP cube class
 #' @docType class
 #' @format An R6 class object.
@@ -28,9 +30,11 @@ cube = R6Class(
         print = function(){
             prnt = character()
             prnt["head"] = "<cube>"
-            prnt["fact"] = sprintf("fact:\n  %s %s rows x %s cols (%.2f MB)", self$fact, self$fapply(nrow, simplify = TRUE), self$fapply(ncol, simplify = TRUE), self$fapply(mb.size, simplify = TRUE))
-            if(length(self$dims)) prnt["dims"] = paste0("dims:\n", paste(sprintf("  %s %s rows x %s cols (%.2f MB)", self$dims, self$dapply(nrow, simplify = TRUE), self$dapply(ncol, simplify = TRUE), self$dapply(mb.size, simplify = TRUE)), collapse="\n"))
-            prnt["size"] = sprintf("total size: %.2f MB", sum(self$aapply(mb.size, simplify = TRUE)))
+            fact.size = self$fapply(mb.size, simplify = TRUE)
+            prnt["fact"] = sprintf("fact:\n  %s %s rows x %s cols (%.2f MB)", self$fact, self$fapply(nrow, simplify = TRUE), self$fapply(ncol, simplify = TRUE), fact.size)
+            dims.size = self$dapply(mb.size, simplify = TRUE)
+            if(length(self$dims)) prnt["dims"] = paste0("dims:\n", paste(sprintf("  %s %s rows x %s cols (%.2f MB)", self$dims, self$dapply(nrow, simplify = TRUE), self$dapply(ncol, simplify = TRUE), dims.size), collapse="\n"))
+            prnt["size"] = sprintf("total size: %.2f MB", sum(c(fact.size, dims.size)))
             cat(prnt, sep="\n")
         },
         dapply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE, dims = self$dims){
@@ -44,11 +48,6 @@ cube = R6Class(
             sapply(X = self$env$fact,
                    FUN = FUN, ...,
                    simplify = simplify, USE.NAMES = USE.NAMES)
-        },
-        aapply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE){
-            FUN = match.fun(FUN)
-            c(self$fapply(FUN, ..., simplify = simplify, USE.NAMES = USE.NAMES),
-              self$dapply(FUN, ..., simplify = simplify, USE.NAMES = USE.NAMES))
         },
         denormalize = function(dims = self$dims, na.fill = FALSE){
             all_cols = self$dapply(names, dims = dims, simplify = FALSE)
@@ -70,39 +69,45 @@ cube = R6Class(
     )
 )
 
-# # capply ------------------------------------------------------------------
-# 
-# # @title apply over cube dimensions
-# # @param x cube object
-# # @param MARGIN character or list
-# # @param FUN function
-# # @param ... arguments passed to *FUN*
-# capply = aggregate.cube = function(x, MARGIN, FUN, ...){
-#     stopifnot(inherits(x, "cube"))
-#     x$apply(MARGIN, FUN, ...)
-# }
+# capply ------------------------------------------------------------------
 
-# `*.cube` ----------------------------------------------------------------
-
-#' @title Query cube
+#' @title Apply function on measures while aggregate on cube dimensions
 #' @param x cube object
-#' @param i list of values used to slice and dice on cube
-#' @param j expression to evaluate on fact
-#' @param by expression/character vector to aggregate measures accroding to *j* argument.
-#' @param drop logical, default TRUE, drop dimensions, logically the same as *drop* argument in `[.array`.
+#' @param MARGIN character or list
+#' @param FUN function
+#' @param ... arguments passed to *FUN*
+#' @description Wrapper around `[[.cube` and `j`, `by` arg.
+capply = aggregate.cube = function(x, MARGIN, FUN, ...){
+    stopifnot(inherits(x, "cube"), !missing(MARGIN), !missing(FUN))
+    FUN = match.fun(FUN)
+    x[[j = lapply(.SD, FUN, ...), by = MARGIN]]
+}
+
+# *.cube ----------------------------------------------------------------
+
+#' @title Subset cube
+#' @param x cube object
+#' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy
+#' @param drop logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.
 #' @return Cube class object
-"[.cube" = function(x, i, j, by, drop = TRUE){
-    cube.call = match.call()
+"[.cube" = function(x, ..., drop = TRUE){
+    r = x$extract(.dots = match.call(expand.dots = FALSE)$`...`)
     browser()
     if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
     r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
     if(isTRUE(drop)) r$drop() else r
 }
 
-# "[[.cube" = function(x, ...){
-#     r = x$extract(.dots = match.call(expand.dots = FALSE)$`...`)
-#     r
-# }
+#' @title Extract cube
+#' @param x cube object
+#' @param i list of values used to slice and dice on cube
+#' @param j expression to evaluate on fact
+#' @param by expression/character vector to aggregate measures accroding to *j* argument.
+#' @return Cube class object
+"[[.cube" = function(x, i, j, by){
+    cube.call = match.call()
+    cube.call
+}
 
 is.cube = function(x) inherits(x, "cube")
 
@@ -111,7 +116,7 @@ dim.cube = function(x){
 }
 
 dimnames.cube = function(x){
-    x$dapply(`[[`,1L, simplify = FALSE)
+    x$dapply(`[[`,1L)
 }
 
 str.cube = function(object, ...){

@@ -50,7 +50,7 @@ cube = R6Class(
                    simplify = simplify, USE.NAMES = USE.NAMES)
         },
         denormalize = function(dims = self$dims, na.fill = FALSE){
-            all_cols = self$dapply(names, dims = dims, simplify = FALSE)
+            all_cols = self$dapply(names, dims = dims)
             key_cols = sapply(all_cols, `[`, 1L)
             lkp_cols = lapply(all_cols, `[`, -1L)
             if(!is.unique(unlist(lkp_cols))) stop("Cannot lookup dimension attributes due to the column names duplicated between dimensions.")
@@ -69,20 +69,6 @@ cube = R6Class(
     )
 )
 
-# capply ------------------------------------------------------------------
-
-#' @title Apply function on measures while aggregate on cube dimensions
-#' @param x cube object
-#' @param MARGIN character or list
-#' @param FUN function
-#' @param ... arguments passed to *FUN*
-#' @description Wrapper around `[[.cube` and `j`, `by` arg.
-capply = aggregate.cube = function(x, MARGIN, FUN, ...){
-    stopifnot(inherits(x, "cube"), !missing(MARGIN), !missing(FUN))
-    FUN = match.fun(FUN)
-    x[[j = lapply(.SD, FUN, ...), by = MARGIN]]
-}
-
 # *.cube ----------------------------------------------------------------
 
 #' @title Subset cube
@@ -91,7 +77,7 @@ capply = aggregate.cube = function(x, MARGIN, FUN, ...){
 #' @param drop logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.
 #' @return Cube class object
 "[.cube" = function(x, ..., drop = TRUE){
-    r = x$extract(.dots = match.call(expand.dots = FALSE)$`...`)
+    r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
     browser()
     if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
     r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
@@ -120,5 +106,24 @@ dimnames.cube = function(x){
 }
 
 str.cube = function(object, ...){
-    print(object)
+    NextMethod()
+    cat("cube$env$fact: ")
+    str(object$env$fact, max.level = 1L, give.attr = FALSE)
+    cat("cube$env$dims: ")
+    str(object$env$dims, max.level = 1L, give.attr = FALSE)
+    invisible()
+}
+
+# capply ------------------------------------------------------------------
+
+#' @title Apply function on measures while aggregate on cube dimensions
+#' @param x cube object
+#' @param MARGIN character or list
+#' @param FUN function
+#' @param ... arguments passed to *FUN*
+#' @description Wrapper around `[[.cube` and `j`, `by` arg.
+capply = aggregate.cube = function(x, MARGIN, FUN, ...){
+    stopifnot(inherits(x, "cube"), !missing(MARGIN), !missing(FUN))
+    FUN = match.fun(FUN)
+    x[[j = lapply(.SD, FUN, ...), by = MARGIN]]
 }

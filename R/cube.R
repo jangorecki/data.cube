@@ -72,11 +72,11 @@ cube = R6Class(
 
 # # capply ------------------------------------------------------------------
 # 
-# #' @title apply over cube dimensions
-# #' @param x cube object
-# #' @param MARGIN character or list
-# #' @param FUN function
-# #' @param ... arguments passed to *FUN*
+# # @title apply over cube dimensions
+# # @param x cube object
+# # @param MARGIN character or list
+# # @param FUN function
+# # @param ... arguments passed to *FUN*
 # capply = aggregate.cube = function(x, MARGIN, FUN, ...){
 #     stopifnot(inherits(x, "cube"))
 #     x$apply(MARGIN, FUN, ...)
@@ -84,10 +84,12 @@ cube = R6Class(
 
 # `*.cube` ----------------------------------------------------------------
 
-#' @title subset cube
+#' @title Query cube
 #' @param x cube object
-#' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy
-#' @param drop logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.
+#' @param i list of values used to slice and dice on cube
+#' @param j expression to evaluate on fact
+#' @param by expression/character vector to aggregate measures accroding to *j* argument.
+#' @param drop logical, default TRUE, drop dimensions, logically the same as *drop* argument in `[.array`.
 #' @return Cube class object
 "[.cube" = function(x, i, j, by, drop = TRUE){
     cube.call = match.call()

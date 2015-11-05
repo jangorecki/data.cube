@@ -1,19 +1,3 @@
-process_dim = function(dim, x){
-    if(!is.data.table(x)){
-        if(is.atomic(x)) x = setDT(setNames(list(unique(x)), dim))
-        else if(is.data.frame(x)) setDT(x)
-        else stop("Unsupported type of dimension values.")
-    }
-    if(!identical(key(x), names(x)[1L])) setkeyv(x, names(x)[1L])
-    if(!is.unique.data.table(x)){
-        nr_before = nrow(x)
-        x = unique(x, by = key(x))
-        nr_after = nrow(x)
-        warning(sprintf("'%s' dimension hierarchy is broken, table key is not unique. Some entries in dimension hierarchy has been dropped to enforce unique key on %s. Input rows %s while cardinality is %s.", dim, key(x), nr_before, nr_after))
-    }
-    x
-}
-
 # as.cube -----------------------------------------------------------------
 
 #' @title Cast to OLAP cube
@@ -33,6 +17,26 @@ as.cube.array = function(x, fact = "fact", na.rm=TRUE, ...){
     stopifnot(is.character(fact), length(fact)==1L)
     dims = selfNames(names(dimnames(x)))
     as.cube(as.data.table(x, na.rm = na.rm), fact = fact, dims = lapply(selfNames(names(dimnames(x))), function(x) x))
+}
+
+#' @title Process dimension
+#' @param dim character scalar name of dimension
+#' @param x list value for element *dim*
+#' @description Helps in processing dimension data for results of *dimnames.array* function. It also check *key* and it's uniqueness.
+process_dim = function(dim, x){
+    if(!is.data.table(x)){
+        if(is.atomic(x)) x = setDT(setNames(list(unique(x)), dim))
+        else if(is.data.frame(x)) setDT(x)
+        else stop("Unsupported type of dimension values.")
+    }
+    if(!identical(key(x), names(x)[1L])) setkeyv(x, names(x)[1L])
+    if(!is.unique.data.table(x)){
+        nr_before = nrow(x)
+        x = unique(x, by = key(x))
+        nr_after = nrow(x)
+        warning(sprintf("'%s' dimension hierarchy is broken, table key is not unique. Some entries in dimension hierarchy has been dropped to enforce unique key on %s. Input rows %s while cardinality is %s.", dim, key(x), nr_before, nr_after))
+    }
+    x
 }
 
 # @param dims list of vectors columns names for each dimension

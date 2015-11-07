@@ -48,8 +48,10 @@ cube = R6Class(
             prnt["head"] = "<cube>"
             fact.size = self$fapply(mb.size, simplify = TRUE)
             prnt["fact"] = sprintf("fact:\n  %s %s rows x %s cols (%.2f MB)", self$fact, self$fapply(nrow, simplify = TRUE), self$fapply(ncol, simplify = TRUE), fact.size)
-            dims.size = self$dapply(mb.size, simplify = TRUE)
-            if(length(self$dims)) prnt["dims"] = paste0("dims:\n", paste(sprintf("  %s %s rows x %s cols (%.2f MB)", self$dims, self$dapply(nrow, simplify = TRUE), self$dapply(ncol, simplify = TRUE), dims.size), collapse="\n"))
+            if(length(self$dims)){
+                dims.size = self$dapply(mb.size, simplify = TRUE)
+                prnt["dims"] = paste0("dims:\n", paste(sprintf("  %s %s rows x %s cols (%.2f MB)", self$dims, self$dapply(nrow, simplify = TRUE), self$dapply(ncol, simplify = TRUE), dims.size), collapse="\n"))
+            } else dims.size = 0
             prnt["size"] = sprintf("total size: %.2f MB", sum(c(fact.size, dims.size)))
             cat(prnt, sep="\n")
         },
@@ -86,7 +88,7 @@ cube = R6Class(
             i = lapply(setNames(seq_along(keys), names(keys)), parse.each.i, i, keys)
             # - [x] check if all cols exists in dims
             cols_missing = sapply(names(i), function(dim) !all(names(i[[dim]]) %in% names(self$env$dims[[dim]])))
-            if(any(cols_missing)) stop(sprintf("Field used in query does not exists in dimensions %s.", paste(names(cols_missing)[cols_missing], collapse=", ")))
+            if(any(cols_missing)) stop(sprintf("Field used in query does not exists in dimensions '%s'.", paste(names(cols_missing)[cols_missing], collapse=", ")))
             i
         },
         # [.cube
@@ -158,7 +160,7 @@ cube = R6Class(
             # - [x] drop dimensions where cardinality = 1
             if(nrow(self$env$fact[[self$fact]])){
                 cardinality = self$env$fact[[self$fact]][, lapply(.SD, uniqueN), .SDcols = c(unname(self$dapply(key, simplify = TRUE)))]
-                dims_to_drop = sapply(cardinality, `==`, 1L)
+                dims_to_drop = sapply(setNames(cardinality, self$dims), `==`, 1L)
             } else {
                 dims_to_drop = self$dapply(function(dim) nrow(dim)==1L, simplify = TRUE)
             }

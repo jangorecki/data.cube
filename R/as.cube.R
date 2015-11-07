@@ -39,6 +39,7 @@ process.dim = function(dim, x){
     x
 }
 
+# @param fact name for fact table
 # @param dims list of vectors columns names for each dimension
 as.cube.data.table = function(x, fact = "fact", dims, fun.aggregate = sum, ...){
     stopifnot(is.data.table(x), is.character(fact), is.list(dims), as.logical(length(dims)), length(names(dims))==length(unique(names(dims))), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(fun.aggregate))
@@ -46,7 +47,7 @@ as.cube.data.table = function(x, fact = "fact", dims, fun.aggregate = sum, ...){
     measure_cols = names(x)[!names(x) %in% unlist(dims)]
     cube$new(list(
         fact = setNames(list(x[, lapply(.SD, fun.aggregate, ...), c(key_cols), .SDcols = measure_cols]), fact), 
-        dims = lapply(selfNames(names(dims)), function(dim) process.dim(dim, x = x[[dim]]))
+        dims = lapply(selfNames(names(dims)), function(dim) process.dim(dim, x = unique(x, by = dims[[dim]])[, .SD, .SDcols = dims[[dim]]]))
     ))
 }
 

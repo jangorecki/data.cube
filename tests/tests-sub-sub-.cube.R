@@ -37,7 +37,6 @@
 # 
 # dla = devtools::load_all
 # dla()
-# set.seed(1L)
 # X = populate_star(1e5s)
 # cb = as.cube(X)
 # 

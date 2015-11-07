@@ -1,11 +1,11 @@
 library(data.table)
 library(data.cube)
-set.seed(1L)
 
 ### no hierarchy ---------------------------------------------------------
 
 ## array-data.table -------------------------------------------------------
 
+set.seed(1L)
 ar.dimnames = list(color = sort(c("green","yellow","red")), 
                    year = as.character(2011:2015), 
                    status = sort(c("active","inactive","archived","removed")))
@@ -34,7 +34,6 @@ stopifnot(all.equal(l, as.list(cb)), all.equal(dt, as.data.table(cb)), all.equal
 
 ## cube in-out --------------------------------------------------------------
 
-# set.seed(1L)
 # X = populate_star(1e5)
 # cb = as.cube(X)
 # l = 

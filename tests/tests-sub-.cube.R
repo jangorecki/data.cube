@@ -1,7 +1,7 @@
 library(data.table)
 library(data.cube)
-set.seed(1L)
 
+set.seed(1L)
 dimnames = list(color = sort(c("green","yellow","red")), 
                 year = as.character(2011:2015), 
                 status = sort(c("active","inactive","archived","removed")))

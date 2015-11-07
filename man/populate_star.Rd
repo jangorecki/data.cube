@@ -12,7 +12,7 @@ populate_star(N, Y = c(2010L, 2014L), surrogate.keys = FALSE, seed = 1L)
 
 \item{surrogate.keys}{logical if integer sequence column should be used or the lowest granularity natural key.}
 
-\item{seed}{integer used for `set.seed` when producing fact table from dimensions.}
+\item{seed}{integer used for `set.seed` when producing fact table from dimensions. Default fixed to `1L`.}
 }
 \value{
 List of two list named *fact* and *dims*. The *fact* list keeps single fact data.table sub-aggregated to all dimensions. The *dims* list keeps five dimension data.tables.

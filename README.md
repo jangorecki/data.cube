@@ -38,9 +38,9 @@ install.packages("data.cube", repos = paste0("https://",
 ```r
 library(data.table)
 library(data.cube)
-set.seed(1L)
 
 # sample array
+set.seed(1L)
 ar.dimnames = list(color = sort(c("green","yellow","red")), 
                    year = as.character(2011:2015), 
                    status = sort(c("active","inactive","archived","removed")))
@@ -88,7 +88,6 @@ as.data.table(r, na.fill = TRUE, dcast = TRUE, formula = year ~ status)
 ```r
 library(data.table)
 library(data.cube)
-set.seed(1L)
 
 X = populate_star(1e5)
 lapply(X, sapply, ncol)
@@ -129,7 +128,6 @@ as.cube(dt, fact = "sales", dims = dimcolnames)
 
 ```r
 library(data.cube)
-set.seed(1L)
 
 cb = as.cube(populate_star(1e5))
 

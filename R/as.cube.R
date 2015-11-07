@@ -50,7 +50,7 @@ as.cube.data.table = function(x, fact = "fact", dims, fun.aggregate = sum, ...){
     ))
 }
 
-# @param dist list of data.table dimension tables
+# @param dims list of data.table dimension tables
 as.cube.list = function(x, fact, dims, fun.aggregate = sum, ...){
     if(!missing(fact) & !missing(dims)){
         stopifnot(is.list(fact), length(fact)==1L, is.data.table(fact[[1L]]), is.list(dims))
@@ -67,6 +67,11 @@ as.cube.list = function(x, fact, dims, fun.aggregate = sum, ...){
         key_cols = sapply(x$dims, key)
         x$fact[[fact]] = x$fact[[fact]][, lapply(.SD, fun.aggregate, ...), c(key_cols)]
     }
+    cube$new(x)
+}
+
+#' @description internally used for performance, no basic validation, used when returning cube from query on cube which was already validated
+as.cube.environment = function(x, ...){
     cube$new(x)
 }
 

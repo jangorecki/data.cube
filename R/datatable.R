@@ -6,7 +6,7 @@ as.data.table.array = function(x, na.rm=TRUE, ...){
 }
 
 as.array.data.table = function(x, dimnames, measure, ...){
-    stopifnot(is.list(dimnames), !is.null(names(dimnames)), length(names(dimnames))==length(unique(names(dimnames))), all(sapply(dimnames, is.character)))
+    stopifnot(is.list(dimnames), !is.null(names(dimnames)), length(names(dimnames))==length(unique(names(dimnames))))
     revkey = rev(names(dimnames))
     if(missing(measure)){
         if(length(x)==length(revkey)+1L) measure = names(x)[length(x)] # if only one measure then use it as default for `measure` arg

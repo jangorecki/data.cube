@@ -207,7 +207,7 @@ cube = R6Class(
 is.cube = function(x) inherits(x, "cube")
 
 dim.cube = function(x){
-    x$dapply(nrow, simplify = TRUE)
+    unname(x$dapply(nrow, simplify = TRUE))
 }
 
 dimnames.cube = function(x){

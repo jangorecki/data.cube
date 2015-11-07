@@ -40,18 +40,22 @@ library(data.table)
 library(data.cube)
 set.seed(1L)
 
-dimnames = list(color = sort(c("green","yellow","red")), 
-                year = as.character(2011:2015), 
-                status = sort(c("active","inactive","archived","removed")))
-ar = array(sample(c(rep(NA, 4), 4:7/2), prod(sapply(dimnames, length)), TRUE), 
-           unname(sapply(dimnames, length)),
-           dimnames)
+# sample array
+ar.dimnames = list(color = sort(c("green","yellow","red")), 
+                   year = as.character(2011:2015), 
+                   status = sort(c("active","inactive","archived","removed")))
+ar.dim = sapply(ar.dimnames, length)
+ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE), 
+           unname(ar.dim),
+           ar.dimnames)
 print(ar)
 
 cb = as.cube(ar)
 print(cb)
 str(cb)
 all.equal(ar, as.array(cb))
+all.equal(dim(ar), dim(cb))
+all.equal(dimnames(ar), dimnames(cb))
 
 # slice and dice using array syntax
 
@@ -59,14 +63,19 @@ ar["green","2015","active"]
 r = cb["green","2015","active"]
 print(r)
 as.array(r)
-as.data.table(r)
-as.list(r)
+
+arr = ar["green","2015","active",drop=FALSE]
+print(arr)
+r = cb["green","2015","active",drop=FALSE]
+print(r)
+all.equal(arr, as.array(r))
 
 ar["green",, c("active","inactive")]
 r = cb["green",, c("active","inactive")]
 as.array(r)
 as.data.table(r)
 as.data.table(r, na.fill = TRUE)
+# array-like print using data.table, useful cause as.array doesn't scale
 as.data.table(r, na.fill = TRUE, dcast = TRUE, formula = year ~ status)
 
 # rollup, drilldown and pivot using array syntax
@@ -89,6 +98,7 @@ str(cb)
 
 # slice and dice on dimension hierarchy
 cb["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+# same as above but more verbose
 cb$dims
 cb[product = "Mazda RX4",
    customer = .(),
@@ -97,7 +107,7 @@ cb[product = "Mazda RX4",
    time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
 
 # rollup, drilldown and pivot on dimension hierarchy
-# capply
+# capply()
 
 # denormalize
 cb$denormalize()
@@ -105,7 +115,7 @@ cb$denormalize()
 # out
 X = as.list(cb)
 dt = as.data.table(cb) # wraps to cb$denormalize
-#ar = as.array(cb) # arrays scales bad in memory, prepare to kill R session
+#ar = as.array(cb) # arrays scales badly, prepare task manager to kill R
 
 # in
 #as.cube(ar)
@@ -123,7 +133,7 @@ set.seed(1L)
 
 cb = as.cube(populate_star(1e5))
 
-# use dim attribute to see how long array would need to be for single measure
+# use prod(dim()) attribute to see how long array would need to be for single measure
 prod(dim(cb))
 
 # binary search, index

@@ -70,7 +70,7 @@ as.cube.list = function(x, fact, dims, fun.aggregate = sum, ...){
     cube$new(x)
 }
 
-#' @description internally used for performance, no basic validation, used when returning cube from query on cube which was already validated
+# @description internally used for performance, no basic validation, used when returning cube from query on cube which was already validated
 as.cube.environment = function(x, ...){
     cube$new(x)
 }

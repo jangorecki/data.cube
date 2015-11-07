@@ -8,18 +8,23 @@ lookup = function(fact, dim, cols){
     if(all(!cols %in% names(fact))) fact[, (cols) := as.list(dim[0L, cols, with=FALSE][1L])]
     TRUE
 }
-each.i = function(int, i, keys){
+parse.each.i = function(int, i, keys){
     # preprocessing of `...` arg of `[.cube` and `i` arg of `[[.cube`
     stopifnot(is.integer(int), is.pairlist(i), is.character(keys))
     x = if(int > length(i)) list() else i[[int]] # fill missing args: x[,] to x[,,.()] in case of 3 dimensions
     if(missing(x)) x = list() # empty args: x[,,"asd"] to x[.(),.(),"asd"]
-    else if(is.null(x)) x = setNames(list(NULL), keys[[int]]) # null args: x[NULL,NULL,"asd"] to x[.(NULL),.(NULL),"asd"]
+    else if(is.null(x)) x = setNames(list(NULL), keys[[int]]) # null args: x[NULL,NULL,"asd"] to x[.(keycol=NULL),.(keycol=NULL),"asd"]
     if(is.call(x) && x[[1L]]==as.symbol(".")) x[[1L]] = quote(list) # decode x[.(y)] to x[list(y)]
     x = eval.parent(x) # x[,,var] to x[,,.(keycol=c("val1","val2"))], x[,,c("asd","asd2")] to x[,,.(keycol=c("asd","asd2"))]
     if(is.atomic(x)) x = setNames(list(x), keys[[int]]) # x[,,"asd"] to x[,,.(keycol="asd")]
     stopifnot(is.list(x))
-    if(length(x)) stopifnot(length(unique(names(x)))==length(names(x)))
+    if(length(x)==1L && is.null(x[[1L]]) && is.null(names(x[1L]))) x = setNames(x, keys[[int]]) # x[.(NULL)] to x[.(keycol=NULL)]
+    if(length(x)) stopifnot(length(unique(names(x)))==length(names(x))) # unique names
     x
+}
+build.each.i = function(dim.i){
+    build.each.i.attr = function(attr) if(is.null(dim.i[[attr]])) 0L else as.call(list(quote(`%in%`), as.name(attr), dim.i[[attr]]))
+    Reduce(function(a, b) bquote(.(a) & .(b)), lapply(names(dim.i), build.each.i.attr))
 }
 
 # cube --------------------------------------------------------------------
@@ -35,7 +40,6 @@ cube = R6Class(
     public = list(
         env = NULL,
         initialize = function(x){
-            stopifnot(is.list(x), as.logical(length(x)), all(c("fact","dims") %in% (names(x))))
             self$env = as.environment(x)
             invisible(self)
         },
@@ -79,90 +83,58 @@ cube = R6Class(
         },
         parse.i = function(i){
             keys = self$dapply(key, simplify = TRUE)
-            lapply(setNames(seq_along(keys), names(keys)), each.i, i, keys)
+            i = lapply(setNames(seq_along(keys), names(keys)), parse.each.i, i, keys)
+            # - [x] check if all cols exists in dims
+            cols_missing = sapply(names(i), function(dim) !all(names(i[[dim]]) %in% names(self$env$dims[[dim]])))
+            if(any(cols_missing)) stop(sprintf("Field used in query does not exists in dimensions %s.", paste(names(cols_missing)[cols_missing], collapse=", ")))
+            i
         },
+        # [.cube
         subset = function(..., .dots){
             # - [x] catch dots, preprocess, evaluate
             if(missing(.dots)) .dots = match.call(expand.dots = FALSE)$`...`
             i = self$parse.i(.dots)
-            return(i)
-            args = lapply(lapply(.dots, subarg), eval)
-            stopifnot(length(args) <= length(self$dims))
-            # - [x] stop if provided dims subset which doesn't match to dims
-            if(!is.null(names(args))){
-                subset_dimnames = names(args)[names(args) != ""]
-                model_dimnanmes = self$dims[seq_along(args)][names(args) != ""]
-                if(any(subset_dimnames!=model_dimnanmes)) stop(sprintf("Provided dimension names doesn't match to model dimension sequence. Instead of %s you should provide %s.",
-                                                                       paste(subset_dimnames[subset_dimnames!=model_dimnanmes], collapse=", "),
-                                                                       paste(model_dimnanmes[subset_dimnames!=model_dimnanmes], collapse=", ")))
-            }
-            names(args) = self$dims[seq_along(args)]
-            skipped_dims = length(self$dims) - length(args)
-            if(skipped_dims > 0L){
-                args[self$dims[length(args)+1:skipped_dims]] = lapply(1:skipped_dims, function(x) list())
-            }
-            transarg = function(dim){
-                x = args[[dim]]
-                if(is.null(x)) return(x) # null args: x[NULL,NULL,"asd"]
-                else if(is.list(x) && length(x)==1L && is.null(x[[1L]])) return(x) # x[.(NULL)]
-                else if(!is.list(x)) return(setNames(list(x), self$keys[[dim]])) # x[,,"asd"] to x[,,.(keycol="asd")]
-                else if(is.list(x) & length(x)==0L) return(setNames(vector(mode = "list", self$nc[[dim]]), self$dimcolnames[[dim]])) # x[.()] to x[.(col1=NULL,col2=NULL)]
-                else if(is.list(x) & length(x)){
-                    # - [x] check if hierarchy attributes uniquely named
-                    stopifnot(!is.null(names(x)), uniqueN(names(x))==length(names(x)))
-                    return(x)
-                }
-            }
-            args = lapply(selfNames(names(args)), transarg)
-            # - [x] check if all cols exists in dims, filters having NULL or vector are not checked as it refers to no filter and fact-filter
-            cols_missing = sapply(names(args), function(dim) if(!is.list(args[[dim]])) FALSE else !all(names(args[[dim]]) %in% self$dimcolnames[[dim]]))
-            if(any(cols_missing)) stop(sprintf("Field used in subset does not exists in dimensions %s.", paste(names(cols_missing)[cols_missing], collapse=", ")))
-            # - [x] define dimensions processing: select columns from dims and apply filters
-            select = lapply(selfNames(names(args)), function(dim) unique(c(self$keys[[dim]], if(!is.null(args[[dim]])) names(args[[dim]]))))
-            filter = lapply(selfNames(names(args)), function(dim){
-                if(is.null(args[[dim]])) 0L
-                else if(!is.null(args[[dim]])){
-                    build_call = function(attr) if(!is.null(args[[dim]][[attr]])) as.call(list(quote(`%in%`), as.name(attr), args[[dim]][[attr]]))
-                    Reduce(function(a, b) bquote(.(a) & .(b)), lapply(names(args[[dim]]), build_call))
-                }
-            })
+            dims.filter = lapply(i, build.each.i)
             # - [x] iterate over dimensions - cleaner than mapply
-            dim.env = new.env()
+            r = new.env()
+            r$fact = list()
+            r$dims = list()
+            keys = self$dapply(key, simplify = TRUE)
             for(dim in self$dims){
-                if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: Filtering dimension '%s'.\n", dim))
-                # dimensions are not automatically dropped at that point
-                qi = filter[[dim]]
-                qj = as.call(lapply(c("list", select[[dim]]), as.symbol)) # .SD made locked result so building `j` manually
-                dim.env[[dim]] = if(is.null(filter[[dim]])) self$db[[dim]][, eval(qj)] else self$db[[dim]][eval(qi), eval(qj)]
-                setkeyv(dim.env[[dim]], self$keys[[dim]])
+                if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: processing dimension '%s'.\n", dim))
+                r$dims[[dim]] = if(is.null(dims.filter[[dim]])) copy(self$env$dims[[dim]]) else self$env$dims[[dim]][eval(dims.filter[[dim]])]
+                setkeyv(r$dims[[dim]], keys[[dim]])
+            }
+            # - [x] NULL subset returns empty fact
+            if(any(sapply(dims.filter, identical, 0L))){
+                r$fact[[self$fact]] = self$env$fact[[self$fact]][0L]
+                return(as.cube(r))
+            }
+            fact_filter = !sapply(dims.filter, is.null)
+            # - [x]  no filters returns copy of fact
+            if(all(!fact_filter)){
+                r$fact[[self$fact]] = copy(self$env$fact[[self$fact]])
+                return(as.cube(r))
             }
             # - [x] check if binary search possible, only leading fact filters
-            fact_filter = !sapply(filter, is.null)
-            null_subset = any(sapply(filter, identical, 0L))
-            r = if(null_subset) self$db[[self$fact]][0L] else NULL
-            if(!null_subset & isTRUE(fact_filter[[1L]])){
-                # data.table#1419 workaround, fixed in 1.9.7
-                nm = names(fact_filter)
-                binarysearch_dims = rleid(fact_filter)==1L
-                names(binarysearch_dims) = nm
-                names(fact_filter) = nm
-                # workaround end
-                # - [x] do binary search for key-leading cols for fact-filters
-                true_binarysearch_dims = names(binarysearch_dims)[binarysearch_dims]
-                if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: Filtering fact using binary search on '%s'.\n", paste(true_binarysearch_dims, collapse=", ")))
-                binsearch_vals = lapply(setNames(true_binarysearch_dims, self$keys[true_binarysearch_dims]), function(dim) dim.env[[dim]][[1L]])
-                r = self$db[[self$fact]][i = do.call(CJ, binsearch_vals), nomatch = NA]
-            } else binarysearch_dims = setNames(rep(FALSE, length(fact_filter)), names(fact_filter))
+            if(isTRUE(fact_filter[[1L]])){
+                fact_filter2 = copy(fact_filter) # data.table#1419 rleid workaround as `copy()`, fixed in 1.9.7
+                binarysearch_dims = self$dims[rleid(fact_filter2)==1L]
+                if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: filter facts using binary search on '%s'.\n", paste(binarysearch_dims, collapse=", ")))
+                r$fact[[self$fact]] = self$env$fact[[self$fact]][i = do.call(CJ, lapply(selfNames(binarysearch_dims), function(dim) r$dims[[dim]][[1L]])), nomatch = NA]
+            } else binarysearch_dims = character()
             # - [x] fact-filter after the gap as vector scans
-            if(!null_subset & any(!(ff <- names(fact_filter)[fact_filter]) %in% binarysearch_dims[binarysearch_dims])){
-                filter_after_gap = ff[!ff %in% binarysearch_dims[binarysearch_dims]]
-                dim.id = lapply(setNames(filter_after_gap, self$keys[filter_after_gap]), function(dim) dim.env[[dim]][[1L]])
-                qi = Reduce(function(a, b) bquote(.(a) & .(b)), lapply(names(dim.id), function(col) as.call(list(quote(`%in%`), as.name(col), dim.id[[col]]))))
-                r = if(is.null(r)) self$db[[self$fact]][eval(qi)] else r[eval(qi)]
+            vectorscan_dims = setdiff(self$dims[fact_filter], binarysearch_dims)
+            if(length(vectorscan_dims)){
+                if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: filter facts using vector scan on '%s'.\n", paste(vectorscan_dims, collapse=", ")))
+                dims.keys = lapply(setNames(vectorscan_dims, keys[vectorscan_dims]), function(dim) r$dims[[dim]][[1L]])
+                qi = Reduce(function(a, b) bquote(.(a) & .(b)), lapply(names(dims.keys), function(col) as.call(list(quote(`%in%`), as.name(col), dims.keys[[col]]))))
+                r$fact[[self$fact]] = if(!length(r$fact[[self$fact]])) self$env$fact[[self$fact]][eval(qi)] else r$fact[[self$fact]][eval(qi)]
             }
-            # - [x] return cube with all dimensions filtered
-            as.cube(x = list(), fact = setNames(list(if(is.null(r)) copy(self$db[[self$fact]]) else r), self$fact), dims = as.list(dim.env)[self$dims])
+            # - [x] return cube with all dimensions filtered and fact filtered
+            return(as.cube(r))
         },
+        # [[.cube
         extract = function(i, j, by, .call){
             if(!missing(.call)){
                 i = .call[["i"]]
@@ -180,7 +152,24 @@ cube = R6Class(
             }
             i
         },
-        drop = function() self
+        # drop used in [.cube
+        drop = function(drop=1L){
+            # Direct access to cube object method by `$drop()` should not be used on cubes that shares dimensions, you can use drop arg in `[.cube` safely
+            # - [x] drop dimensions where cardinality = 1
+            if(nrow(self$env$fact[[self$fact]])){
+                cardinality = self$env$fact[[self$fact]][, lapply(.SD, uniqueN), .SDcols = c(unname(self$dapply(key, simplify = TRUE)))]
+                dims_to_drop = sapply(cardinality, `==`, 1L)
+            } else {
+                dims_to_drop = self$dapply(function(dim) nrow(dim)==1L, simplify = TRUE)
+            }
+            if(any(dims_to_drop)){
+                dims_to_drop = names(dims_to_drop)[dims_to_drop]
+                keys_to_drop = unname(self$dapply(key, dims = dims_to_drop, simplify = TRUE))
+                self$env$dims[dims_to_drop] = NULL
+                self$env$fact[[self$fact]][, c(keys_to_drop) := NULL]
+            }
+            self
+        }
     ),
     active = list(
         fact = function() names(self$env$fact),
@@ -198,7 +187,7 @@ cube = R6Class(
 "[.cube" = function(x, ..., drop = TRUE){
     if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
     r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
-    #if(isTRUE(drop)) r$drop() else r
+    if(isTRUE(drop)) r$drop() else r
     r
 }
 

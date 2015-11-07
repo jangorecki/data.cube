@@ -6,6 +6,6 @@ Date: 2015-11-05
 Author: Jan Gorecki
 Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
 Description: Extends multidimensional array for OLAP operations.
-Imports: data.table, R6
+Imports: data.table (>= 1.9.6), R6
 License: GPL-3
 

@@ -34,12 +34,12 @@ stopifnot(all.equal(l, as.list(cb)), all.equal(dt, as.data.table(cb)), all.equal
 
 ## array-data.table -------------------------------------------------------
 
-# X = populate_star(1e4, Y = 2011)
-# cb = as.cube()
+# X = populate_star(1e5, Y = 2015)
+# cb = as.cube(X)[,,,,.(time_month_name="January")]
 # cb.dimnames = dimnames(cb)
 # dt = as.data.table(cb)
-# arr = as.array(dt, cb.dimnames, "value")
-# stopifnot(all.equal(as.data.table(arr), dt[, .SD, .SDcols = character()])
+# ar = as.array(dt, cb.dimnames, "value")
+# stopifnot(all.equal(as.data.table(arr), dt[, .SD, .SDcols = character()]))
 
 ## cube in-out --------------------------------------------------------------
 

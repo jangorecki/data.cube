@@ -15,6 +15,8 @@ as.array.data.table = function(x, dimnames, measure, ...){
     if(!length(dimnames)) return(x[, eval(as.name(measure))])
     if(nrow(x)){
         crossdims = quote(setkeyv(do.call(CJ, dimnames), revkey))
+        # check if `on` cols exists to avoid 1.9.6 Error in forderv - fixed in 1.9.7 already - data.table#1376
+        if(!all(revkey %in% names(x))) stop(sprintf("Columns to join on does not exists in data.table '%s'.", paste(revkey[!revkey %in% names(x)], collapse=", ")))
         r = array(data = x[eval(crossdims), eval(as.name(measure)), on = c(revkey)],
                   dim = unname(sapply(dimnames, length)),
                   dimnames = dimnames)

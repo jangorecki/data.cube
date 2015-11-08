@@ -1,16 +1,19 @@
 library(data.table)
 library(data.cube)
 
-set.seed(1L)
-dimnames = list(color = sort(c("green","yellow","red")), 
-                year = as.character(2011:2015), 
-                status = sort(c("active","inactive","archived","removed")))
-ar = array(sample(c(rep(NA, 4), 4:7/2), prod(sapply(dimnames, length)), TRUE), 
-           unname(sapply(dimnames, length)), 
-           dimnames)
-cb = as.cube(ar)
+### no hierarchy ----------------------------------------------------------
 
 # subset NULL/missing handling --------------------------------------------
+
+set.seed(1L)
+ar.dimnames = list(color = sort(c("green","yellow","red")), 
+                   year = as.character(2011:2015), 
+                   status = sort(c("active","inactive","archived","removed")))
+ar.dim = sapply(ar.dimnames, length)
+ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE), 
+           unname(ar.dim),
+           ar.dimnames)
+cb = as.cube(ar)
 
 stopifnot(
     # keep all hierachies
@@ -83,9 +86,10 @@ stopifnot(
     , all.equal(as.array(cb["green",,NULL,drop=TRUE]), ar["green",,NULL,drop=TRUE])
 )
 
-# subset using list to refer hierarchies ----------------------------------
+### hierarchy ---------------------------------------------------------------
 
-# slice and dice on dimension hierarchy
+# slice and dice on dimension hierarchy -----------------------------------
+
 # cb["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
 # cb$dims
 # cb[product = "Mazda RX4",
@@ -93,7 +97,3 @@ stopifnot(
 #    currency = .(curr_type = "crypto"),
 #    geography = NULL,
 #    time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
-
-
-# operates on lowest granularity data - no join to hierarchies needed
-# cb[i = .("green",,"active"), j = .(value = value, value2 = value*2), by = .()]

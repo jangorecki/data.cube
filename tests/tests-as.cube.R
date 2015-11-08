@@ -32,13 +32,21 @@ stopifnot(all.equal(l, as.list(cb)), all.equal(dt, as.data.table(cb)), all.equal
 
 ### hierarchy ---------------------------------------------------------------
 
+## array-data.table -------------------------------------------------------
+
+# X = populate_star(1e4, Y = 2011)
+# cb = as.cube()
+# cb.dimnames = dimnames(cb)
+# dt = as.data.table(cb)
+# arr = as.array(dt, cb.dimnames, "value")
+# stopifnot(all.equal(as.data.table(arr), dt[, .SD, .SDcols = character()])
+
 ## cube in-out --------------------------------------------------------------
 
-# X = populate_star(1e5)
-# cb = as.cube(X)
-# l = 
-#     dt = as.data.table(cb)
+# # in
+# cb2 = as.cube(dt, dims = cb$dapply(key, simplify = FALSE))
+# cb3 = as.cube(X)
+# stopifnot(all.equal(cb, cb2), all.equal(cb, cb3))
 # 
-# stopifnot(TRUE)
-# all.equal(X, as.list(cb, fact="sales"))
-# all.equal(cb, as.cube(dt, x))
+# # out
+# stopifnot(all.equal(X, as.list(cb, fact="sales")), all.equal(dt, as.data.table(cb)))

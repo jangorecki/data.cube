@@ -42,7 +42,7 @@ process.dim = function(dim, x){
 # @param fact name for fact table
 # @param dims list of vectors columns names for each dimension
 as.cube.data.table = function(x, fact = "fact", dims, fun.aggregate = sum, ...){
-    stopifnot(is.data.table(x), is.character(fact), is.list(dims), as.logical(length(dims)), length(names(dims))==length(unique(names(dims))), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(fun.aggregate))
+    stopifnot(is.data.table(x), is.character(fact), is.list(dims), as.logical(length(dims)), is.unique(names(dims)), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(fun.aggregate))
     key_cols = sapply(dims, `[`, 1L)
     measure_cols = names(x)[!names(x) %in% unlist(dims)]
     cube$new(list(
@@ -81,9 +81,10 @@ as.cube.environment = function(x, ...){
 as.array.cube = function(x, measure, ...){
     if(missing(measure)){
         fact_colnames = names(x$env$fact[[x$fact]])
-        measure = fact_colnames[!fact_colnames %in% unlist(x$dapply(key))][1L]
+        measure = fact_colnames[!fact_colnames %in% unlist(x$dapply(key))]
+        if(length(measure) > 1L) stop("Your cube seems to have multiple measures, you must provide column name as 'measure' argument to as.array.s")
     }
-    as.array(x = x$env$fact[[x$fact]], dimnames = x$dapply(`[[`, 1L), measure = measure)
+    as.array(x = x$env$fact[[x$fact]], dimcols = as.character(unlist(x$dapply(key))), dimnames = x$dapply(`[[`, 1L), measure = measure)
 }
 
 as.data.table.cube = function(x, na.fill = FALSE, dcast = FALSE, ...){

@@ -13,33 +13,23 @@ ar.dim = sapply(ar.dimnames, length)
 ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE), 
            unname(ar.dim),
            ar.dimnames)
-dt = as.data.table(ar)
-stopifnot(all.equal(ar, as.array(dt, ar.dimnames)))
 
 ## cube in-out ----------------------------------------------------------------------
 
+dt = as.data.table(ar)
 l = list(fact = list(fact=dt), dims = mapply(process.dim, names(ar.dimnames), ar.dimnames, SIMPLIFY = FALSE))
 # str(l, 2L, give.attr = FALSE)
 
 # in
-cb = as.cube(ar)
-cb2 = as.cube(dt, dims = sapply(names(ar.dimnames), function(x) x, simplify = FALSE))
-cb3 = as.cube(l)
-stopifnot(all.equal(cb, cb2), all.equal(cb, cb3))
+cb.ar = as.cube(ar)
+cb.dt = as.cube(dt, dims = sapply(names(ar.dimnames), function(x) x, simplify = FALSE))
+cb.l = as.cube(l)
+stopifnot(all.equal(cb.ar, cb.dt), all.equal(cb.ar, cb.l))
 
 # out
-stopifnot(all.equal(l, as.list(cb)), all.equal(dt, as.data.table(cb)), all.equal(ar, as.array(cb)))
+stopifnot(all.equal(l, as.list(cb.l)), all.equal(dt, as.data.table(cb.dt)), all.equal(ar, as.array(cb.ar)))
 
 ### hierarchy ---------------------------------------------------------------
-
-## array-data.table -------------------------------------------------------
-
-# X = populate_star(1e5, Y = 2015)
-# cb = as.cube(X)[,,,,.(time_month_name="January")]
-# cb.dimnames = dimnames(cb)
-# dt = as.data.table(cb)
-# ar = as.array(dt, cb.dimnames, "value")
-# stopifnot(all.equal(as.data.table(arr), dt[, .SD, .SDcols = character()]))
 
 ## cube in-out --------------------------------------------------------------
 

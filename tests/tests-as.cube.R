@@ -33,10 +33,13 @@ stopifnot(all.equal(l, as.list(cb.l)), all.equal(dt, as.data.table(cb.dt)), all.
 
 ## cube in-out --------------------------------------------------------------
 
-# # in
-# cb2 = as.cube(dt, dims = cb$dapply(key, simplify = FALSE))
-# cb3 = as.cube(X)
-# stopifnot(all.equal(cb, cb2), all.equal(cb, cb3))
-# 
-# # out
-# stopifnot(all.equal(X, as.list(cb, fact="sales")), all.equal(dt, as.data.table(cb)))
+l = populate_star(1e5)
+
+# in
+cb.l = as.cube(l)
+dt = cb.l$denormalize()
+cb.dt = as.cube(dt, fact = "sales", dims = lapply(l$dims, names))
+stopifnot(all.equal(cb.l, cb.dt))
+
+# out
+stopifnot(all.equal(l, as.list(cb.l, fact = "sales")), all.equal(dt, as.data.table(cb.dt)))

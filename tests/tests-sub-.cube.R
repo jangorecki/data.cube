@@ -90,10 +90,30 @@ stopifnot(
 
 # slice and dice on dimension hierarchy -----------------------------------
 
-# cb["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
-# cb$dims
-# cb[product = "Mazda RX4",
-#    customer = NULL,
-#    currency = .(curr_type = "crypto"),
-#    geography = NULL,
-#    time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+cb = as.cube(populate_star(1e5))
+
+# use own names in ...
+stopifnot(all.equal(
+    cb["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))],
+    cb[product = "Mazda RX4",
+       customer = .(),
+       currency = .(curr_type = "crypto"),
+       geography = .(),
+       time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+))
+
+# NULL subset
+stopifnot(
+    nrow(as.data.table(cb[NULL]))==0L
+    , nrow(as.data.table(cb[.(NULL)]))==0L
+    , nrow(as.data.table(cb[,,NULL,,NULL]))==0L
+    , nrow(as.data.table(cb[,,.(NULL),,.(NULL)]))==0L
+    , nrow(as.data.table(cb[,,,,.(time_year = 2014L, time_quarter_name = NULL)]))==0L
+)
+
+# drop arg
+stopifnot(
+    length(dim(cb[]))==5L
+    , length(dim(cb["Mazda RX4"]))==4L
+    , length(dim(cb["Mazda RX4", drop=FALSE]))==5L
+)

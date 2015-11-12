@@ -73,5 +73,95 @@ stopifnot(
 
 ### hierarchy ---------------------------------------------------------------
 
-# X = populate_star(1e5)
-# cb = as.cube(X) # na.rm=TRUE
+cb = as.cube(populate_star(1e5)) # na.rm=TRUE
+
+# by 1 low attribute from 1 dimension
+r = capply(cb, "geog_abb", sum)
+stopifnot(
+    all.equal(dim(r), 50L),
+    all.equal(names(r$env$fact$sales), c("geog_abb","amount","value")),
+    all.equal(names(r$env$dims), "geography"),
+    all.equal(names(r$env$dims$geography), "geog_abb")
+)
+
+# by 1 high attribute from 1 dimension
+r = capply(cb, "geog_division_name", sum)
+stopifnot(
+    all.equal(dim(r), 9L),
+    all.equal(names(r$env$fact$sales), c("geog_division_name","amount","value")),
+    all.equal(names(r$env$dims), "geography"),
+    all.equal(names(r$env$dims$geography), "geog_division_name")
+)
+
+# by 2 low attributes from 2 dimensions
+r = capply(cb, c("time_date","geog_abb"), sum)
+stopifnot(
+    all.equal(dim(r), c(1826L, 50L)),
+    all.equal(names(r$env$fact$sales), c("time_date","geog_abb","amount","value")),
+    all.equal(names(r$env$dims), c("time","geography")),
+    all.equal(names(r$env$dims$time), "time_date"),
+    all.equal(names(r$env$dims$geography), "geog_abb")
+)
+
+# by 2 high attributes from 2 dimensions
+r = capply(cb, c("time_year","geog_division_name"), sum)
+stopifnot(
+    all.equal(dim(r), c(5L, 9L)),
+    all.equal(names(r$env$fact$sales), c("time_year","geog_division_name","amount","value")),
+    all.equal(names(r$env$dims), c("time","geography")),
+    all.equal(names(r$env$dims$time), "time_year"),
+    all.equal(names(r$env$dims$geography), "geog_division_name")
+)
+
+# by 1 low and 1 high attributes from 2 dimensions
+r = capply(cb, c("time_date","geog_division_name"), sum)
+stopifnot(
+    all.equal(dim(r), c(1826L, 9L)),
+    all.equal(names(r$env$fact$sales), c("time_date","geog_division_name","amount","value")),
+    all.equal(names(r$env$dims), c("time","geography")),
+    all.equal(names(r$env$dims$time), "time_date"),
+    all.equal(names(r$env$dims$geography), "geog_division_name")
+)
+
+# by 3 low attributes from 3 dimensions
+r = capply(cb, c("time_date","geog_abb","curr_name"), sum)
+stopifnot(
+    all.equal(dim(r), c(1826L, 50L, 49L)),
+    all.equal(names(r$env$fact$sales), c("time_date","geog_abb","curr_name","amount","value")),
+    all.equal(names(r$env$dims), c("time","geography","currency")),
+    all.equal(names(r$env$dims$time), "time_date"),
+    all.equal(names(r$env$dims$geography), "geog_abb"),
+    all.equal(names(r$env$dims$currency), "curr_name")
+)
+
+# by 3 high attributes from 3 dimensions
+r = capply(cb, c("time_year","geog_division_name","curr_type"), sum)
+stopifnot(
+    all.equal(dim(r), c(5L, 9L, 2L)),
+    all.equal(names(r$env$fact$sales), c("time_year","geog_division_name","curr_type","amount","value")),
+    all.equal(names(r$env$dims), c("time","geography","currency")),
+    all.equal(names(r$env$dims$time), "time_year"),
+    all.equal(names(r$env$dims$geography), "geog_division_name"),
+    all.equal(names(r$env$dims$currency), "curr_type")
+)
+
+# by 2 high and 2 low attributes from 4 dimensions
+r = capply(cb, c("time_year","prod_name","geog_division_name","curr_name"), sum)
+stopifnot(
+    all.equal(dim(r), c(5L, 32L, 9L, 49L)),
+    all.equal(names(r$env$fact$sales), c("time_year","prod_name","geog_division_name","curr_name","amount","value")),
+    all.equal(names(r$env$dims), c("time","product","geography","currency")),
+    all.equal(names(r$env$dims$time), "time_year"),
+    all.equal(names(r$env$dims$product), "prod_name"),
+    all.equal(names(r$env$dims$geography), "geog_division_name"),
+    all.equal(names(r$env$dims$currency), "curr_name")
+)
+
+# by 1 low and 1 high from same dimension
+# r = capply(cb, c("geog_abb","geog_division_name"), sum)
+# stopifnot(
+#     all.equal(dim(r), 50L),
+#     all.equal(names(r$env$fact$sales), c("geog_abb","geog_division_name","amount","value")),
+#     all.equal(names(r$env$dims), "geography"),
+#     all.equal(names(r$env$dims$geography), "geog_division_name")
+# )

@@ -161,7 +161,8 @@ cube = R6Class(
             dimcolnames = self$dapply(names)
             # column name match in 2 dimensions
             dims.by = lapply(dimcolnames, function(colnames) by[by %in% colnames])
-            dims.by = dims.by[as.logical(sapply(dims.by, length))]
+            dims.order = unique(names(unlist(dims.by)[order(match(unlist(dims.by),by))]))
+            dims.by = dims.by[dims.order]
             # filter
             dims.filter = lapply(i, build.each.i)
             # processing dims
@@ -169,7 +170,7 @@ cube = R6Class(
             r$fact = list()
             r$dims = list()
             keys = self$dapply(key, simplify = TRUE)
-            copy.dims = unique(c(names(dims.filter), names(dims.by)))
+            copy.dims = unique(c(names(dims.by), names(dims.filter)))
             # copy only id column and the one used in `by`
             for(dim in copy.dims){
                 r$dims[[dim]] = if(is.null(dims.filter[[dim]])){
@@ -181,7 +182,7 @@ cube = R6Class(
             }
             # keep only required dimensions, including those for filtering
             measures = setdiff(names(self$env$fact[[self$fact]]), keys)
-            rm.dim.keys = keys[!keys %in% copy.dims]
+            rm.dim.keys = keys[!names(keys) %in% copy.dims]
             r$fact[[self$fact]] = if(length(rm.dim.keys)) self$env$fact[[self$fact]][, -rm.dim.keys, with=FALSE] else copy(self$env$fact[[self$fact]])
             # join and filter fact
             for(dim in copy.dims){
@@ -194,9 +195,9 @@ cube = R6Class(
             # rollup dimensions
             for(dim in names(r$dims)){
                 if(!keys[[dim]] %in% dims.by[[dim]]){
-                    r$dims[, c(keys[[dim]]) := NULL]
+                    r$dims[[dim]][, c(keys[[dim]]) := NULL]
                     new_key = names(r$dims[[dim]])[1L]
-                    r$dims = unique(r$dims, by = new_key)
+                    r$dims[[dim]] = unique(r$dims[[dim]], by = new_key)
                     setkeyv(r$dims[[dim]], new_key)
                 }
             }

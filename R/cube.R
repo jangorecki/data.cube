@@ -231,8 +231,8 @@ cube = R6Class(
         }
     ),
     active = list(
-        fact = function() names(self$env$fact),
-        dims = function() names(self$env$dims)
+        fact = function() names(self$env$fact), # scalar character
+        dims = function() names(self$env$dims) # character vector
     )
 )
 
@@ -289,7 +289,7 @@ str.cube = function(object, ...){
 #' @param ... arguments passed to *FUN*
 #' @description Wrapper around `[[.cube` and `j`, `by` arg.
 capply = aggregate.cube = function(x, MARGIN, FUN, ...){
-    stopifnot(inherits(x, "cube"), !missing(MARGIN), !missing(FUN))
+    stopifnot(inherits(x, "cube"), !missing(MARGIN), !missing(FUN), is.function(FUN))
     j = as.call(list(quote(lapply), X = quote(.SD), FUN = substitute(FUN), "..." = ...))
     x$extract(i = .(), j = j, by = MARGIN)
 }

@@ -5,7 +5,7 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
 
 - [x] scalable multidimensional `array` alternative, data modeled in *star schema*
 - [x] uses [data.table](https://github.com/Rdatatable/data.table) under the hood
-- [x] use base R `array` query API, see [olap-operation-r](https://dzone.com/articles/olap-operation-r) and [r-script](https://gist.github.com/jangorecki/4aa6218b6011360338f2)
+- [x] use base R `array` query API, see [OLAP Operation in R](https://dzone.com/articles/olap-operation-r) and [r-script](https://gist.github.com/jangorecki/4aa6218b6011360338f2)
   - [x] `[.cube` uses base R `[.array` method API for *slice* and *dice*, see [tests/tests-sub-.cube.R](tests/tests-sub-.cube.R)
   - [ ] `capply`/`aggregate.cube` uses base R `apply` function API for *rollup*, *drilldown* and *pivot*, see [tests/tests-capply.R](tests/tests-capply.R)
 - [x] base R `array` API is extended by accepting named list instead of vectors
@@ -13,7 +13,7 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
   - [ ] rollup, drilldown and pivot on multiple attributes from dimensions and hierarchies, see [tests/tests-capply.R](tests/tests-capply.R)
 - [ ] new `[[.cube` method combine and optimize `[.cube` and `capply` into single call with *data.table*-like API, see [tests/tests-sub-sub-.cube.R](tests/tests-sub-sub-.cube.R)
   - [ ] *i* accept same input as `...` argument of `[.cube` wrapped into `.(...)`
-  - [ ] *j* instead `FUN` arg of `apply`, accept input like data.table *j* or a function to apply on all measures
+  - [ ] *j* accept input like data.table *j* or a function to apply on all measures
   - [ ] *by* acts like a `MARGIN` arg of `apply`, accept input like data.table *by*
 - [x] direct access to *cube* class methods and attributes, see `ls.str(x)` on *cube* object
 - [ ] logging of queries against the cube
@@ -201,6 +201,7 @@ It could potentially utilize `Rserve` for parallel processing on distributed dat
 # Interesting reading
 
 - [Should OLAP databases be denormalized for read performance?](http://stackoverflow.com/q/4394183/2490497)
+- [OLAP Operation in R](https://dzone.com/articles/olap-operation-r) + [r-script](https://gist.github.com/jangorecki/4aa6218b6011360338f2)
 - [data.table 2E9 rows grouping benchmark](https://github.com/Rdatatable/data.table/wiki/Benchmarks-%3A-Grouping)
 - [data.table vs python, big data, MPP, databases](https://github.com/szilard/benchm-databases)
 

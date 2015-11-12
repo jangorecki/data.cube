@@ -141,18 +141,56 @@ cube = R6Class(
             if(!missing(.call)){
                 i = .call[["i"]]
                 j = .call[["j"]]
-                by = .call[["by"]]
+                #by = .call[["by"]]
             } else stop("direct access to 'extract' method not yet supported")
+            # parse i
             if(!is.null(i)){
                 if(!(i[[1L]]==as.symbol(".") | i[[1L]]==quote(list))) stop("Argument `i` to `[[.cube` must be a call `list()` or `.()`.")
                 i = as.list(i)[-1L]
                 keep_dims = names(i)
                 stopifnot(keep_dims %in% self$dims)
-                all.i = sapply(self$dims, function(x) call("list"), simplify = FALSE)
+                all.i = sapply(self$dims, list, simplify = FALSE)
                 all.i[keep_dims] = i
                 i = self$parse.i(as.pairlist(all.i))[keep_dims]
             }
-            i
+            browser()
+            # gather metadata from i
+            lkp_dims = names(i)
+            # get dimension for column name of `by`
+            dimcolnames = self$dapply(names)
+            # column name match in 2 dimensions
+            r = lapply(dimcolnames, function(colnames) by[by %in% colnames])
+            lkp_dims = c(lkp_dims, names(r[as.logical(sapply(r, length))]))
+            lkp_dims = unique(lkp_dims)
+            # filter
+            dims.filter = lapply(i, build.each.i)
+            dims.by = sapply(by, identity)
+            r = new.env()
+            r$fact = list()
+            r$dims = list()
+            keys = self$dapply(key, simplify = TRUE)
+            copy.dims = unique(c(names(dims.filter), names(dims.by)))
+            copy.dims = self$dims[self$dims %in% copy.dims]
+            for(dim in copy.dims){
+                if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: processing dimension '%s'.\n", dim))
+                r$dims[[dim]] = if(is.null(dims.filter[[dim]])) self$env$dims[[dim]][, .SD, .SDcols = unique(c(keys[[dim]], dims.by[[dim]]))] else self$env$dims[[dim]][eval(dims.filter[[dim]]), .SD, .SDcols = unique(c(keys[[dim]], dims.by[[dim]]))]
+                setkeyv(r$dims[[dim]], keys[[dim]])
+            }
+            # join
+            
+            # prepare dimensions
+            for(dim in copy.dims){
+                if(!keys[[dim]] %in% dims.by[[dim]]){
+                    r$dims[, c(keys[[dim]]) := NULL]
+                    setkeyv(r$dims[[dim]], names(r$dims[[dim]])[1L])
+                    r$dims = unique(r$dims)
+                }
+            }
+            # aggregate facts
+            r$fact[[self$fact]] = dt[, j = eval(j), by = by]
+            
+            # return cube
+            return(as.cube(r))
         },
         # drop used in [.cube
         drop = function(drop=1L){
@@ -200,7 +238,7 @@ cube = R6Class(
 #' @param by expression/character vector to aggregate measures accroding to *j* argument.
 #' @return Cube class object
 "[[.cube" = function(x, i, j, by){
-    r = x$extract(.call = match.call())
+    r = x$extract(by = by, .call = match.call())
     r
 }
 
@@ -234,5 +272,6 @@ str.cube = function(object, ...){
 capply = aggregate.cube = function(x, MARGIN, FUN, ...){
     stopifnot(inherits(x, "cube"), !missing(MARGIN), !missing(FUN))
     FUN = match.fun(FUN)
+    browser()
     x[[i = .(), j = lapply(.SD, FUN, ...), by = MARGIN]]
 }

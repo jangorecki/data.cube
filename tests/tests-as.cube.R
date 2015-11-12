@@ -3,7 +3,7 @@ library(data.cube)
 
 ### no hierarchy ---------------------------------------------------------
 
-## array-data.table -------------------------------------------------------
+## cube in-out ----------------------------------------------------------------------
 
 set.seed(1L)
 ar.dimnames = list(color = sort(c("green","yellow","red")), 
@@ -13,9 +13,6 @@ ar.dim = sapply(ar.dimnames, length)
 ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE), 
            unname(ar.dim),
            ar.dimnames)
-
-## cube in-out ----------------------------------------------------------------------
-
 dt = as.data.table(ar)
 l = list(fact = list(fact=dt), dims = mapply(process.dim, names(ar.dimnames), ar.dimnames, SIMPLIFY = FALSE))
 # str(l, 2L, give.attr = FALSE)

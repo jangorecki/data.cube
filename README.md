@@ -9,7 +9,7 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
   - [x] `[.cube` uses base R `[.array` method API for *slice* and *dice*, see [tests/tests-sub-.cube.R](tests/tests-sub-.cube.R)
   - [ ] `capply`/`aggregate.cube` uses base R `apply` function API for *rollup*, *drilldown* and *pivot*, see [tests/tests-capply.R](tests/tests-capply.R)
 - [x] base R `array` API is extended by accepting named list instead of vectors
-  - [ ] slice and dice on multiple attributes from dimensions and hierarchies, see [tests/tests-sub-.cube.R](tests/tests-sub-.cube.R)
+  - [x] slice and dice on multiple attributes from dimensions and hierarchies, see [tests/tests-sub-.cube.R](tests/tests-sub-.cube.R)
   - [ ] rollup, drilldown and pivot on multiple attributes from dimensions and hierarchies, see [tests/tests-capply.R](tests/tests-capply.R)
 - [ ] new `[[.cube` method combine and optimize `[.cube` and `capply` into single call with *data.table*-like API, see [tests/tests-sub-sub-.cube.R](tests/tests-sub-sub-.cube.R)
   - [ ] *i* accept same input as `...` argument of `[.cube` wrapped into `.(...)`
@@ -83,7 +83,7 @@ as.data.table(r, na.fill = TRUE, dcast = TRUE, formula = year ~ status)
 # capply()
 ```
 
-## Extensions to array
+## Extension to array
 
 ```r
 library(data.table)
@@ -126,6 +126,14 @@ as.cube(dt, fact = "sales", dims = dimcolnames)
 
 ## Advanced
 
+### Architecture
+
+Design concept is very simple.  
+Cube is [R6](https://github.com/wch/R6) class object, which is enhanced R environment object.  
+A cube class keeps another plain R environment container to store all tables.  
+Tables are stored as [data.table](https://github.com/Rdatatable/data.table) class object, which is enhanced R data.frame object.  
+Access to all attributes is dynamic. A static part is *star schema* modeled multidimensional data, logic of cubes can be isolated from the data.  
+
 ```r
 library(data.cube)
 
@@ -143,6 +151,12 @@ set2keyv(cb$env$dims$time, "time_year")
 cb["Mazda RX4",, .(curr_type = c("fiat","crypto")),, .(time_year = 2011:2012)]
 options("datatable.verbose" = FALSE)
 ```
+
+# Interesting reading
+
+- [Should OLAP databases be denormalized for read performance?](http://stackoverflow.com/q/4394183/2490497)
+- [data.table 2E9 rows grouping benchmark](https://github.com/Rdatatable/data.table/wiki/Benchmarks-%3A-Grouping)
+- [benchm-databases](https://github.com/szilard/benchm-databases)
 
 # Contact
 

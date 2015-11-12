@@ -78,6 +78,7 @@ cube = R6Class(
             r = if(!na.fill | length(dims)==0L){
                 copy(self$env$fact[[self$fact]])
             } else {
+                # `nomatch` to be extended after data.table#857 resolved
                 self$env$fact[[self$fact]][i = do.call(CJ, self$dapply(`[[`,1L, dims=dims)), nomatch=NA, on = c(key_cols[dims])]
             }
             sapply(dims[as.logical(sapply(lkp_cols, length))], function(dim) lookup(r, self$env$dims[[dim]], lkp_cols[[dim]]))
@@ -142,7 +143,10 @@ cube = R6Class(
                 i = .call[["i"]]
                 j = .call[["j"]]
                 #by = .call[["by"]]
-            } else stop("direct access to 'extract' method not yet supported")
+            } else {
+                #stop("direct access to 'extract' method not yet supported")
+                i = substitute(i)
+            }
             # parse i
             if(!is.null(i)){
                 if(!(i[[1L]]==as.symbol(".") | i[[1L]]==quote(list))) stop("Argument `i` to `[[.cube` must be a call `list()` or `.()`.")
@@ -153,42 +157,57 @@ cube = R6Class(
                 all.i[keep_dims] = i
                 i = self$parse.i(as.pairlist(all.i))[keep_dims]
             }
-            browser()
-            # gather metadata from i
-            lkp_dims = names(i)
-            # get dimension for column name of `by`
+            # get all dimension columns and use to detect dimensions used in `by`
             dimcolnames = self$dapply(names)
             # column name match in 2 dimensions
-            r = lapply(dimcolnames, function(colnames) by[by %in% colnames])
-            lkp_dims = c(lkp_dims, names(r[as.logical(sapply(r, length))]))
-            lkp_dims = unique(lkp_dims)
+            dims.by = lapply(dimcolnames, function(colnames) by[by %in% colnames])
+            dims.by = dims.by[as.logical(sapply(dims.by, length))]
             # filter
             dims.filter = lapply(i, build.each.i)
-            dims.by = sapply(by, identity)
+            # processing dims
             r = new.env()
             r$fact = list()
             r$dims = list()
             keys = self$dapply(key, simplify = TRUE)
             copy.dims = unique(c(names(dims.filter), names(dims.by)))
-            copy.dims = self$dims[self$dims %in% copy.dims]
+            # copy only id column and the one used in `by`
             for(dim in copy.dims){
-                if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: processing dimension '%s'.\n", dim))
-                r$dims[[dim]] = if(is.null(dims.filter[[dim]])) self$env$dims[[dim]][, .SD, .SDcols = unique(c(keys[[dim]], dims.by[[dim]]))] else self$env$dims[[dim]][eval(dims.filter[[dim]]), .SD, .SDcols = unique(c(keys[[dim]], dims.by[[dim]]))]
-                setkeyv(r$dims[[dim]], keys[[dim]])
-            }
-            # join
-            
-            # prepare dimensions
-            for(dim in copy.dims){
-                if(!keys[[dim]] %in% dims.by[[dim]]){
-                    r$dims[, c(keys[[dim]]) := NULL]
-                    setkeyv(r$dims[[dim]], names(r$dims[[dim]])[1L])
-                    r$dims = unique(r$dims)
+                r$dims[[dim]] = if(is.null(dims.filter[[dim]])){
+                    self$env$dims[[dim]][, .SD, .SDcols = unique(c(keys[[dim]], dims.by[[dim]]))]
+                } else {
+                    self$env$dims[[dim]][eval(dims.filter[[dim]]), .SD, .SDcols = unique(c(keys[[dim]], dims.by[[dim]]))]
+                    setkeyv(r$dims[[dim]], keys[[dim]])
                 }
             }
+            # keep only required dimensions, including those for filtering
+            measures = setdiff(names(self$env$fact[[self$fact]]), keys)
+            rm.dim.keys = keys[!keys %in% copy.dims]
+            r$fact[[self$fact]] = if(length(rm.dim.keys)) self$env$fact[[self$fact]][, -rm.dim.keys, with=FALSE] else copy(self$env$fact[[self$fact]])
+            # join and filter fact
+            for(dim in copy.dims){
+                # this doesn't make sense for no-hierarchy cases so should be skipped
+                r$fact[[self$fact]] = r$dims[[dim]][r$fact[[self$fact]], nomatch = 0L, on = c(keys[[dim]])]
+            }
+            # remove dimensions used only in filter
+            rm.filter.dims = setdiff(names(dims.filter), names(dims.by))
+            if(length(rm.filter.dims)) r$dims[rm.filter.dims] = NULL
+            # rollup dimensions
+            for(dim in names(r$dims)){
+                if(!keys[[dim]] %in% dims.by[[dim]]){
+                    r$dims[, c(keys[[dim]]) := NULL]
+                    new_key = names(r$dims[[dim]])[1L]
+                    r$dims = unique(r$dims, by = new_key)
+                    setkeyv(r$dims[[dim]], new_key)
+                }
+            }
+            # keep only required dimensions, only those used in `by`
+            keep.dim.keys = sapply(r$dims, key)
+            if(any(!keep.dim.keys %in% by)) browser()
+            r$fact[[self$fact]] = r$fact[[self$fact]][, c(keep.dim.keys, measures), with=FALSE]
             # aggregate facts
-            r$fact[[self$fact]] = dt[, j = eval(j), by = by]
-            
+            r$fact[[self$fact]] = r$fact[[self$fact]][, eval(j), by = by]
+            # setkey
+            setkeyv(r$fact[[self$fact]], by)
             # return cube
             return(as.cube(r))
         },
@@ -271,7 +290,6 @@ str.cube = function(object, ...){
 #' @description Wrapper around `[[.cube` and `j`, `by` arg.
 capply = aggregate.cube = function(x, MARGIN, FUN, ...){
     stopifnot(inherits(x, "cube"), !missing(MARGIN), !missing(FUN))
-    FUN = match.fun(FUN)
-    browser()
-    x[[i = .(), j = lapply(.SD, FUN, ...), by = MARGIN]]
+    j = as.call(list(quote(lapply), X = quote(.SD), FUN = substitute(FUN), "..." = ...))
+    x$extract(i = .(), j = j, by = MARGIN)
 }

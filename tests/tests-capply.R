@@ -13,33 +13,38 @@ ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
            ar.dimnames)
 cb = as.cube(ar)
 
-# stopifnot(
-#     # two dims, na.rm=TRUE
-#     all.equal(
-#         as.array(capply(cb, c("year","status"), sum, na.rm=TRUE)),
-#         apply(ar, c("year","status"), sum, na.rm=TRUE)
-#     ),
-#     # two dims, na.rm=FALSE
-#     all.equal(
-#         as.array(capply(cb, c("year","status"), sum, na.rm=FALSE)),
-#         apply(ar, c("year","status"), sum, na.rm=FALSE)
-#     ),
-#     # single dimension
-#     all.equal(
-#         as.array(capply(cb, "year", sum, na.rm=TRUE)),
-#         apply(ar, "year", sum, na.rm=TRUE)
-#     ),
-#     # single dimension value, drop FALSE
-#     all.equal(
-#         as.array(capply(cb[,"2014",,drop=FALSE], "year", sum, na.rm=TRUE)),
-#         apply(ar[,"2014",,drop=FALSE], "year", sum, na.rm=TRUE)
-#     ),
-#     # all dimensions
-#     all.equal(
-#         as.array(capply(cb, c("color","year","status"), sum, na.rm=TRUE)),
-#         apply(ar, c("color","year","status"), sum, na.rm=TRUE)
-#     )
-# )
+stopifnot(
+    # two dims sum, na.rm=TRUE
+    all.equal(
+        as.array(capply(cb, c("year","status"), sum, na.rm=TRUE), na.fill = 0),
+        apply(ar, c("year","status"), sum, na.rm=TRUE)
+    ),
+    # two dims mean, na.rm=TRUE
+    all.equal(
+        as.array(capply(cb, c("year","status"), mean, na.rm=TRUE), na.fill = NaN),
+        apply(ar, c("year","status"), mean, na.rm=TRUE)
+    ),
+    # single dimension
+    all.equal(
+        as.array(capply(cb, "year", sum, na.rm=TRUE), na.fill = 0),
+        apply(ar, "year", sum, na.rm=TRUE)
+    ),
+    # single dimension value, drop FALSE
+    all.equal(
+        as.array(capply(cb[,"2014",,drop=FALSE], "year", sum, na.rm=TRUE), na.fill = 0),
+        apply(ar[,"2014",,drop=FALSE], "year", sum, na.rm=TRUE)
+    ),
+    # limited dimension value
+    all.equal(
+        as.array(capply(cb[,c("2014","2015"),], "year", sum, na.rm=TRUE), na.fill = 0),
+        apply(ar[,c("2014","2015"),], "year", sum, na.rm=TRUE)
+    ),
+    # all dimensions
+    all.equal(
+        as.array(capply(cb, c("color","year","status"), sum, na.rm=TRUE), na.fill = 0),
+        apply(ar, c("color","year","status"), sum, na.rm=TRUE)
+    )
+)
 
 ### hierarchy ---------------------------------------------------------------
 

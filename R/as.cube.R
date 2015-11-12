@@ -78,13 +78,16 @@ as.cube.environment = function(x, ...){
 
 # as.*.cube ---------------------------------------------------------------
 
-as.array.cube = function(x, measure, ...){
+as.array.cube = function(x, measure, na.fill = NA, ...){
     if(missing(measure)){
         fact_colnames = names(x$env$fact[[x$fact]])
         measure = fact_colnames[!fact_colnames %in% unlist(x$dapply(key))]
-        if(length(measure) > 1L) stop("Your cube seems to have multiple measures, you must provide column name as 'measure' argument to as.array.s")
+        if(length(measure) > 1L) browser() #stop("Your cube seems to have multiple measures, you must provide column name as 'measure' argument to as.array.s")
     }
-    as.array(x = x$env$fact[[x$fact]], dimcols = as.character(unlist(x$dapply(key))), dimnames = x$dapply(`[[`, 1L), measure = measure)
+    r = as.array(x = x$env$fact[[x$fact]], dimcols = as.character(unlist(x$dapply(key))), dimnames = x$dapply(`[[`, 1L), measure = measure)
+    # below will be removed after data.table#857 resolved, logic will goes into cb$denormalize method
+    if(!is.na(na.fill)) r[is.na(r)] = na.fill
+    r
 }
 
 as.data.table.cube = function(x, na.fill = FALSE, dcast = FALSE, ...){

@@ -25,6 +25,8 @@ Contribution welcome!
 
 # Installation
 
+Use git clone, once 0.2 will be closed, below R command will work.  
+
 ```r
 install.packages("data.cube", repos = paste0("https://",
     c("jangorecki.github.io/data.cube","cran.rstudio.com")
@@ -126,13 +128,41 @@ as.cube(dt, fact = "sales", dims = dimcolnames)
 
 ## Advanced
 
-### Architecture
+### data.table
 
-Design concept is very simple.  
-Cube is [R6](https://github.com/wch/R6) class object, which is enhanced R environment object.  
-A cube class keeps another plain R environment container to store all tables.  
-Tables are stored as [data.table](https://github.com/Rdatatable/data.table) class object, which is enhanced R data.frame object.  
-Access to all attributes is dynamic. A static part is *star schema* modeled multidimensional data, logic of cubes can be isolated from the data.  
+User can utilize data.table indexes which dramatically reduce query time.  
+
+```r
+filter_with_index = function(x, col, i, verbose = TRUE){
+    # workaround for data.table#1422
+    op = options("datatable.verbose" = verbose,
+                 "datatable.auto.index" = as.logical(length(col)))
+    on.exit(options(op))
+    x[eval(i)]
+}
+
+library(data.table)
+library(microbenchmarkCore) # install.packages("microbenchmarkCore", repos="https://olafmersmann.github.io/drat")
+
+n = 5e7
+set.seed(123)
+x = data.table(unq = 1:n, biggroup = sample(n*0.9, n, TRUE), tinygroup = sample(1e3, n, TRUE))
+set2keyv(x, "biggroup")
+qi = call("==", quote(biggroup), sample(x$biggroup, 1))
+print(qi)
+#biggroup == 12469208L
+system.nanotime(filter_with_index(x, col = NULL, i = qi))
+#     user    system   elapsed 
+#       NA        NA 0.1294823
+system.nanotime(filter_with_index(x, col = "biggroup", i = qi))
+#Using existing index 'biggroup'
+#Starting bmerge ...done in 0 secs
+#       user      system     elapsed 
+#         NA          NA 0.001833093 
+```
+
+Full benchmark script available in [this gist](https://gist.github.com/jangorecki/e381c8783a210a89ae47).  
+Example usage of data.table index on cube object.  
 
 ```r
 library(data.cube)
@@ -143,20 +173,36 @@ cb = as.cube(populate_star(1e5))
 prod(dim(cb))
 
 # binary search, index
-options("datatable.verbose" = TRUE)
+op = options("datatable.verbose" = TRUE)
 cb["Mazda RX4", c("1","6"), c("AZN","SEK")] # binary search
 cb["Mazda RX4",, c("AZN","SEK")] # binary search + vector scan/index
 cb["Mazda RX4",, .(curr_type = c("fiat","crypto"))] # lookup to currency hierarchy
 set2keyv(cb$env$dims$time, "time_year")
 cb["Mazda RX4",, .(curr_type = c("fiat","crypto")),, .(time_year = 2011:2012)]
-options("datatable.verbose" = FALSE)
+options(op)
 ```
+
+### Architecture
+
+Design concept is very simple.  
+Cube is [R6](https://github.com/wch/R6) class object, which is enhanced R environment object.  
+A cube class keeps another plain R environment container to store all tables.  
+Tables are stored as [data.table](https://github.com/Rdatatable/data.table) class object, which is enhanced R data.frame object.  
+All of the cube attributes are dynamic, static part is only *star schema* modeled multidimensional data.  
+Logic of cubes can be isolated from the data, they can also run as a service.  
+
+#### client-server
+
+Another package development is planned to wrap services upon data.cube.  
+It will allow to use `[.cube` and `[[.cube` methods via [Rserve: TCP/IP or local sockets](https://github.com/s-u/Rserve) or [httpuv: HTTP and WebSocket server](https://github.com/rstudio/httpuv).  
+Basic parsers of [MDX](https://en.wikipedia.org/wiki/MultiDimensional_eXpressions) queries and [XMLA](https://en.wikipedia.org/wiki/XML_for_Analysis) requests.  
+It could potentially utilize `Rserve` for parallel processing on distributed data partitions.  
 
 # Interesting reading
 
 - [Should OLAP databases be denormalized for read performance?](http://stackoverflow.com/q/4394183/2490497)
 - [data.table 2E9 rows grouping benchmark](https://github.com/Rdatatable/data.table/wiki/Benchmarks-%3A-Grouping)
-- [benchm-databases](https://github.com/szilard/benchm-databases)
+- [data.table vs python, big data, MPP, databases](https://github.com/szilard/benchm-databases)
 
 # Contact
 

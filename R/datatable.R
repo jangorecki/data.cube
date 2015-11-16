@@ -63,9 +63,25 @@ is.unique = function(x){
     length(x)==uniqueN(x)
 }
 
+# fast check if data aggregated to all dimensions
 is.unique.data.table = function(x, by = key(x)){
     if(is.null(x)) return(logical(0)) # fixed in 1.9.7 data.table#1429
     nrow(x)==uniqueN(x, by = by)
 }
 
+# not yet exported from data.table
 fsort = data.table:::fsort
+
+# used with data.table join `on` argument
+swap.on = function(x){
+    stopifnot(is.character(x), length(names(x))==length(x))
+    structure(names(x), names = x)
+}
+# join and lookup chosen columns
+lookup = function(fact, dim, cols){
+    if(any(cols %in% names(fact))) stop(sprintf("Column name collision on lookup for '%s' columns.", paste(cols[cols %in% names(fact)], collapse=", ")))
+    fact[dim, (cols) := mget(paste0("i.", cols)), on = c(key(dim))]
+    # workaround for data.table#1166 - lookup NAs manually
+    if(all(!cols %in% names(fact))) fact[, (cols) := as.list(dim[0L, cols, with=FALSE][1L])]
+    TRUE
+}

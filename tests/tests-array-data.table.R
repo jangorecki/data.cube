@@ -2,12 +2,12 @@ library(data.table)
 library(data.cube)
 
 X = populate_star(1e5, Y = 2015)
-cb = as.cube(X)[,,,,as.Date("2015-01-15")] # drop time dimension to fit array into memory
+cb = as.cube(X)[,,,"NY",as.Date("2015-01-15")] # drop time and geog dimensions to fit array well into memory
 cb.dimnames = dimnames(cb)
 measure = "value"
-dt = as.data.table(cb)
+dt = as.data.table(cb, na.fill = TRUE)
 ar = as.array(cb, measure = measure)
-dimcols = c(product = "prod_name", customer = "cust_profile", currency = "curr_name", geography = "geog_abb")
+dimcols = c(product = "prod_name", customer = "cust_profile", currency = "curr_name")
 
 # length of array results, dummy tests
 stopifnot(
@@ -16,7 +16,7 @@ stopifnot(
 )
 
 ## as.data.table
-stopifnot(all.equal(dt[, c(dimcols, measure), with=FALSE], setnames(as.data.table(ar), names(dimcols), dimcols)))
+stopifnot(all.equal(dt[, c(dimcols, measure), with=FALSE], setnames(as.data.table(ar, na.rm = FALSE), names(dimcols), dimcols)))
 
 ## as.array
 

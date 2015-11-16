@@ -1,13 +1,7 @@
-is.unique = function(x) length(x)==length(unique(x))
+# easy operate on names results from *apply functions
 selfNames = function(x) setNames(x, x)
 mb.size = function(x) as.numeric(object.size(x))/(1024^2)
-lookup = function(fact, dim, cols){
-    if(any(cols %in% names(fact))) stop(sprintf("Column name collision on lookup for '%s' columns.", paste(cols[cols %in% names(fact)], collapse=", ")))
-    fact[dim, (cols) := mget(paste0("i.", cols)), on = c(key(dim))]
-    # workaround for data.table#1166 - lookup NAs manually
-    if(all(!cols %in% names(fact))) fact[, (cols) := as.list(dim[0L, cols, with=FALSE][1L])]
-    TRUE
-}
+# handling various types of input to [.cube `...` argument and [[.cube `i` argument.
 parse.each.i = function(int, i, keys){
     # preprocessing of `...` arg of `[.cube` and `i` arg of `[[.cube`
     stopifnot(is.integer(int), is.pairlist(i), is.character(keys))
@@ -22,6 +16,7 @@ parse.each.i = function(int, i, keys){
     if(length(x)) stopifnot(length(unique(names(x)))==length(names(x))) # unique names
     x
 }
+# building filter query on denormalized dataset
 build.each.i = function(dim.i){
     build.each.i.attr = function(attr) if(is.null(dim.i[[attr]])) 0L else as.call(list(quote(`%in%`), as.name(attr), dim.i[[attr]]))
     Reduce(function(a, b) bquote(.(a) & .(b)), lapply(names(dim.i), build.each.i.attr))
@@ -79,7 +74,7 @@ cube = R6Class(
                 copy(self$env$fact[[self$fact]])
             } else {
                 # `nomatch` to be extended after data.table#857 resolved
-                self$env$fact[[self$fact]][i = do.call(CJ, self$dapply(`[[`,1L, dims=dims)), nomatch=NA, on = c(key_cols[dims])]
+                self$env$fact[[self$fact]][i = do.call(CJ, self$dapply(`[[`,1L, dims=dims)), nomatch=NA, on = swap.on(key_cols)]
             }
             sapply(dims[as.logical(sapply(lkp_cols, length))], function(dim) lookup(r, self$env$dims[[dim]], lkp_cols[[dim]]))
             if(length(dims)) setkeyv(r, unname(key_cols[dims]))[] else r[]

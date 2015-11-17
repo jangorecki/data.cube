@@ -92,6 +92,43 @@ stopifnot(
 
 cb = as.cube(populate_star(1e5))
 
+# slice keys
+r = cb["Mazda RX4"]
+stopifnot(identical(names(dimnames(r)), c("customer","currency","geography","time")))
+# slice two keys
+r = cb["Mazda RX4",,,"NY"]
+stopifnot(identical(names(dimnames(r)), c("customer","currency","time")))
+# slice hierarchy
+r = cb[,,,.(geog_division_name = "East North Central")]
+stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), dim(r)[4L]==5L)
+# slice two hierarchies
+r = cb[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L)]
+stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), identical(dim(r)[4:5], c(5L, 365L)))
+
+# slice keys drop=F
+r = cb["Mazda RX4", drop=FALSE]
+stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), dim(r)[1L]==1L)
+# slice two keys drop=F
+r = cb["Mazda RX4",,,"NY", drop=FALSE]
+stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), identical(dim(r)[c(1L,4L)], c(1L,1L)))
+# slice hierarchy drop=F - would not be dropped anyway
+r = cb[,,,.(geog_division_name = "East North Central"), drop=FALSE]
+stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), dim(r)[4L]==5L)
+# slice two hierarchies drop=F - would not be dropped anyway
+r = cb[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L), drop=FALSE]
+stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), identical(dim(r)[4:5], c(5L, 365L)))
+
+# dice
+r = cb[c("Mazda RX4","Honda Civic")]
+stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), dim(r)[1L]==2L)
+# dice two, one hierarchy
+r = cb[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific"))]
+stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), identical(dim(r)[c(1L,4L)], c(2L,13L)))
+
+# dice drop=F - would not be dropped anyway
+r = cb[c("Mazda RX4","Honda Civic"), drop=FALSE]
+stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), dim(r)[1L]==2L)
+
 # use own names in ...
 stopifnot(all.equal(
     cb["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))],

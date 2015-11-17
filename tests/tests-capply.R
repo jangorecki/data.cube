@@ -79,6 +79,15 @@ stopifnot(
     all.equal(aggregate(cb, by, sum), capply(cb, by, sum))
 )
 
+# grand total aggregation
+r = aggregate(cb, character(), sum)
+stopifnot(
+    is.null(dim(r)),
+    is.null(dimnames(r)),
+    all.equal(r, capply(cb, character(), sum)),
+    nrow(as.data.table(r))==1L
+)
+
 ### hierarchy ---------------------------------------------------------------
 
 cb = as.cube(populate_star(1e5)) # na.rm=TRUE
@@ -181,5 +190,7 @@ stopifnot(
     all.equal(aggregate(cb, by, sum, na.rm=TRUE), capply(cb, by, sum, na.rm=TRUE)),
     all.equal(aggregate(cb, by, sum), capply(cb, by, sum))
 )
+
+# tests status ------------------------------------------------------------
 
 invisible(TRUE)

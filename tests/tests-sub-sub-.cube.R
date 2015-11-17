@@ -48,4 +48,6 @@
 # 
 # cb[[.(), .(value=sum(value)), .(time_year, curr_type)]]
 
+# tests status ------------------------------------------------------------
+
 invisible(FALSE)

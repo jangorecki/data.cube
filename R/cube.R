@@ -216,13 +216,13 @@ cube = R6Class(
                 }
             }
             # keep only required dimensions, only those used in `by`
-            keep.dim.keys = sapply(r$dims, key)
+            keep.dim.keys = unlist(sapply(r$dims, key))
             #if(any(!keep.dim.keys %in% by) | any(!by %in% keep.dim.keys)) browser()
             r$fact[[self$fact]] = r$fact[[self$fact]][, unique(c(keep.dim.keys, by, measures)), with=FALSE]
             # aggregate facts
-            r$fact[[self$fact]] = r$fact[[self$fact]][, eval(j), by = by]
+            r$fact[[self$fact]] = if(length(by)) r$fact[[self$fact]][, eval(j), by = by] else r$fact[[self$fact]][, eval(j)]
             # setkey
-            setkeyv(r$fact[[self$fact]], by)
+            if(length(by)) setkeyv(r$fact[[self$fact]], by)
             # return cube
             return(as.cube(r))
         },
@@ -282,11 +282,13 @@ cube = R6Class(
 is.cube = function(x) inherits(x, "cube")
 
 dim.cube = function(x){
-    unname(x$dapply(nrow, simplify = TRUE))
+    unname(unlist(x$dapply(nrow, simplify = TRUE)))
 }
 
 dimnames.cube = function(x){
-    x$dapply(`[[`,1L)
+    r = x$dapply(`[[`,1L)
+    if(!length(r)) return(NULL)
+    r
 }
 
 str.cube = function(object, ...){
@@ -307,7 +309,10 @@ format.cube = function(x, measure.format = list(), dots.format = list(), dcast =
         length(names(measure.format))==length(measure.format), 
         names(measure.format) %in% measures
     )
-    r = setorderv(copy(x$env$fact[[x$fact]]), cols = keys, order=1L, na.last=TRUE)
+    if(length(keys)) r = setorderv(copy(x$env$fact[[x$fact]]), cols = keys, order=1L, na.last=TRUE) else {
+        stopifnot(nrow(x$env$fact[[x$fact]])==1L) # grant total
+        r = copy(x$env$fact[[x$fact]])
+    }
     if(length(measure.format)){
         for(mf in names(measure.format)){
             FUN = measure.format[[mf]]

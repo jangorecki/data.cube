@@ -24,7 +24,19 @@ cb.l = as.cube(l)
 stopifnot(all.equal(cb.ar, cb.dt), all.equal(cb.ar, cb.l))
 
 # out
-stopifnot(all.equal(l, as.list(cb.l)), all.equal(dt, as.data.table(cb.dt)), all.equal(ar, as.array(cb.ar)))
+stopifnot(
+    all.equal(l, as.list(cb.l)), 
+    all.equal(dt, as.data.table(cb.dt)), 
+    all.equal(ar, as.array(cb.ar))
+)
+
+# zero dimension fact
+r = aggregate(cb.l, character(), FUN = sum)
+stopifnot(
+    nrow(format(r))==1L,
+    all.equal(format(r), as.data.table(r)),
+    all.equal(format(r)$value, as.array(r))
+)
 
 ### hierarchy ---------------------------------------------------------------
 
@@ -40,5 +52,7 @@ stopifnot(all.equal(cb.l, cb.dt))
 
 # out
 stopifnot(all.equal(l, as.list(cb.l, fact = "sales")), all.equal(dt, as.data.table(cb.dt)))
+
+# tests status ------------------------------------------------------------
 
 invisible(TRUE)

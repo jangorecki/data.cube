@@ -155,4 +155,6 @@ stopifnot(
     , length(dim(cb["Mazda RX4", drop=FALSE]))==5L
 )
 
+# tests status ------------------------------------------------------------
+
 invisible(TRUE)

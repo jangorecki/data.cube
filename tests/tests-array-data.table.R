@@ -43,4 +43,6 @@ stopifnot(
     , all.equal(ar, as.array(dt[, c(dimcols, measure), with=FALSE], dimcols = dimcols, dimnames = cb.dimnames))
 )
 
+# tests status ------------------------------------------------------------
+
 invisible(TRUE)

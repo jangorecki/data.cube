@@ -24,6 +24,11 @@ as.data.table.array = function(x, na.rm=TRUE, ...){
 #' @method as.array data.table
 as.array.data.table = function(x, dimcols, measure, dimnames, ...){
     stopifnot(!missing(dimcols) | !missing(dimnames))
+    # zero dims fast escape
+    if(!missing(dimcols) && !length(dimcols) && !missing(dimnames) && !length(dimnames)){
+        if(length(x) > 1L) stopifnot(is.character(measure), length(measure)==1L, measure %in% names(x))
+        return(x[[measure]])
+    }
     if(!missing(dimcols)) stopifnot(is.character(dimcols), is.unique(names(dimcols)), is.unique(dimcols), dimcols %in% names(x))
     if(!missing(dimnames)) stopifnot(is.list(dimnames), !is.null(names(dimnames)), is.unique(names(dimnames)))
     if(!missing(dimcols) && !missing(dimnames)){

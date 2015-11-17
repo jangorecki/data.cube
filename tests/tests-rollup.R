@@ -69,6 +69,13 @@ stopifnot(
     as.numeric(gsub("$", "", rcurrency$value, fixed = TRUE))==format(r)$value
 )
 
+# INDEX = 0L should match to capply and aggregate
+r = rollup(cb, MARGIN = c("color","year"), INDEX = 0L, FUN = sum)
+stopifnot(
+    all.equal(r, capply(cb, c("color","year"), sum)),
+    all.equal(r, aggregate(cb, c("color","year"), sum))
+)
+
 ### hierarchy ---------------------------------------------------------------
 
 # cb = as.cube(populate_star(1e5))

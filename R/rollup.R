@@ -70,9 +70,9 @@ rollup.cube = function(x, MARGIN, INDEX = NULL, FUN, ..., j, drop = TRUE){
     new.dims = names(new.dims)[new.dims]
     names(new.fact.keys) = new.dims
     r$dims = lapply(selfNames(new.dims), function(dim){
-        r$dims[[dim]] = setkeyv(unique(x$env$dims[[dim]], by = new.fact.keys[dim]), new.fact.keys[dim])[]
+        r$dims[[dim]] = setkeyv(unique(x$env$dims[[dim]], by = new.fact.keys[[dim]]), new.fact.keys[[dim]])[]
     })
     r$dims[["level"]] = data.table(level = levels, key = "level")
-    setkeyv(r$fact[[x$fact]], new.fact.keys)
+    setkeyv(r$fact[[x$fact]], unname(new.fact.keys))
     if(isTRUE(drop)) as.cube(r)$drop() else as.cube(r)
 }

@@ -72,10 +72,11 @@ stopifnot(
 )
 
 # aggregate.cube
+by = c("year","status")
 stopifnot(
-    all.equal(aggregate(cb, c("year","status"), sum, na.rm=FALSE), capply(cb, c("year","status"), sum, na.rm=FALSE)),
-    all.equal(aggregate(cb, c("year","status"), sum, na.rm=TRUE), capply(cb, c("year","status"), sum, na.rm=TRUE)),
-    all.equal(aggregate(cb, c("year","status"), sum), capply(cb, c("year","status"), sum))
+    all.equal(aggregate(cb, by, sum, na.rm=FALSE), capply(cb, by, sum, na.rm=FALSE)),
+    all.equal(aggregate(cb, by, sum, na.rm=TRUE), capply(cb, by, sum, na.rm=TRUE)),
+    all.equal(aggregate(cb, by, sum), capply(cb, by, sum))
 )
 
 ### hierarchy ---------------------------------------------------------------
@@ -174,10 +175,11 @@ stopifnot(
 )
 
 # aggregate.cube
-# stopifnot(
-#     all.equal(aggregate(cb, c("year","status"), sum, na.rm=FALSE), capply(cb, c("year","status"), sum, na.rm=FALSE)),
-#     all.equal(aggregate(cb, c("year","status"), sum, na.rm=TRUE), capply(cb, c("year","status"), sum, na.rm=TRUE)),
-#     all.equal(aggregate(cb, c("year","status"), sum), capply(cb, c("year","status"), sum))
-# )
+by = c("time_year","prod_name","geog_division_name","curr_name")
+stopifnot(
+    all.equal(aggregate(cb, by, sum, na.rm=FALSE), capply(cb, by, sum, na.rm=FALSE)),
+    all.equal(aggregate(cb, by, sum, na.rm=TRUE), capply(cb, by, sum, na.rm=TRUE)),
+    all.equal(aggregate(cb, by, sum), capply(cb, by, sum))
+)
 
-invisible(FALSE)
+invisible(TRUE)

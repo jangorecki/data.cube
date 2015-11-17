@@ -290,7 +290,7 @@ str.cube = function(object, ...){
     invisible()
 }
 
-format.cube = function(x, measure.format = list(), dots.format = list(), ...){
+format.cube = function(x, measure.format = list(), dots.format = list(), dcast = FALSE, ...){
     stopifnot(is.list(measure.format))
     keys = x$dapply(key, simplify = TRUE)
     measures = setdiff(names(x$env$fact[[x$fact]]), keys)
@@ -307,6 +307,7 @@ format.cube = function(x, measure.format = list(), dots.format = list(), ...){
             set(r, i = NULL, j = mf, value = FUN(r[[mf]], ... = DOTS))
         }
     }
+    if(isTRUE(dcast)) r = dcast.data.table(r, ...)
     r[]
 }
 

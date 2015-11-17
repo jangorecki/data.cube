@@ -57,18 +57,6 @@ stopifnot(
     as.data.table(r)[is.na(year), .N==uniqueN(color)]
 )
 
-# format cube - sorting of NA to last and custom format per measure, see *currency* example
-rr = format(r)
-stopifnot(is.data.table(rr), rr[nrow(rr)][is.na(color) & is.na(year), .N==1L])
-# format currency from nice SO: http://stackoverflow.com/a/23833928/2490497
-printCurrency = function(value, currency.sym="$", digits=2, sep=",", decimal=".", ...) paste(currency.sym, formatC(value, format = "f", big.mark = sep, digits=digits, decimal.mark=decimal), sep="")
-stopifnot(printCurrency(123123.334)=="$123,123.33")
-rcurrency = format(r, measure.format = list(value = printCurrency))
-stopifnot(
-    is.character(rcurrency$value),
-    as.numeric(gsub("$", "", rcurrency$value, fixed = TRUE))==format(r)$value
-)
-
 # INDEX = 0L should match to capply and aggregate
 r = rollup(cb, MARGIN = c("color","year"), INDEX = 0L, FUN = sum)
 stopifnot(

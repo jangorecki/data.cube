@@ -1,10 +1,14 @@
-# method for data.table and cube
+#' @title Rollup generic method
+#' @param x R object
+#' @param \dots arguments passed to methods
+#' @description Converts arguments to *cube* class by reducing dimensions, sub aggregates are provided as additional NA dimension value..
+#' @return *cube* class object. Use `format` on results to print table and format measures.
 rollup = function(x, ...){
     UseMethod("rollup")
 }
 
 # rollup on data.table, man: http://stackoverflow.com/a/32938770/2490497
-rollup.data.table = function(x, j, by, .SDcols, levels=TRUE){
+rollup.data.table = function(x, j, by, .SDcols, levels=TRUE, ...){
     stopifnot(is.data.table(x), is.character(by), length(by) >= 2L)
     stopifnot(is.logical(levels) | is.numeric(levels))
     stopifnot(!"level" %in% by) # reserved

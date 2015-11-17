@@ -1,4 +1,5 @@
 # engine
+importFrom(stats, aggregate)
 import(data.table)
 import(R6)
 # to cube

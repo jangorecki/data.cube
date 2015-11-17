@@ -1,6 +1,8 @@
 # easy operate on names results from *apply functions
 selfNames = function(x) setNames(x, x)
+
 mb.size = function(x) as.numeric(object.size(x))/(1024^2)
+
 # handling various types of input to [.cube `...` argument and [[.cube `i` argument.
 parse.each.i = function(int, i, keys){
     # preprocessing of `...` arg of `[.cube` and `i` arg of `[[.cube`
@@ -16,6 +18,7 @@ parse.each.i = function(int, i, keys){
     if(length(x)) stopifnot(length(unique(names(x)))==length(names(x))) # unique names
     x
 }
+
 # building filter query on denormalized dataset
 build.each.i = function(dim.i){
     build.each.i.attr = function(attr) if(is.null(dim.i[[attr]])) 0L else as.call(list(quote(`%in%`), as.name(attr), dim.i[[attr]]))
@@ -154,9 +157,16 @@ cube = R6Class(
             }
             # get all dimension columns and use to detect dimensions used in `by`
             dimcolnames = self$dapply(names)
-            # column name match in 2 dimensions
+            # column name match in 2 dimensions, possibility the same dim
+            by.dims = character()
+            for(b in by){
+                by.dim = sapply(dimcolnames, function(colnames) b %in% colnames)
+                by.dim = names(by.dim)[by.dim]
+                if(length(by.dim) > 1L) stop(sprintf("Column name used in `by`/`MARGIN` match to columns in mutliple dimensions."))
+                by.dims[b] = by.dim
+            }
+            dims.order = unique(by.dims)
             dims.by = lapply(dimcolnames, function(colnames) by[by %in% colnames])
-            dims.order = unique(names(unlist(dims.by)[order(match(unlist(dims.by),by))]))
             dims.by = dims.by[dims.order]
             # filter
             dims.filter = lapply(i, build.each.i)
@@ -169,6 +179,7 @@ cube = R6Class(
             # copy only id column and the one used in `by`
             for(dim in copy.dims){
                 r$dims[[dim]] = if(is.null(dims.filter[[dim]])){
+                    #if(!dim %in% names(keys)) browser() # was issue for multiple columns from same dimension
                     self$env$dims[[dim]][, .SD, .SDcols = unique(c(keys[[dim]], dims.by[[dim]]))]
                 } else {
                     self$env$dims[[dim]][eval(dims.filter[[dim]]), .SD, .SDcols = unique(c(keys[[dim]], dims.by[[dim]]))]
@@ -198,8 +209,8 @@ cube = R6Class(
             }
             # keep only required dimensions, only those used in `by`
             keep.dim.keys = sapply(r$dims, key)
-            if(any(!keep.dim.keys %in% by)) browser()
-            r$fact[[self$fact]] = r$fact[[self$fact]][, c(keep.dim.keys, measures), with=FALSE]
+            #if(any(!keep.dim.keys %in% by) | any(!by %in% keep.dim.keys)) browser()
+            r$fact[[self$fact]] = r$fact[[self$fact]][, unique(c(keep.dim.keys, by, measures)), with=FALSE]
             # aggregate facts
             r$fact[[self$fact]] = r$fact[[self$fact]][, eval(j), by = by]
             # setkey
@@ -209,10 +220,11 @@ cube = R6Class(
         },
         # drop used in [.cube
         drop = function(drop=1L){
+            keys = self$dapply(key, simplify = TRUE)
             # Direct access to cube object method by `$drop()` should not be used on cubes that shares dimensions, you can use drop arg in `[.cube` safely
             # - [x] drop dimensions where cardinality = 1
             if(nrow(self$env$fact[[self$fact]])){
-                cardinality = self$env$fact[[self$fact]][, lapply(.SD, uniqueN), .SDcols = c(unname(self$dapply(key, simplify = TRUE)))]
+                cardinality = self$env$fact[[self$fact]][, lapply(.SD, uniqueN), .SDcols = c(unname(keys))]
                 dims_to_drop = sapply(setNames(cardinality, self$dims), `==`, 1L)
             } else {
                 dims_to_drop = self$dapply(function(dim) nrow(dim)==1L, simplify = TRUE)
@@ -222,6 +234,8 @@ cube = R6Class(
                 keys_to_drop = unname(self$dapply(key, dims = dims_to_drop, simplify = TRUE))
                 self$env$dims[dims_to_drop] = NULL
                 self$env$fact[[self$fact]][, c(keys_to_drop) := NULL]
+                keys_to_keep = unname(setdiff(keys, keys_to_drop))
+                if(length(keys_to_keep)) setkeyv(self$env$fact[[self$fact]], keys_to_keep)
             }
             self
         }

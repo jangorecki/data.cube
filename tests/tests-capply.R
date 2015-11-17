@@ -71,6 +71,13 @@ stopifnot(
     )
 )
 
+# aggregate.cube
+stopifnot(
+    all.equal(aggregate(cb, c("year","status"), sum, na.rm=FALSE), capply(cb, c("year","status"), sum, na.rm=FALSE)),
+    all.equal(aggregate(cb, c("year","status"), sum, na.rm=TRUE), capply(cb, c("year","status"), sum, na.rm=TRUE)),
+    all.equal(aggregate(cb, c("year","status"), sum), capply(cb, c("year","status"), sum))
+)
+
 ### hierarchy ---------------------------------------------------------------
 
 cb = as.cube(populate_star(1e5)) # na.rm=TRUE
@@ -158,10 +165,17 @@ stopifnot(
 )
 
 # by 1 low and 1 high from same dimension
-# r = capply(cb, c("geog_abb","geog_division_name"), sum)
+r = capply(cb, c("geog_abb","geog_division_name"), sum)
+stopifnot(
+    all.equal(dim(r), 50L),
+    all.equal(names(r$env$fact$sales), c("geog_abb","geog_division_name","amount","value")),
+    all.equal(names(r$env$dims), "geography"),
+    all.equal(names(r$env$dims$geography), c("geog_abb","geog_division_name"))
+)
+
+# aggregate.cube
 # stopifnot(
-#     all.equal(dim(r), 50L),
-#     all.equal(names(r$env$fact$sales), c("geog_abb","geog_division_name","amount","value")),
-#     all.equal(names(r$env$dims), "geography"),
-#     all.equal(names(r$env$dims$geography), "geog_division_name")
+#     all.equal(aggregate(cb, c("year","status"), sum, na.rm=FALSE), capply(cb, c("year","status"), sum, na.rm=FALSE)),
+#     all.equal(aggregate(cb, c("year","status"), sum, na.rm=TRUE), capply(cb, c("year","status"), sum, na.rm=TRUE)),
+#     all.equal(aggregate(cb, c("year","status"), sum), capply(cb, c("year","status"), sum))
 # )

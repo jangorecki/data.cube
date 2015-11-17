@@ -77,6 +77,7 @@ swap.on = function(x){
     stopifnot(is.character(x), length(names(x))==length(x))
     structure(names(x), names = x)
 }
+
 # join and lookup chosen columns
 lookup = function(fact, dim, cols){
     if(any(cols %in% names(fact))) stop(sprintf("Column name collision on lookup for '%s' columns.", paste(cols[cols %in% names(fact)], collapse=", ")))

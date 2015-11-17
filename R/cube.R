@@ -276,6 +276,26 @@ str.cube = function(object, ...){
     invisible()
 }
 
+format.cube = function(x, measure.format = list(), dots.format = list(), ...){
+    stopifnot(is.list(measure.format))
+    keys = x$dapply(key, simplify = TRUE)
+    measures = setdiff(names(x$env$fact[[x$fact]]), keys)
+    if(length(measure.format)) stopifnot(
+        sapply(measure.format, is.function),
+        length(names(measure.format))==length(measure.format), 
+        names(measure.format) %in% measures
+    )
+    r = setorderv(copy(x$env$fact[[x$fact]]), cols = keys, order=1L, na.last=TRUE)
+    if(length(measure.format)){
+        for(mf in names(measure.format)){
+            FUN = measure.format[[mf]]
+            DOTS = dots.format[[mf]]
+            set(r, i = NULL, j = mf, value = FUN(r[[mf]], ... = DOTS))
+        }
+    }
+    r[]
+}
+
 # capply ------------------------------------------------------------------
 
 #' @title Apply function on measures while aggregate on cube dimensions

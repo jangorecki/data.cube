@@ -19,6 +19,25 @@ parse.each.i = function(int, i, keys){
     x
 }
 
+# dimension names for attributes
+dimnames.attributes = function(x, cb){
+    stopifnot(is.character(x), is.cube(cb))
+    if(!length(x)) return(character())
+    # get all dimension columns and use to detect dimensions used in `by`
+    dimcolnames = cb$dapply(colnames)
+    # column name match in 2 dimensions, possibility the same dim
+    x.dims = character()
+    for(b in x){
+        x.dim = sapply(dimcolnames, function(colnames) b %in% colnames)
+        x.dim = names(x.dim)[x.dim]
+        if(length(x.dim) > 1L) stop(sprintf("Column name used in `by`/`MARGIN`/etc. match to columns in mutliple dimensions."))
+        x.dims[b] = x.dim
+    }
+    x.order = unique(x.dims)
+    dims.x = lapply(dimcolnames, function(colnames) x[x %in% colnames])
+    dims.x[x.order]
+}
+
 # building filter query on denormalized dataset
 build.each.i = function(dim.i){
     build.each.i.attr = function(attr) if(is.null(dim.i[[attr]])) 0L else as.call(list(quote(`%in%`), as.name(attr), dim.i[[attr]]))
@@ -155,19 +174,8 @@ cube = R6Class(
                 all.i[keep_dims] = i
                 i = self$parse.i(as.pairlist(all.i))[keep_dims]
             }
-            # get all dimension columns and use to detect dimensions used in `by`
-            dimcolnames = self$dapply(names)
-            # column name match in 2 dimensions, possibility the same dim
-            by.dims = character()
-            for(b in by){
-                by.dim = sapply(dimcolnames, function(colnames) b %in% colnames)
-                by.dim = names(by.dim)[by.dim]
-                if(length(by.dim) > 1L) stop(sprintf("Column name used in `by`/`MARGIN` match to columns in mutliple dimensions."))
-                by.dims[b] = by.dim
-            }
-            dims.order = unique(by.dims)
-            dims.by = lapply(dimcolnames, function(colnames) by[by %in% colnames])
-            dims.by = dims.by[dims.order]
+            # get dimensions by attributes
+            dims.by = dimnames.attributes(by, self)
             # filter
             dims.filter = lapply(i, build.each.i)
             # processing dims
@@ -320,7 +328,7 @@ format.cube = function(x, measure.format = list(), dots.format = list(), dcast =
 #' @param ... arguments passed to *FUN*
 #' @description Wrapper around `[[.cube` and `j`, `by` arg.
 capply = aggregate.cube = function(x, MARGIN, FUN, ...){
-    stopifnot(inherits(x, "cube"), !missing(MARGIN), !missing(FUN), is.function(FUN))
+    stopifnot(is.cube(x), !missing(MARGIN), !missing(FUN), is.function(FUN))
     j = as.call(list(quote(lapply), X = quote(.SD), FUN = substitute(FUN), "..." = ...))
     x$extract(i = .(), j = j, by = MARGIN)
 }

@@ -65,11 +65,12 @@ rollup.cube = function(x, MARGIN, INDEX = NULL, FUN, ..., j, drop = TRUE){
     }
     new.fact.colnames = names(r$fact[[x$fact]])
     new.fact.keys = setdiff(new.fact.colnames, measures)
-    dimcolnames = x$dapply(colnames)
-    new.dims = sapply(dimcolnames, function(dimcols) any(new.fact.keys %in% dimcols))
-    new.dims = names(new.dims)[new.dims]
-    names(new.fact.keys) = new.dims
-    r$dims = lapply(selfNames(new.dims), function(dim){
+    copy.dims = dimnames.attributes(new.fact.keys[new.fact.keys!="level"], x)
+    # dimcolnames = x$dapply(colnames)
+    # new.dims = sapply(dimcolnames, function(dimcols) any(new.fact.keys %in% dimcols))
+    # new.dims = names(new.dims)[new.dims]
+    names(new.fact.keys) = c(names(copy.dims), "level")
+    r$dims = lapply(selfNames(names(copy.dims)), function(dim){
         r$dims[[dim]] = setkeyv(unique(x$env$dims[[dim]], by = new.fact.keys[[dim]]), new.fact.keys[[dim]])[]
     })
     r$dims[["level"]] = data.table(level = levels, key = "level")

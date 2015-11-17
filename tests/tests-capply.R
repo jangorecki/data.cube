@@ -179,3 +179,5 @@ stopifnot(
 #     all.equal(aggregate(cb, c("year","status"), sum, na.rm=TRUE), capply(cb, c("year","status"), sum, na.rm=TRUE)),
 #     all.equal(aggregate(cb, c("year","status"), sum), capply(cb, c("year","status"), sum))
 # )
+
+invisible(FALSE)

@@ -40,3 +40,5 @@ stopifnot(all.equal(cb.l, cb.dt))
 
 # out
 stopifnot(all.equal(l, as.list(cb.l, fact = "sales")), all.equal(dt, as.data.table(cb.dt)))
+
+invisible(TRUE)

@@ -42,3 +42,5 @@ stopifnot(
     , all.equal(ar, as.array(dt.ren[, c(names(dimcols), measure), with=FALSE], dimnames = cb.dimnames))
     , all.equal(ar, as.array(dt[, c(dimcols, measure), with=FALSE], dimcols = dimcols, dimnames = cb.dimnames))
 )
+
+invisible(TRUE)

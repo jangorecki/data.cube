@@ -47,3 +47,5 @@
 # cb[[, .(value=sum(value)), .(time_year, curr_type)]]
 # 
 # cb[[.(), .(value=sum(value)), .(time_year, curr_type)]]
+
+invisible(FALSE)

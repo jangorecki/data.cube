@@ -82,3 +82,5 @@ stopifnot(
 # 
 # rollup(cb, MARGIN = c("curr_name","geog_abb"), FUN = sum)
 # rollup(cb, MARGIN = c("geog_region_name","time_year","time_quarter"), FUN = sum)
+
+invisible(FALSE)

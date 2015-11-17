@@ -154,3 +154,5 @@ stopifnot(
     , length(dim(cb["Mazda RX4"]))==4L
     , length(dim(cb["Mazda RX4", drop=FALSE]))==5L
 )
+
+invisible(TRUE)

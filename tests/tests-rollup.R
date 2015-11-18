@@ -66,9 +66,23 @@ stopifnot(
 
 ### hierarchy ---------------------------------------------------------------
 
-# cb = as.cube(populate_star(1e5))
-# 
+cb = as.cube(populate_star(1e5))
+
+# various aggregate levels from rollup
+by = c("time_year","geog_region_name", "curr_type","prod_gear")
+r = rollup(cb, by, FUN = sum)
+# most granular level of aggregates, compare with format as `aggregate` drops dimensions
+stopifnot(
+    all.equal(format(r[,,,,0L]), format(aggregate(cb, by, FUN = sum))),
+    all.equal(format(r[,,,,1L]), format(aggregate(cb, by[1L], FUN = sum))),
+    all.equal(format(r[,,,,2L]), format(aggregate(cb, by[1:2], FUN = sum))),
+    all.equal(format(r[,,,,3L]), format(aggregate(cb, by[1:3], FUN = sum))),
+    all.equal(format(r[,,,,4L]), format(aggregate(cb, by[0L], FUN = sum)))
+)
+
 # rollup(cb, MARGIN = c("curr_name","geog_abb"), FUN = sum)
 # rollup(cb, MARGIN = c("geog_region_name","time_year","time_quarter"), FUN = sum)
+
+# tests status ------------------------------------------------------------
 
 invisible(FALSE)

@@ -52,7 +52,9 @@ rollup.data.table = function(x, j, by, .SDcols, levels=TRUE, ...){
 # FUN function to apply on all measures
 # ... more arguments passed to FUN
 # j call passed to data.table fact table.
-rollup.cube = function(x, MARGIN, INDEX = NULL, FUN, ..., j, drop = TRUE){
+# normalize default TRUE will normalize multiple attributes from single dimension with new surrogate key
+# drop use drop method on returning cube
+rollup.cube = function(x, MARGIN, INDEX = NULL, FUN, ..., j, normalize = TRUE, drop = TRUE){
     keys = x$dapply(key, simplify = TRUE)
     measures = setdiff(names(x$env$fact[[x$fact]]), keys)
     levels = if(!is.null(INDEX)) INDEX else c(0L,seq_along(MARGIN))
@@ -63,14 +65,36 @@ rollup.cube = function(x, MARGIN, INDEX = NULL, FUN, ..., j, drop = TRUE){
         jj = as.call(list(quote(lapply), X = quote(.SD), FUN = substitute(FUN), "..." = ...))
         r$fact[[x$fact]] = eval(substitute(rollup(x = as.data.table(x), j = jj, by = MARGIN, .SDcols = measures, levels = levels), env = list(jj = jj)))
     }
+    if(!normalize){
+        return(r$fact[[x$fact]])
+    }
     new.fact.colnames = names(r$fact[[x$fact]])
     new.fact.keys = setdiff(new.fact.colnames, measures)
     copy.dims = dimnames.attributes(new.fact.keys[new.fact.keys!="level"], x)
-    names(new.fact.keys) = c(names(copy.dims), "level")
+    names(new.fact.keys) = c(rep(names(copy.dims), sapply(copy.dims, length)), "level")
     r$dims = lapply(selfNames(names(copy.dims)), function(dim){
-        r$dims[[dim]] = setkeyv(unique(x$env$dims[[dim]], by = new.fact.keys[[dim]]), new.fact.keys[[dim]])[]
+        full.sd = names(x$env$dims[[dim]])
+        new_natural_key = unname(new.fact.keys[names(new.fact.keys)==dim])
+        dim.sd.i = chmatch(new_natural_key, full.sd)
+        if(!length(dim.sd.i)) browser() #stop("No column in dimensions?")
+        dim.sd = full.sd[min(dim.sd.i):length(full.sd)]
+        r$dims[[dim]] = if(length(dim.sd.i) > 1L){
+            new.dim = add.surrogate.key(unique(x$env$dims[[dim]][, dim.sd, with=FALSE], by = new_natural_key), paste(dim, "id", sep="_"))
+            # decode multiple attributes from one dimension into new surrogate keys
+            cols = copy(names(r$fact[[x$fact]]))
+            drop_cols_i = chmatch(new_natural_key, cols)
+            cols[drop_cols_i[1L]] = paste(dim, "id", sep="_")
+            cols = cols[-drop_cols_i[-1L]]
+            lookup(r$fact[[x$fact]], setkeyv(new.dim, new_natural_key), cols = paste(dim, "id", sep="_"))
+            r$fact[[x$fact]][, c(new_natural_key) := NULL]
+            setcolorder(r$fact[[x$fact]], cols)
+            return(setkeyv(new.dim, paste(dim, "id", sep="_"))[])
+        } else if(length(dim.sd.i)==1L){
+            return(setkeyv(unique(x$env$dims[[dim]][, dim.sd, with=FALSE], by = new_natural_key), new_natural_key)[])
+        }
     })
     r$dims[["level"]] = data.table(level = levels, key = "level")
-    setkeyv(r$fact[[x$fact]], unname(new.fact.keys))
+    normalized.new.fact.keys = unlist(lapply(r$dims, key))
+    setkeyv(r$fact[[x$fact]], unname(normalized.new.fact.keys))
     if(isTRUE(drop)) as.cube(r)$drop() else as.cube(r)
 }

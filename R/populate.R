@@ -1,9 +1,9 @@
-add.surrogate.key = function(x){
+add.surrogate.key = function(x, idcol){
     nm = copy(names(x))
-    id_col = paste(strsplit(nm[1L], "_", fixed = TRUE)[[1L]][1L], "id", sep="_")
-    qj = as.call(lapply(c(":=", id_col, ".I"), as.symbol))
+    if(missing(idcol)) idcol = paste(strsplit(nm[1L], "_", fixed = TRUE)[[1L]][1L], "id", sep="_") else stopifnot(is.character(idcol), length(idcol)==1L)
+    qj = as.call(lapply(c(":=", idcol, ".I"), as.symbol))
     x[, eval(qj), c(nm[1L])]
-    setcolorder(x, c(id_col, nm))
+    setkeyv(setcolorder(x, c(idcol, nm)), idcol)[]
 }
 
 #' @title Populate star schema tables

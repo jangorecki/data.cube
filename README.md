@@ -103,7 +103,7 @@ r = rollup(cb, MARGIN = c("color","year"), INDEX = 1:2, FUN = sum)
 format(r)
 
 # pivot
-r = cb["green"]
+r = capply(cb, c("year","status"), sum)
 format(r, dcast = TRUE, formula = year ~ status)
 ```
 

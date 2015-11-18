@@ -106,13 +106,16 @@ stopifnot(
 )
 
 # dcast
-# as.data.table(r) # fix!
-# r$dapply(key)
-# format(r)
-# rr = format(r, dcast = TRUE, formula = time_year ~ geog_region_name + curr_type)
-# format(r)
-# stopifnot(all.equal(dim(rr), c(4L,4L)), identical(names(rr), c("year","active","inactive","removed")))
+r = rollup(cb, c("time_year","geog_division_name"), FUN = sum)
+rr = format(r, dcast = TRUE, formula = time_year ~ geog_division_name)
+dr = as.data.table(r, dcast = TRUE, formula = time_year ~ geog_division_name)
+stopifnot(
+    all.equal(dim(rr), c(6L,11L)),
+    identical(names(rr), c("time_year", "East North Central", "East South Central", "Middle Atlantic", "Mountain", "New England", "Pacific", "South Atlantic", "West North Central", "West South Central", "NA")),
+    all.equal(dim(dr), c(6L,11L)),
+    identical(names(dr), c("time_year", "East North Central", "East South Central", "Middle Atlantic", "Mountain", "New England", "Pacific", "South Atlantic", "West North Central", "West South Central", "NA"))
+)
 
 # tests status ------------------------------------------------------------
 
-invisible(FALSE)
+invisible(TRUE)

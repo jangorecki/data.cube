@@ -292,7 +292,7 @@ dimnames.cube = function(x){
 }
 
 str.cube = function(object, ...){
-    NextMethod()
+    cat("Classes ",paste(paste0("'",class(object),"'"), collapse=", "),".\n",sep="")
     cat("cube$env$fact: ")
     str(object$env$fact, max.level = 1L, give.attr = FALSE)
     cat("cube$env$dims: ")

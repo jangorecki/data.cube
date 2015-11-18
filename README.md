@@ -5,12 +5,11 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
 
 - [x] scalable multidimensional `array` alternative, data modeled in *star schema*
 - [x] uses [data.table](https://github.com/Rdatatable/data.table) under the hood
-- [x] use base R `array` query API, see [OLAP Operation in R](https://dzone.com/articles/olap-operation-r) and [r-script](https://gist.github.com/jangorecki/4aa6218b6011360338f2)
+- [x] use base R `array` query API
   - [x] `[.cube` uses base R `[.array` method API for *slice* and *dice*, see [tests/tests-sub-.cube.R](tests/tests-sub-.cube.R)
-  - [ ] `capply`/`aggregate.cube` uses base R `apply` function API for *rollup*, *drilldown* and *pivot*, see [tests/tests-capply.R](tests/tests-capply.R)
-- [x] base R `array` API is extended by accepting named list instead of vectors
-  - [x] slice and dice on multiple attributes from dimensions and hierarchies, see [tests/tests-sub-.cube.R](tests/tests-sub-.cube.R)
-  - [ ] rollup, drilldown and pivot on multiple attributes from dimensions and hierarchies, see [tests/tests-capply.R](tests/tests-capply.R)
+  - [x] `capply`/`aggregate.cube`/`rollup` uses base R `apply` function like API for *rollup*, *drilldown*, see [tests/tests-capply.R](tests/tests-capply.R) and [tests/tests-rollup.R](tests/tests-rollup.R)
+- [x] for *pivot* use `format`/`as.data.table` with `dcast.data.table` API, see [tests/tests-format.R](tests/tests-format.R)
+- [x] base R `array` API is extended by accepting multiple attributes from dimensions and hierarchies
 - [ ] new `[[.cube` method combine and optimize `[.cube` and `capply` into single call with *data.table*-like API, see [tests/tests-sub-sub-.cube.R](tests/tests-sub-sub-.cube.R)
   - [ ] *i* accept same input as `...` argument of `[.cube` wrapped into `.(...)`
   - [ ] *j* accept input like data.table *j* or a function to apply on all measures
@@ -59,30 +58,53 @@ all.equal(ar, as.array(cb))
 all.equal(dim(ar), dim(cb))
 all.equal(dimnames(ar), dimnames(cb))
 
-# slice and dice using array syntax
+# slice
 
-ar["green","2015","active"]
-r = cb["green","2015","active"]
-print(r)
-as.array(r)
-
-arr = ar["green","2015","active",drop=FALSE]
+arr = ar["green",,]
 print(arr)
-r = cb["green","2015","active",drop=FALSE]
+r = cb["green",]
 print(r)
 all.equal(arr, as.array(r))
 
-ar["green",, c("active","inactive")]
-r = cb["green",, c("active","inactive")]
-as.array(r)
+arr = ar["green",,,drop=FALSE]
+print(arr)
+r = cb["green",,,drop=FALSE]
+print(r)
+all.equal(arr, as.array(r))
+
+arr = ar["green",,"active"]
+r = cb["green",,"active"]
+all.equal(arr, as.array(r))
+
+# dice
+
+arr = ar["green",, c("active","archived","inactive")]
+r = cb["green",, c("active","archived","inactive")]
+all.equal(arr, as.array(r))
 as.data.table(r)
 as.data.table(r, na.fill = TRUE)
 # array-like print using data.table, useful cause as.array doesn't scale
 as.data.table(r, na.fill = TRUE, dcast = TRUE, formula = year ~ status)
+print(arr)
 
-# rollup, drilldown and pivot using array syntax
-# apply()
-# capply()
+# apply
+
+aggregate(cb, c("year","status"), sum)
+capply(cb, c("year","status"), sum)
+
+# rollup and drilldown
+
+# granular data with all totals
+r = rollup(cb, MARGIN = c("color","year"), FUN = sum)
+format(r)
+
+# chose subtotals - drilldown to required levels of aggregates
+r = rollup(cb, MARGIN = c("color","year"), INDEX = 1:2, FUN = sum)
+format(r)
+
+# pivot
+r = cb["green"]
+format(r, dcast = TRUE, formula = year ~ status)
 ```
 
 ## Extension to array
@@ -107,8 +129,32 @@ cb[product = "Mazda RX4",
    geography = .(),
    time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
 
+# apply on dimension hierarchy
+format(aggregate(cb, c("time_year","geog_region_name"), sum))
+format(capply(cb, c("time_year","geog_region_name"), sum))
+
 # rollup, drilldown and pivot on dimension hierarchy
-# capply()
+r = rollup(cb, c("time_year","geog_region_name", "curr_type","prod_gear"), FUN = sum)
+print(r) # new dimension *level*
+# various levels of aggregates starting from none
+format(r[,,,,0L])
+format(r[,,,,1L])
+format(r[,,,,2L])
+format(r[,,,,3L])
+format(r[,,,,4L]) # grand total
+# be aware of double counting which occurs in rollup, unless you provide scalar integer to INDEX arg of `rollup`.
+format(r[,,,,2:4])
+
+# rollup by multi attrs from single dimension will produce (by default) a surrogate key to enforce normalization
+r = rollup(cb, c("time_year","time_month"), FUN = sum)
+format(r)
+# so we may want to use `normalize` and get data.table directly
+r = rollup(cb, c("time_year","time_month"), FUN = sum, normalize=FALSE)
+print(r)
+
+# pivot by regular dcast.data.table
+r = aggregate(cb, c("time_year", "geog_division_name"), FUN = sum)
+as.data.table(r, dcast = TRUE, formula = geog_division_name ~ time_year)
 
 # denormalize
 cb$denormalize()
@@ -128,29 +174,15 @@ as.cube(dt, fact = "sales", dims = dimcolnames)
 
 ## Advanced
 
-### data.table
+### Normalization
+
+Data in *cube* are normalized into star schema. In case of rollup on attributes from the same hierarchy, the dimension will be wrapped with new surrogate key. Use `normalize=FALSE` to return data.table with subtotals.  
+
+### data.table indexes
 
 User can utilize data.table indexes which dramatically reduce query time.  
 
-```r
-filter_with_index = function(x, col, i, verbose = TRUE){
-    # workaround for data.table#1422
-    op = options("datatable.verbose" = verbose,
-                 "datatable.auto.index" = as.logical(length(col)))
-    on.exit(options(op))
-    x[eval(i)]
-}
-
-library(data.table)
-library(microbenchmarkCore) # install.packages("microbenchmarkCore", repos="https://olafmersmann.github.io/drat")
-
-n = 5e7
-set.seed(123)
-x = data.table(unq = 1:n, biggroup = sample(n*0.9, n, TRUE), tinygroup = sample(1e3, n, TRUE))
-set2keyv(x, "biggroup")
-qi = call("==", quote(biggroup), sample(x$biggroup, 1))
-print(qi)
-#biggroup == 12469208L
+```
 system.nanotime(filter_with_index(x, col = NULL, i = qi))
 #     user    system   elapsed 
 #       NA        NA 0.1294823
@@ -173,12 +205,12 @@ cb = as.cube(populate_star(1e5))
 prod(dim(cb))
 
 # binary search, index
-op = options("datatable.verbose" = TRUE)
+op = options("datatable.verbose" = TRUE, "datatable.auto.index" = TRUE)
 cb["Mazda RX4", c("1","6"), c("AZN","SEK")] # binary search
 cb["Mazda RX4",, c("AZN","SEK")] # binary search + vector scan/index
 cb["Mazda RX4",, .(curr_type = c("fiat","crypto"))] # lookup to currency hierarchy
 set2keyv(cb$env$dims$time, "time_year")
-cb["Mazda RX4",, .(curr_type = c("fiat","crypto")),, .(time_year = 2011:2012)]
+cb["Mazda RX4",, .(curr_type = c("fiat","crypto")),, .(time_year = 2011:2012)] # use index
 options(op)
 ```
 
@@ -194,9 +226,9 @@ Logic of cubes can be isolated from the data, they can also run as a service.
 #### client-server
 
 Another package development is planned to wrap services upon data.cube.  
-It will allow to use `[.cube` and `[[.cube` methods via [Rserve: TCP/IP or local sockets](https://github.com/s-u/Rserve) or [httpuv: HTTP and WebSocket server](https://github.com/rstudio/httpuv).  
+It would allow to use `[.cube` and `[[.cube` methods via [Rserve: TCP/IP or local sockets](https://github.com/s-u/Rserve) or [httpuv: HTTP and WebSocket server](https://github.com/rstudio/httpuv).  
 Basic parsers of [MDX](https://en.wikipedia.org/wiki/MultiDimensional_eXpressions) queries and [XMLA](https://en.wikipedia.org/wiki/XML_for_Analysis) requests.  
-It could potentially utilize `Rserve` for parallel processing on distributed data partitions.  
+It could potentially utilize `Rserve` for parallel processing on distributed data partitions, see [this gist](https://gist.github.com/jangorecki/ecccfa5471a633acad17).  
 
 # Interesting reading
 

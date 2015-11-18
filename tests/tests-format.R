@@ -98,13 +98,6 @@ stopifnot(
 # all dims should have single columns as rollup was on highest aggregates
 stopifnot(all(r$dapply(ncol)==1L))
 
-# check normalization for time with surrogate key
-r = rollup(cb, c("time_year","time_month","geog_division_name", "curr_name","prod_name"), FUN = sum)
-stopifnot(
-    identical(names(r$env$dims$time), c("time_id","time_month","time_month_name","time_quarter","time_quarter_name","time_year")),
-    identical(names(r$env$fact$sales), c("time_id","geog_division_name","curr_name","prod_name","level","amount","value"))
-)
-
 # dcast
 r = rollup(cb, c("time_year","geog_division_name"), FUN = sum)
 rr = format(r, dcast = TRUE, formula = time_year ~ geog_division_name)

@@ -80,9 +80,13 @@ stopifnot(
     all.equal(format(r[,,,,4L]), format(aggregate(cb, by[0L], FUN = sum)))
 )
 
-# rollup(cb, MARGIN = c("curr_name","geog_abb"), FUN = sum)
-# rollup(cb, MARGIN = c("geog_region_name","time_year","time_quarter"), FUN = sum)
+# check normalization for time with surrogate key
+r = rollup(cb, c("time_year","time_month","geog_division_name", "curr_name","prod_name"), FUN = sum)
+stopifnot(
+    identical(names(r$env$dims$time), c("time_id","time_month","time_month_name","time_quarter","time_quarter_name","time_year")),
+    identical(names(r$env$fact$sales), c("time_id","geog_division_name","curr_name","prod_name","level","amount","value"))
+)
 
 # tests status ------------------------------------------------------------
 
-invisible(FALSE)
+invisible(TRUE)

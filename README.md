@@ -89,8 +89,8 @@ print(arr)
 
 # apply
 
-aggregate(cb, c("year","status"), sum)
-capply(cb, c("year","status"), sum)
+format(aggregate(cb, c("year","status"), sum))
+format(capply(cb, c("year","status"), sum))
 
 # rollup and drilldown
 

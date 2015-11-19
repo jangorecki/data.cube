@@ -1,17 +1,21 @@
 # Example dataset [RStudio CRAN logs of packages downloads](http://cran-logs.rstudio.com) from last 3 days aggregated into 3 artificial dimensions:  
-#     - *time* dimension, natural key: `date`
-# - *environment* dimension, client environment setup, natural keys: `r_version`, `arch`, `os`
-# - *package version* dimension, natural key: `package`, `version`
+## *time* dimension, natural key: `date`
+## *environment* dimension, client environment setup, natural keys: `r_version`, `arch`, `os`
+## *package version* dimension, natural key: `package`, `version`
 
-# library(data.cube)
-# 
-# # download logs from last 3 days and build cube
-# source(system.file("cubes","cranlogs.R", package="data.cube"))
-# print(cranlogs)
-# 
-# # slice dice
-# pkgs = c("RSQLite", "RPostgreSQL", "RMySQL", "ROracle", "RODBC", "RJDBC", "RSQLServer")
-# cranlogs[,,.(package = pkgs)]
+if(run_example <- FALSE){
+    # download logs from last 3 days and build cube
+    source(system.file("cubes","cranlogs.R", package="data.cube"))
+    print(cranlogs)
+    
+    # slice dice
+    pkgs = c("RSQLite", "RPostgreSQL", "RMySQL", "ROracle", "RODBC", "RJDBC", "RSQLServer")
+    cranlogs[,,.(package = pkgs)]
+    
+    # three most popular r version for each from the pkgs
+    r = aggregate(cranlogs[,,.(package = pkgs)], c("yearmonth","package","r_version"), sum)
+    as.data.table(r)[order(-count), head(.SD, 3L), c("yearmonth","package")]
+}
 
 library(data.table)
 library(data.cube)
@@ -74,8 +78,8 @@ cranlogs_cube = function(x){
     setkeyv(pkgv_dim, "pkgv_id")
 
     # wrap into cube
-    cube$new(fact = list(cranlogs = x[, .(count = .N), .(time_id, r_id, pkgv_id)]),
-             dims = list(time = time_dim, r = r_dim, pkgv = pkgv_dim))
+    as.cube(list(fact = list(cranlogs = x[, .(count = .N), .(time_id, r_id, pkgv_id)]),
+                 dims = list(time = time_dim, r = r_dim, pkgv = pkgv_dim)))
 }
 
 dt = get_last_n_cranlogs()

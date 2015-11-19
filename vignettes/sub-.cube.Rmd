@@ -1,0 +1,137 @@
+---
+title: "Subset multidimensional cube/array"
+author: "Jan Gorecki"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Subset multidimensional cube/array}
+  \usepackage[utf8]{inputenc}
+---
+
+R *cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cube) package.  
+
+# characteristic of `[.cube`
+
+## what's the same in `[.array`
+
+- subsetting dimensions by keys
+- handling *drop* argument
+- returns same class object, so is *chainable*
+
+## what's more than `[.array`
+
+- can subset on hierarchy of a dimension
+- scales with dimensions and their cardinality
+- stores multiple measures
+- high performance thanks to data.table
+
+## what's different to `[.array`
+
+- array can be subsetted by dimension keys but also by integer position
+- in cube subset directly by integer position is not possible, but you can have integer surrogate keys which can refer to any custom integer positions
+
+# start session
+
+```{r run}
+if(!"data.cube" %in% rownames(installed.packages())) install.packages(
+    "data.cube", repos = paste0("https://", c("jangorecki.github.io/data.cube","cran.rstudio.com"))
+)
+library(data.table)
+library(data.cube)
+```
+
+# tiny example
+
+```{r tiny}
+set.seed(1)
+# array
+ar = array(rnorm(8,10,5), 
+           rep(2,3), 
+           dimnames = list(color = c("green","red"), 
+                           year = c("2014","2015"), 
+                           country = c("UK","IN")))
+# cube normalized to star schema
+cb = as.cube(ar)
+
+ar["green","2015",]
+cb["green","2015",]
+
+ar["green",c("2014","2015"),]
+cb["green",c("2014","2015"),]
+
+# tabular representation of array is just a formatting on the cube
+format(cb["green",c("2014","2015"),], 
+       dcast = TRUE, 
+       formula = year ~ country)
+
+ar[,"2015",c("UK","IN")]
+cb[,"2015",c("UK","IN")]
+format(cb[,"2015",c("UK","IN")], 
+       dcast = TRUE, 
+       formula = color ~ country)
+```
+
+# hierarchies example
+
+```{r hierarchies}
+# as.cube.list - investigate X to see structure
+X = populate_star(N=1e5)
+lapply(X, sapply, ncol)
+lapply(X, sapply, nrow)
+cb = as.cube(X)
+print(cb)
+
+# slice
+cb["Mazda RX4"]
+cb["Mazda RX4",,"BTC"]
+# dice
+cb[,, c("CNY","BTC"), c("GA","IA","AD")]
+
+# check dimensions
+cb$dims
+
+# use dimensions hierarchy attributes for slice and dice, mix filters from various levels in hierarchy
+cb["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+# same as above but more verbose
+cb[product = "Mazda RX4",
+   customer = .(),
+   currency = .(curr_type = "crypto"),
+   geography = .(),
+   time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+
+# cube `[` operator returns another cube so queries can be chained
+cb[,,, .(geog_region_name = "North Central")
+   ][,,, .(geog_abb = c("IA","NV","MO")), .(time_year = 2014L)
+     ]
+```
+
+# scalability
+
+```{r scalability}
+# ~1e5 facts for 5 dims of cardinalities: 32, 32, 49, 50, 1826
+cb = as.cube(populate_star(N=1e5))
+## estimated size of memory required to store an base R `array` for single numeric measure
+sprintf("array: %.2f GB", (prod(dim(cb)) * 8)/(1024^3))
+## fact table of *cube* object having multiple measures
+sprintf("cube: %.2f GB", as.numeric(object.size(cb$env$fact$sales))/(1024^3))
+
+# ~1e6 facts for 5 dims of cardinalities: 32, 32, 49, 50, 1826
+cb = as.cube(populate_star(N=1e6))
+## estimated size of memory required to store an base R `array` for single numeric measure
+sprintf("array: %.2f GB", (prod(dim(cb)) * 8)/(1024^3))
+## fact table of *cube* object having multiple measures
+sprintf("cube: %.2f GB", as.numeric(object.size(cb$env$fact$sales))/(1024^3))
+
+# ~1e6 facts for 5 dims of cardinalities: 32, 32, 49, 50, 3652
+cb = as.cube(populate_star(N=1e6, Y = c(2005L,2014L))) # bigger time dimension
+## estimated size of memory required to store an base R `array` for single numeric measure
+sprintf("array: %.2f GB", (prod(dim(cb)) * 8)/(1024^3))
+## fact table of *cube* object having multiple measures
+sprintf("cube: %.2f GB", as.numeric(object.size(cb$env$fact$sales))/(1024^3))
+```
+
+# examples
+
+Lots of examples can be found in tests: [tests/tests-sub-.cube.R](https://gitlab.com/jangorecki/data.cube/blob/master/tests/tests-sub-.cube.R).  
+Feel free to PR your use case for future regression testing.  

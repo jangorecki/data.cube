@@ -66,6 +66,10 @@ rollup.cube = function(x, MARGIN, INDEX = NULL, FUN, ..., j, normalize = TRUE, d
         r$fact[[x$fact]] = eval(substitute(rollup(x = as.data.table(x), j = jj, by = MARGIN, .SDcols = measures, levels = levels), env = list(jj = jj)))
     }
     if(!normalize){
+        keys = setdiff(names(r$fact[[x$fact]]), measures)
+        if(length(keys)) rr = setorderv(r$fact[[x$fact]], cols = keys, order=1L, na.last=TRUE) else {
+            stopifnot(nrow(r$fact[[x$fact]])==1L) # grant total
+        }
         return(r$fact[[x$fact]])
     }
     new.fact.colnames = names(r$fact[[x$fact]])

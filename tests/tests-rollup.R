@@ -87,6 +87,16 @@ stopifnot(
     identical(names(r$env$fact$sales), c("time_id","geog_division_name","curr_name","prod_name","level","amount","value"))
 )
 
+# normalize=FALSE for correct ordering from format.cube method
+r = rollup(cb, c("time_year","time_month"), FUN = sum, normalize=FALSE)
+stopifnot(
+    is.data.table(r),
+    identical(names(r), c("time_year","time_month","level","amount","value")),
+    nrow(r)==66L,
+    r[nrow(r)][is.na(time_year) & is.na(time_month), .N==1L],
+    r[nrow(r)-1L][!is.na(time_year) & is.na(time_month), .N==1L] # correct order of NA
+)
+
 # tests status ------------------------------------------------------------
 
 invisible(TRUE)

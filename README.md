@@ -24,8 +24,6 @@ Contribution welcome!
 
 # Installation
 
-Use git clone, once 0.2 will be closed, below R command will work.  
-
 ```r
 install.packages("data.cube", repos = paste0("https://",
     c("jangorecki.github.io/data.cube","cran.rstudio.com")
@@ -148,7 +146,7 @@ format(r[,,,,2:4])
 # rollup by multi attrs from single dimension will produce (by default) a surrogate key to enforce normalization
 r = rollup(cb, c("time_year","time_month"), FUN = sum)
 format(r)
-# so we may want to use `normalize` and get data.table directly
+# aggregates does not gets surrogate keys so we may want to use `normalize=FALSE` and get data.table directly
 r = rollup(cb, c("time_year","time_month"), FUN = sum, normalize=FALSE)
 print(r)
 

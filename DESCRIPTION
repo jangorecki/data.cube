@@ -8,5 +8,3 @@ Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
 Description: Extends multidimensional array for OLAP operations.
 Imports: data.table (>= 1.9.6), R6, stats
 License: GPL-3
-Suggests: knitr
-VignetteBuilder: knitr

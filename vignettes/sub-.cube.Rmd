@@ -1,37 +1,36 @@
 ---
-title: "Subset multidimensional cube/array"
-author: "Jan Gorecki"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
 vignette: >
+  %\VignetteIndexEntry{Subset multidimensional data}
   %\VignetteEngine{knitr::knitr}
-  %\VignetteIndexEntry{Subset multidimensional cube/array}
-  \usepackage[utf8]{inputenc}
+  %\usepackage[utf8]{inputenc}
 ---
+
+# Subset multidimensional data
+*Jan Gorecki, 2015-11-19*
 
 R *cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cube) package.  
 
-# characteristic of `[.cube`
+## characteristic of `[.cube`
 
-## what's the same in `[.array`
+### what's the same in `[.array`
 
 - subsetting dimensions by keys
 - handling *drop* argument
 - returns same class object, so is *chainable*
 
-## what's more than `[.array`
+### what's more than `[.array`
 
 - can subset on hierarchy of a dimension
 - scales with dimensions and their cardinality
 - stores multiple measures
 - high performance thanks to data.table
 
-## what's different to `[.array`
+### what's different to `[.array`
 
 - array can be subsetted by dimension keys but also by integer position
 - in cube subset directly by integer position is not possible, but you can have integer surrogate keys which can refer to any custom integer positions
 
-# start session
+## start session
 
 ```{r run}
 if(!"data.cube" %in% rownames(installed.packages())) install.packages(
@@ -41,7 +40,7 @@ library(data.table)
 library(data.cube)
 ```
 
-# tiny example
+## tiny example
 
 ```{r tiny}
 set.seed(1)
@@ -72,7 +71,7 @@ format(cb[,"2015",c("UK","IN")],
        formula = color ~ country)
 ```
 
-# hierarchies example
+## hierarchies example
 
 ```{r hierarchies}
 # as.cube.list - investigate X to see structure
@@ -106,7 +105,7 @@ cb[,,, .(geog_region_name = "North Central")
      ]
 ```
 
-# scalability
+## scalability
 
 ```{r scalability}
 # ~1e5 facts for 5 dims of cardinalities: 32, 32, 49, 50, 1826
@@ -131,7 +130,7 @@ sprintf("array: %.2f GB", (prod(dim(cb)) * 8)/(1024^3))
 sprintf("cube: %.2f GB", as.numeric(object.size(cb$env$fact$sales))/(1024^3))
 ```
 
-# examples
+## examples
 
 Lots of examples can be found in tests: [tests/tests-sub-.cube.R](https://gitlab.com/jangorecki/data.cube/blob/master/tests/tests-sub-.cube.R).  
 Feel free to PR your use case for future regression testing.  

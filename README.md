@@ -32,6 +32,8 @@ install.packages("data.cube", repos = paste0("https://",
 
 # Usage
 
+There is a [Subset multidimensional data vignette](https://cdn.rawgit.com/jangorecki/c56da8850c2181586d7e/raw/bfd58967f4a437e1abe0b02450c3cc748aef390d/sub-.cube.html) which covers *cube* and *array* subset methods.
+
 ## Basics
 
 ```r

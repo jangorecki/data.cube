@@ -97,17 +97,41 @@ if(all(sapply(pkgs, requireNamespace, quietly = TRUE))){
         ## for check on localhost use postgres service
         # docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg-data.cube postgres:9.5
         if(logR::logR_connect()){
-            stopifnot(logR::logR_schema())
-            on = options("bigdatatable.log" = TRUE)
-            # data.cube queries # TO DO
-            logR::logR(TRUE)
+            stopifnot(logR::logR_schema(drop = TRUE))
+            on = options("bigdatatable.log" = TRUE, "logR.nano.debug" = TRUE)
+            
+            # connect
+            
+            X = data.cube::populate_star(N = 1e5, surrogate.keys = FALSE)
+            rscl = big.data.table::rscl.connect(port = 33311:33314)
+            stopifnot(rscl.require(rscl, c("data.table", "logR")))
+            stopifnot(rscl.eval(rscl, logR::logR_connect(quoted = TRUE), lazy = FALSE))
+            bdt = as.big.data.table(X$fact$sales, rscl)
+            ff = fact$new(x = rscl,
+                          id.vars = c("geog_abb","time_date"),
+                          measure.vars = c("amount","value"),
+                          na.rm = TRUE)
+            r = bdt[1L]
+            # TO DO: add data.cube `[` queries when ready
             options(on)
             lr = logR::logR_dump()
             stopifnot(
-                nrow(lr) == 1L,
-                lr$status == "success"
+                is.data.table(r),
+                nrow(r) == 4L,
+                is.big.data.table(ff$data),
+                nrow(lr) == 10L,
+                lr$status == "success",
+                all.equal(lr[, .(logr_id, parent_id)], data.table(logr_id = 1:10, parent_id = c(NA, rep(1L, 4L), NA, rep(6L, 4L)))),
+                lr[7:10, expr] == "x[1L]"
             )
+            rm(bdt)
+            # data.cube queries # TO DO
+            
+            on = options("datatable.prettyprint.char" = 80L)
             print(lr)
+            options(on)
+            
+            rscl.close(rscl)
         }
     }
     

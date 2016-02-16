@@ -19,6 +19,7 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
 - [x] query optimization
   - [x] uses blazingly fast data.table's *binary search* where possible
 - [ ] share dimensions between cubes
+- [ ] new `data.cube` available to work on top of [big.data.table](https://gitlab.com/jangorecki/big.data.table)
 
 Contribution welcome!  
 
@@ -32,7 +33,14 @@ install.packages("data.cube", repos = paste0("https://",
 
 # Usage
 
-There is a [Subset multidimensional data vignette](https://cdn.rawgit.com/jangorecki/c56da8850c2181586d7e/raw/bfd58967f4a437e1abe0b02450c3cc748aef390d/sub-.cube.html) which covers *cube* and *array* subset methods.
+Check following vignettes:  
+
+- `data.cube` class (not yet in readme, api in dev)  
+  - [Basics TO DO](https://jangorecki.gitlab.io/data.cube/).  
+  - [Distributed backend for data.cube](https://jangorecki.gitlab.io/data.cube/doc/big.data.cube.html) covers *cube* and *array* subset methods.  
+
+- old basic `cube` class
+  - [Subset multidimensional data vignette](https://jangorecki.gitlab.io/data.cube/doc/sub-.cube.html) covers *cube* and *array* subset methods.  
 
 ## Basics
 

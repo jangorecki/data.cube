@@ -7,8 +7,7 @@ Author: Jan Gorecki
 Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
 Description: Extends multidimensional array for OLAP operations and auto distribute over R nodes.
 Imports: data.table (>= 1.9.6), R6, stats
-Enhances: big.data.table (>= 0.3.3), RSclient, Rserve, logR (>= 2.1.4)
-Suggests: knitr, rmarkdown
+Suggests: big.data.table (>= 0.3.3), RSclient, Rserve, logR (>= 2.1.4), knitr, rmarkdown
 License: GPL-3
 Additional_repositories: https://jangorecki.github.io/big.data.table, https://jangorecki.github.io/logR
 VignetteBuilder: knitr

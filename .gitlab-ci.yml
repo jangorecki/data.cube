@@ -2,12 +2,12 @@ image: quay.io/jangorecki/r-pkg
 
 pages:
   script:
-    # build pkg
-    - R CMD build .
     # install deps
     - Rscript -e 'install.packages(c("R6","data.table"), repos="https://cran.rstudio.com")'
     # install suggests
     - Rscript -e 'install.packages(c("Rserve","RSclient","big.data.table"), repos = paste0("https://", c("cran.rstudio.com","jangorecki.github.io/big.data.table")))'
+    # build pkg
+    - R CMD build .
     # run check
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-manual --as-cran
     # gl-pages dir and Rcheck results dir

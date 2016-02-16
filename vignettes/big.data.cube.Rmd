@@ -55,6 +55,12 @@ rscl.close(rscl)
 rscl.close(rscl)
 ```
 
+```{r logr, message=FALSE}
+# library(logR)
+
+
+```
+
 ```{r shutdown_nodes, message=FALSE, echo=FALSE}
 library(RSclient)
 

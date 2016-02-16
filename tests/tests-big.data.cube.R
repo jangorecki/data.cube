@@ -92,6 +92,25 @@ if(all(sapply(pkgs, requireNamespace, quietly = TRUE))){
     )
     rscl.close(rscl)
     
+    # logR + data.cube
+    if(requireNamespace("logR", quietly = TRUE)){
+        ## for check on localhost use postgres service
+        # docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg-data.cube postgres:9.5
+        if(logR::logR_connect()){
+            stopifnot(logR::logR_schema())
+            on = options("bigdatatable.log" = TRUE)
+            # data.cube queries # TO DO
+            logR::logR(TRUE)
+            options(on)
+            lr = logR::logR_dump()
+            stopifnot(
+                nrow(lr) == 1L,
+                lr$status == "success"
+            )
+            print(lr)
+        }
+    }
+    
     # shutdown nodes ----
     
     library(RSclient)

@@ -145,11 +145,7 @@ fact = R6Class(
                 #unlist(lapply(self$measures, `[[`, "var")) %in% names(x) # 'x' not yet ready to use due to remote interface dev here
             )
             # build `j` expression
-            jj = as.call(c(
-                list(as.name("list")),
-                lapply(self$measures, function(x) x$format())
-            ))
-            if(isTRUE(getOption("datacube.jj"))) message(paste(deparse(jj, width.cutoff = 500), collapse = "\n"))
+            jj = self$build.j()
             # aggregate
             dtq = substitute(x <- x[, j = .jj,, keyby = .id.vars], list(.jj = jj, .id.vars = self$id.vars))
             self$local = is.data.table(x)
@@ -162,6 +158,38 @@ fact = R6Class(
                 self$data = bdt
             }
             invisible(self)
+        },
+        build.j = function(measure.vars = self$measure.vars){
+            measure.which = sapply(self$measures, function(x) x$var %in% measure.vars)
+            jj = as.call(c(
+                list(as.name("list")),
+                lapply(self$measures[measure.which], function(x) x$format())
+            ))
+            if(isTRUE(getOption("datacube.jj"))) message(paste(deparse(jj, width.cutoff = 500), collapse = "\n"))
+            jj
+        },
+        query = function(i, by, measure.vars = self$measure.vars){
+            
+            ii = substitute(i)
+            jj = self$build.j(measure.vars)
+            bb = substitute(by)
+            
+            l = list(
+                as.symbol("["),
+                x = call("$", as.name("self"), as.name("data")) # this can point to data.table or big.data.table
+            )
+            if(!missing(i)) l[["i"]] = ii
+            l[["j"]] = jj
+            if(!missing(by)) l[["by"]] = bb
+            dcq = as.call(l)
+            dt = eval(dcq)
+            if( !self$local ) {
+                # re-aggr
+                dcq["i"] = NULL
+                dcq[["x"]] = as.name("dt")
+                dt = eval(dcq)
+            }
+            dt
         }
     )
 )
@@ -179,11 +207,10 @@ data.cube = R6Class(
         keys = character(),
         dimensions = list(),
         initialize = function(fact, dimensions){
-            # if(!is.fact(fact)) browser()
             stopifnot(is.fact(fact), sapply(dimensions, is.dimension))
-            self$fact = fact
             self$dimensions = dimensions
             self$keys = lapply(self$dimensions, `[[`, "key")
+            self$fact = fact
             invisible(self)
         }
     )
@@ -246,7 +273,8 @@ as.data.cube = function(x, dimensions, ...){
 #     
 # }
 
-# as.data.cube.data.table = function(){
+# as.data.cube.data.table = function(x){
+#     stopifnot(is.data.table(x))
 #     # local
-#     
+# 
 # }

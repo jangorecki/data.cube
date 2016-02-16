@@ -132,3 +132,23 @@ stopifnot(
     identical(dim(dc$dimensions$time$hierarchies[[1L]]$levels$time_year$data), c(5L, 1L)),
     identical(dim(dc$dimensions$time$hierarchies[[1L]]$levels$time_date$data), c(1826L, 4L))
 )
+
+# fact$query ----
+
+r = ff$query(by = "geog_abb", measure.vars = c("amount"))
+stopifnot(
+    is.data.table(r),
+    c("geog_abb","amount") %in% names(r),
+    nrow(r) == 50L
+)
+
+r = ff$query(i = geog_abb %in% c("ND","TX"), by = "geog_abb", measure.vars = c("amount"))
+stopifnot(
+    is.data.table(r),
+    c("geog_abb","amount") %in% names(r),
+    nrow(r) == 2L
+)
+
+# data.cube$query ----
+
+#dc

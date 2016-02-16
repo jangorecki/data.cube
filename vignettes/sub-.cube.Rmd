@@ -1,7 +1,7 @@
 ---
 vignette: >
   %\VignetteIndexEntry{Subset multidimensional data}
-  %\VignetteEngine{knitr::knitr}
+  %\VignetteEngine{knitr::rmarkdown}
   %\usepackage[utf8]{inputenc}
 ---
 

@@ -41,7 +41,6 @@ rscl.close(rscl)
 # data.cube ----
 
 X = data.cube::populate_star(N = 1e5, surrogate.keys = FALSE)
-X$dims$time[, time_week := week(time_date)]
 time = dimension$new(X$dims$time,
                      key = "time_date",
                      hierarchies = list(

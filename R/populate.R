@@ -26,13 +26,14 @@ populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, s
     monthday = c("01-01","12-31")
     dates = as.Date(paste(sort(Y), monthday, sep="-"))
     time = data.table(time_date = seq(dates[1L], dates[2L], by = "1 day"))
-    time[,`:=`(time_month = month(time_date),
+    time[,`:=`(time_week = week(time_date),
+               time_month = month(time_date),
                time_quarter = as.POSIXlt(time_date)$mon %/% 3L + 1L,
                time_year = year(time_date))
          ][,`:=`(time_month_name = month.name[time_month],
                  time_quarter_name = paste0("Q",time_quarter))
            ]
-    setcolorder(time, c("time_date", "time_month", "time_month_name", "time_quarter", "time_quarter_name", "time_year"))
+    setcolorder(time, c("time_date", "time_week", "time_month", "time_month_name", "time_quarter", "time_quarter_name", "time_year"))
     # currency taken from: https://github.com/jangorecki/Rbitcoin/blob/cf142d34e8018d135a526998aeddc4e28d548f5c/R/dictionaries.R#L139
     ct.dict = list(
         crypto = c('BTC','LTC','NMC','FTC','NVC','PPC','TRC','XPM','XDG','XRP','XVN'),

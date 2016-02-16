@@ -1,6 +1,8 @@
 
 pkgs = c("Rserve","RSclient","big.data.table")
-if(all(sapply(pkgs, requireNamespace, quietly = TRUE))){
+apkgs = sapply(pkgs, requireNamespace, quietly = TRUE)
+print(apkgs)
+if(all(apkgs)){
     
     # start nodes ----
     
@@ -93,7 +95,12 @@ if(all(sapply(pkgs, requireNamespace, quietly = TRUE))){
     rscl.close(rscl)
     
     # logR + data.cube
-    if(requireNamespace("logR", quietly = TRUE)){
+    apkg = requireNamespace("logR", quietly = TRUE)
+    print(apkg)
+    if(apkg){
+        
+        library(logR)
+        
         ## for check on localhost use postgres service
         # docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg-data.cube postgres:9.5
         if(logR::logR_connect()){
@@ -102,7 +109,7 @@ if(all(sapply(pkgs, requireNamespace, quietly = TRUE))){
             
             # connect
             
-            X = data.cube::populate_star(N = 1e5, surrogate.keys = FALSE)
+            X = populate_star(N = 1e5, surrogate.keys = FALSE)
             rscl = big.data.table::rscl.connect(port = 33311:33314)
             stopifnot(rscl.require(rscl, c("data.table", "logR")))
             stopifnot(rscl.eval(rscl, logR::logR_connect(quoted = TRUE), lazy = FALSE))

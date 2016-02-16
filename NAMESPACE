@@ -2,12 +2,14 @@
 importFrom(stats, aggregate)
 import(data.table)
 import(R6)
+
 # to cube
 export(as.cube)
 S3method(as.cube, default)
 S3method(as.cube, array)
 S3method(as.cube, list)
 S3method(as.cube, data.table)
+
 # cube
 export(cube)
 S3method("[", cube)
@@ -19,10 +21,12 @@ S3method(rollup, cube)
 S3method(format, cube)
 export(capply)
 export(rollup)
+
 # from cube
 S3method(as.data.table, cube)
 S3method(as.list, cube)
 S3method(as.array, cube)
+
 # others
 S3method(as.data.table, array)
 S3method(as.array, data.table)

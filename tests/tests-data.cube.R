@@ -37,7 +37,7 @@ stopifnot(
 )
 
 # time dimension
-X = data.cube::populate_star(N = 1e5, surrogate.keys = FALSE)
+X = populate_star(N = 1e5, surrogate.keys = FALSE)
 time = dimension$new(X$dims$time,
                      key = "time_date",
                      hierarchies = list(
@@ -80,7 +80,7 @@ stopifnot(
     identical(dim(ff$data), c(6L, 4L))
 )
 
-X = data.cube::populate_star(N = 1e5, surrogate.keys = FALSE)
+X = populate_star(N = 1e5, surrogate.keys = FALSE)
 ff = fact$new(x = X$fact$sales,
               id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
               measure.vars = c("amount","value"),
@@ -92,7 +92,7 @@ stopifnot(
 
 # data.cube ----
 
-X = data.cube::populate_star(N = 1e5, surrogate.keys = FALSE)
+X = populate_star(N = 1e5, surrogate.keys = FALSE)
 time = dimension$new(X$dims$time,
                      key = "time_date",
                      hierarchies = list(

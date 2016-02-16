@@ -2,6 +2,8 @@
 # level ----
 
 #' @title Level class
+#' @docType class
+#' @format An R6 class object.
 #' @details Class stores lower grain of dimension attributes. Initialized with key column and propoerties columns - all depndent on the key.
 level = R6Class(
     classname = "level",
@@ -25,6 +27,8 @@ level = R6Class(
 # hierarchy ----
 
 #' @title Hierarchy class
+#' @docType class
+#' @format An R6 class object.
 #' @details Class stores set of dimension levels into hierarchy. Initialized with key column and levels list.
 hierarchy = R6Class(
     classname = "hierarchy",
@@ -48,6 +52,8 @@ hierarchy = R6Class(
 # dimension ----
 
 #' @title Dimension class
+#' @docType class
+#' @format An R6 class object.
 #' @details Class stores set of hierarchies. Initialized with hierarchies list definition. Also stores mapping from primary key to any level, to use snowflake
 dimension = R6Class(
     classname = "dimension",
@@ -78,6 +84,8 @@ dimension = R6Class(
 # measure ----
 
 #' @title Measure class
+#' @docType class
+#' @format An R6 class object.
 #' @details Class stores variable name from fact table, the function to use against variable. Initialized with character scalar variable name, optional label, function to use on aggregates and it's custom arguments. Method `format` is provided to produce clean expressions.
 measure = R6Class(
     classname = "measure",
@@ -109,6 +117,8 @@ measure = R6Class(
 # fact ----
 
 #' @title Fact class
+#' @docType class
+#' @format An R6 class object.
 #' @details Class stores fact table as local data.table or remote big.data.table. Initialized with data.table or list of R nodes connections. Measures can be provided manually to `measures` argument, useful for custom aggregate function per measure.
 fact = R6Class(
     classname = "fact",
@@ -121,7 +131,7 @@ fact = R6Class(
         initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures){
             stopifnot(is.character(id.vars), is.character(measure.vars), is.character(fun.aggregate))
             self$id.vars = id.vars
-            # - [ ] `fact$new` creates measures, or use provided in `measures` argument
+            # - [x] `fact$new` creates measures, or use provided in `measures` argument
             if(missing(measures)){
                 self$measure.vars = measure.vars
                 self$measures = lapply(setNames(nm = self$measure.vars), function(var) measure$new(var, fun.aggregate = fun.aggregate, ... = ...))
@@ -159,32 +169,77 @@ fact = R6Class(
 # data.cube ----
 
 #' @title Data.cube class
+#' @docType class
+#' @format An R6 class object.
 #' @details Class stores fact class and dimension classes.
 data.cube = R6Class(
     classname = "data.cube",
     public = list(
         fact = NULL,
+        keys = character(),
         dimensions = list(),
         initialize = function(fact, dimensions){
-            stopifnot(inherits(fact, "fact"), sapply(dimensions, inherits, "dimension"))
+            # if(!is.fact(fact)) browser()
+            stopifnot(is.fact(fact), sapply(dimensions, is.dimension))
             self$fact = fact
             self$dimensions = dimensions
+            self$keys = lapply(self$dimensions, `[[`, "key")
             invisible(self)
         }
     )
 )
 
-# as.data.cube.* ----
+# is.* ----
 
-# as.data.cube.default = function(x, ...){
-#     dimensions = lapply(dimensions, function(hierarchies) dimension$new(x, hierarchies = hierarchies))
-# 
-#     #self$fact = setkeyv(x[, .SD, .SDcols = unique(granularity)], granularity)[]
-# 
-#     cube$new(fact = fact$new(x, granularity = unique(unlist(lapply(dimensions, `[[`, "key"))) ),
-#              dimensions = lapply(dimensions, function(hierarchies) dimension$new(x, key = "", hierarchies = hierarchies))
-#              )
-# }
+#' @title Test if data.cube class
+#' @param x object to tests.
+is.data.cube = function(x) inherits(x, "data.cube")
+
+#' @title Test if fact class
+#' @param x object to tests.
+is.fact = function(x) inherits(x, "fact")
+
+#' @title Test if dimension class
+#' @param x object to tests.
+is.dimension = function(x) inherits(x, "dimension")
+
+# as.* ----
+
+#' @title Build dimension
+#' @param x data.table build dimension based on that dataset.
+#' @param key character scalar of dimension's primary key column.
+#' @param hierarchies list of hierarchies and levels within dimensions.
+#' @return dimension class object.
+as.dimension = function(x, key = key(x), hierarchies){
+    stopifnot(is.list(hierarchies), is.character(key), length(key) > 0L)
+    dimension$new(x = x, key = key, hierarchies = hierarchies)
+}
+
+#' @title Build fact
+#' @param x data.table build dimension based on that dataset.
+#' @param id.vars character vector of all dimension's foreign keys.
+#' @param measure.vars character vector, column names of measures.
+#' @param fun.aggregate default "sum".
+#' @param \dots arguments to fun.aggregate.
+#' @param measures list of measures class objects, useful if various measures needs to have different `fun.aggregate`.
+#' @return fact class object.
+as.fact = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures){
+    fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = fun.aggregate, ... = ..., measures = measures)
+}
+
+#' @title Build fact
+#' @param x fact class object.
+#' @param dimensions list of dimension class objects.
+#' @param \dots ignored.
+#' @return fact class object.
+as.data.cube = function(x, dimensions, ...){
+    stopifnot(
+        is.list(dimensions),
+        sapply(dimensions, is.dimension),
+        is.fact(x)
+    )
+    data.cube$new(x, dimensions)
+}
 
 # as.data.cube.function = function(){
 #     # remote

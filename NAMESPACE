@@ -34,10 +34,20 @@ S3method(rollup, data.table)
 export(populate_star)
 export(process.dim)
 
-# data.cube
+# data.cube classes
 export(level)
 export(hierarchy)
 export(dimension)
 export(measure)
 export(fact)
 export(data.cube)
+
+# as.data.cube classess `as.*` methods
+export(as.dimension)
+export(as.fact)
+export(as.data.cube)
+
+# is.data.cube classess
+export(is.dimension)
+export(is.fact)
+export(is.data.cube)

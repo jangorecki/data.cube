@@ -1,0 +1,68 @@
+---
+vignette: >
+  %\VignetteIndexEntry{Distributed backend for data.cube}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Distributed backend for data.cube
+*Jan Gorecki, 2016-02-16*
+
+R *data.cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cube) package.  
+
+```{r start_nodes, message=FALSE, echo=FALSE}
+library(Rserve)
+
+port = 33311:33314
+
+# shutdown any running nodes
+rscl = lapply(setNames(port, port), function(port) tryCatch(RSconnect(port = port), error = function(e) e, warning = function(w) w))
+invisible(lapply(rscl, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rsc)))
+
+# start cluster
+invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = c("--no-save"))))
+
+options("bigdatatable.log" = FALSE) # for interactive running tests
+Sys.sleep(1)
+```
+
+# distributed fact table
+
+```{r fact, message=FALSE}
+library(data.table)
+library(big.data.table)
+library(data.cube)
+
+rscl = big.data.table::rscl.connect(port = 33311:33314)
+rscl.require(rscl, c("data.table","data.cube"))
+X = populate_star(N = 1e5, surrogate.keys = FALSE)
+bdt = as.big.data.table(X$fact$sales, rscl)
+ff = fact$new(x = rscl,
+              id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
+              measure.vars = c("amount","value"),
+              na.rm = TRUE)
+stopifnot(
+    is.big.data.table(ff$data),
+    inherits(ff, "fact"),
+    sapply(ff$measures, inherits, "measure"),
+    identical(ff$measure.vars, c("amount","value"))
+)
+rscl.close(rscl)
+```
+
+```{r data.cube, message=FALSE}
+# dc = as.data.cube(X)
+rscl.close(rscl)
+```
+
+```{r shutdown_nodes, message=FALSE, echo=FALSE}
+library(RSclient)
+
+port = 33311:33314
+
+# shutdown any running nodes
+l = lapply(setNames(port, port), function(port) tryCatch(RSconnect(port = port), error = function(e) e, warning = function(w) w))
+invisible(lapply(l, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rsc)))
+```
+
+Any feedback/fixes/improvements submit to repo.  

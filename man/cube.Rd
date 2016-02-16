@@ -2,7 +2,6 @@
 \docType{class}
 \name{cube}
 \alias{cube}
-\alias{data.cube}
 \title{OLAP cube class}
 \format{An R6 class object.}
 \usage{

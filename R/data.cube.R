@@ -1,33 +1,14 @@
-## http://stackoverflow.com/a/16054159/2490497
-#<Schema>
-# <Cube>
-#  <Dimension Gender>
-#    <Hierarchy>
-#      <Level Gender>
-#    </Hierarchy>
-#  </Dimension>
-#  <Dimension Time>
-#    <Hierarchy>
-#      <Level Year/>
-#      <Level Quarter/>
-#      <Level Month/>
-#    </Hierarchy>
-#    <Hierarchy>
-#      <Level Year/>
-#      <Level Week/>
-#      <Level Day/>
-#    </Hierarchy>
-#  </Dimension>
-#  <Measure Unit Sales/>
-#  <Measure Store Sales/>
-# </Cube>
-#</Schema>
 
+# level ----
+
+#' @title Level class
+#' @details Class stores lower grain of dimension attributes. Initialized with key column and propoerties columns - all depndent on the key.
 level = R6Class(
     classname = "level",
     public = list(
         key = character(),
         properties = character(),
+        parents = character(),
         # level-data stores hierarchy level key and it's related attributes
         data = NULL,
         initialize = function(x, key = key(x), properties){
@@ -41,6 +22,10 @@ level = R6Class(
     )
 )
 
+# hierarchy ----
+
+#' @title Hierarchy class
+#' @details Class stores set of dimension levels into hierarchy. Initialized with key column and levels list.
 hierarchy = R6Class(
     classname = "hierarchy",
     public = list(
@@ -51,14 +36,19 @@ hierarchy = R6Class(
             stopifnot(is.data.table(x), is.character(key), key %in% names(x), is.list(levels), as.logical(length(levels)), names(levels) %in% names(x))
             self$key = key
             rm(key)
-            self$levels = lapply(setNames(nm = names(levels)), function(nm){
-                level$new(x, key = nm, properties = unique(levels[[nm]]))
+            lvli = setNames(seq_along(levels), names(levels))
+            self$levels = lapply(lvli, function(i){
+                level$new(x, key = names(lvli[i]), properties = levels[[i]])
             })
             invisible(self)
         }
     )
 )
 
+# dimension ----
+
+#' @title Dimension class
+#' @details Class stores set of hierarchies. Initialized with hierarchies list definition. Also stores mapping from primary key to any level, to use snowflake
 dimension = R6Class(
     classname = "dimension",
     public = list(
@@ -85,58 +75,123 @@ dimension = R6Class(
     )
 )
 
+# measure ----
 
-# fact = R6Class(
-#     classname = "fact",
-#     public = list(
-#         local = logical(),
-#         data = NULL,
-#         initialize = function(x){
-#             
-#         }
-#     )
-# )
+#' @title Measure class
+#' @details Class stores variable name from fact table, the function to use against variable. Initialized with character scalar variable name, optional label, function to use on aggregates and it's custom arguments. Method `format` is provided to produce clean expressions.
+measure = R6Class(
+    classname = "measure",
+    public = list(
+        var = character(),
+        fun.aggregate = character(),
+        dots = list(),
+        label = character(),
+        initialize = function(x, label = character(), fun.aggregate = "sum", ...){
+            self$dots = match.call(expand.dots = FALSE)$`...`
+            self$var = x
+            self$label = label
+            self$fun.aggregate = fun.aggregate
+            invisible(self)
+        },
+        format = function(){
+            as.call(c(
+                list(as.name(self$fun.aggregate), as.name(self$var)),
+                self$dots
+            ))
+        },
+        print = function(){
+            cat(deparse(self$format(), width.cutoff = 500L), sep="\n")
+            invisible(self)
+        }
+    )
+)
 
-# cube = R6Class(
-#     classname = "cube",
-#     public = list(
-#         data = NULL,
-#         dimensions = list(),
-#         initialize = function(fact, dimensions){
-#             stopifnot(is.data.table(x), sapply(dimensions, inherits, "dimension"), inherits(fact))
-#             
-#             invisible(self)
-#         }
-#     )
-# )
-# 
-# as.cube.default = function(x, ...){
+# fact ----
+
+#' @title Fact class
+#' @details Class stores fact table as local data.table or remote big.data.table. Initialized with data.table or list of R nodes connections. Measures can be provided manually to `measures` argument, useful for custom aggregate function per measure.
+fact = R6Class(
+    classname = "fact",
+    public = list(
+        local = logical(),
+        id.vars = character(), # foreign keys
+        measure.vars = character(),
+        measures = list(),
+        data = NULL,
+        initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures){
+            stopifnot(is.character(id.vars), is.character(measure.vars), is.character(fun.aggregate))
+            self$id.vars = id.vars
+            # - [ ] `fact$new` creates measures, or use provided in `measures` argument
+            if(missing(measures)){
+                self$measure.vars = measure.vars
+                self$measures = lapply(setNames(nm = self$measure.vars), function(var) measure$new(var, fun.aggregate = fun.aggregate, ... = ...))
+            } else {
+                self$measure.vars = names(self$measures)
+                self$measures = measures
+            }
+            stopifnot(
+                sapply(self$measures, inherits, "measure"),
+                TRUE
+                #unlist(lapply(self$measures, `[[`, "var")) %in% names(x) # 'x' not yet ready to use due to remote interface dev here
+            )
+            # build `j` expression
+            jj = as.call(c(
+                list(as.name("list")),
+                lapply(self$measures, function(x) x$format())
+            ))
+            if(isTRUE(getOption("datacube.jj"))) message(paste(deparse(jj, width.cutoff = 500), collapse = "\n"))
+            # aggregate
+            dtq = substitute(x <- x[, j = .jj,, keyby = .id.vars], list(.jj = jj, .id.vars = self$id.vars))
+            self$local = is.data.table(x)
+            if(self$local){
+                self$data = eval(dtq)
+            } else {
+                stopifnot(requireNamespace("big.data.table", quietly = TRUE), big.data.table::is.rscl(x))
+                bdt = big.data.table::as.big.data.table(x)
+                bdt[[expr = dtq, lazy = FALSE, send = TRUE]]
+                self$data = bdt
+            }
+            invisible(self)
+        }
+    )
+)
+
+# data.cube ----
+
+#' @title Data.cube class
+#' @details Class stores fact class and dimension classes.
+data.cube = R6Class(
+    classname = "data.cube",
+    public = list(
+        fact = NULL,
+        dimensions = list(),
+        initialize = function(fact, dimensions){
+            stopifnot(inherits(fact, "fact"), sapply(dimensions, inherits, "dimension"))
+            self$fact = fact
+            self$dimensions = dimensions
+            invisible(self)
+        }
+    )
+)
+
+# as.data.cube.* ----
+
+# as.data.cube.default = function(x, ...){
 #     dimensions = lapply(dimensions, function(hierarchies) dimension$new(x, hierarchies = hierarchies))
-#     
+# 
 #     #self$fact = setkeyv(x[, .SD, .SDcols = unique(granularity)], granularity)[]
-#     
+# 
 #     cube$new(fact = fact$new(x, granularity = unique(unlist(lapply(dimensions, `[[`, "key"))) ),
 #              dimensions = lapply(dimensions, function(hierarchies) dimension$new(x, key = "", hierarchies = hierarchies))
 #              )
 # }
 
-# data.cube = R6Class(
-#     classname = "data.cube",
-#     public = list(
-#         local = logical(),
-#         initialize = function(x){
-#             
-#         }
-#     )
-# )
-
 # as.data.cube.function = function(){
 #     # remote
 #     
 # }
-# 
+
 # as.data.cube.data.table = function(){
 #     # local
 #     
 # }
-

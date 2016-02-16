@@ -1,8 +1,24 @@
-image: jangorecki/r-base-dev
-before_script:
-  - Rscript -e 'install.packages(c("R6","data.table"), repos="https://cran.rstudio.com")'
-test:
+image: quay.io/jangorecki/r-pkg
+
+pages:
   script:
-    - R CMD build . --no-build-vignettes --no-manual
-    - PKG_FILE_NAME=$(ls -1t *.tar.gz | head -n 1)
-    - R CMD check "${PKG_FILE_NAME}" --no-build-vignettes --no-manual --as-cran
+    # build pkg
+    - R CMD build .
+    # install deps
+    - Rscript -e 'install.packages(c("R6","data.table"), repos="https://cran.rstudio.com")'
+    # install suggests
+    - Rscript -e 'install.packages(c("Rserve","RSclient","big.data.table"), repos = paste0("https://", c("cran.rstudio.com","jangorecki.github.io/big.data.table")))'
+    # run check
+    - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-manual --as-cran
+    # gl-pages dir and Rcheck results dir
+    - mkdir public Rcheck
+    # install drat with `insertArtifacts` function
+    - Rscript -e 'install.packages("drat", repos = "https://jangorecki.github.io/drat")'
+    # produce artifacts
+    - Rscript -e 'drat::insertArtifacts(repodir = "public", repo.url = "https://jangorecki.github.io/data.cube", repo.cran = TRUE)'
+    # export Rcheck results
+    - mv $(find . -maxdepth 1 -name "*.Rcheck" -type d) Rcheck
+  artifacts:
+    paths:
+      - Rcheck
+      - public

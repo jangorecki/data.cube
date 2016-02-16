@@ -51,7 +51,6 @@ build.each.i = function(dim.i){
 #' @format An R6 class object.
 #' @name cube
 #' @details Generates cube class objects.
-#' @aliases data.cube
 cube = R6Class(
     classname = "cube",
     public = list(

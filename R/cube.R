@@ -332,6 +332,7 @@ format.cube = function(x, measure.format = list(), dots.format = list(), dcast =
 #' @param ... arguments passed to *FUN*
 #' @description Wrapper around `[[.cube` and `j`, `by` arg.
 capply = aggregate.cube = function(x, MARGIN, FUN, ...){
+    `.` = NULL
     stopifnot(is.cube(x), !missing(MARGIN), !missing(FUN), is.function(FUN))
     j = as.call(list(quote(lapply), X = quote(.SD), FUN = substitute(FUN), "..." = ...))
     x$extract(i = .(), j = j, by = MARGIN)

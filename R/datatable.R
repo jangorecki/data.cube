@@ -6,6 +6,7 @@
 #' @return A data.table object with (by default) non-NA values of a measure for each dimension cross.
 #' @method as.data.table array
 as.data.table.array = function(x, na.rm=TRUE, ...){
+    `.` = value = NULL # visible binding
     dims = names(dimnames(x))
     if("value" %in% dims) stop("Array to convert must not already have `value` character as dimension name. `value` name is reserved to converted measure, rename dimname of input array.")
     r = do.call(CJ, dimnames(x))[, .(value = eval(as.call(lapply(c("[","x", dims), as.symbol)))),, keyby = c(dims)]

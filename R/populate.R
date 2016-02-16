@@ -15,6 +15,7 @@ add.surrogate.key = function(x, idcol){
 #' @return List of two list named *fact* and *dims*. The *fact* list keeps single fact data.table sub-aggregated to all dimensions. The *dims* list keeps five dimension data.tables.
 populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, seed = 1L){
     stopifnot(length(Y) %in% 1:2)
+    `.` = prod_name = cyl = vs = am = gear = Hair = Eye = Sex = time_date = time_month = time_quarter = NULL
     # produce dimension based on mtcars dataset
     product = as.data.table(mtcars, keep.rownames = "prod_name")[, .(prod_name, prod_cyl = as.integer(cyl), prod_vs = as.integer(vs), prod_am = as.integer(am), prod_gear = as.integer(gear))]
     # customer dimension based on HairEyeColor dataset

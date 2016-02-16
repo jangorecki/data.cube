@@ -3,7 +3,8 @@
 \alias{populate_star}
 \title{Populate star schema tables}
 \usage{
-populate_star(N, Y = c(2010L, 2014L), surrogate.keys = FALSE, seed = 1L)
+populate_star(N = 100000L, Y = c(2010L, 2014L), surrogate.keys = FALSE,
+  seed = 1L)
 }
 \arguments{
 \item{N}{integer count of rows in fact table before sub-aggregation to all dimensions.}

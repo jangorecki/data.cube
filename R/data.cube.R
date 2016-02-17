@@ -1,3 +1,13 @@
+# stats collector for data.table
+schema.data.table = function(x, empty){
+    dm = dim(x)
+    mb = as.numeric(object.size(x))/(1024^2)
+    adr = as.character(address(x))[1L]
+    dt = data.table(nrow = dm[1L], ncol = dm[2L], mb = mb, address = adr)
+    nn = copy(names(dt))
+    if(!missing(empty)) setcolorder(dt[, c(empty) := NA], unique(c(empty, nn)))
+    dt
+}
 
 # level ----
 
@@ -10,7 +20,6 @@ level = R6Class(
     public = list(
         key = character(),
         properties = character(),
-        parents = character(),
         # level-data stores hierarchy level key and it's related attributes
         data = NULL,
         initialize = function(x, key = key(x), properties){
@@ -20,6 +29,9 @@ level = R6Class(
             self$properties = unique(properties)
             self$data = setkeyv(unique(x, by = self$key)[, j = .SD, .SDcols = unique(c(self$key, self$properties))], self$key)[]
             invisible(self)
+        },
+        schema = function(){
+            schema.data.table(self$data)
         }
     )
 )
@@ -45,6 +57,10 @@ hierarchy = R6Class(
                 level$new(x, key = names(lvli[i]), properties = levels[[i]])
             })
             invisible(self)
+        },
+        schema = function(){
+            i = setNames(seq_along(self$levels), names(self$levels))
+            rbindlist(lapply(i, function(i) self$levels[[i]]$schema()), idcol = "level")
         }
     )
 )
@@ -77,6 +93,12 @@ dimension = R6Class(
             granularity = unique(c(self$key, all.hierarchies.level.keys))
             self$data = setkeyv(unique(x, by = granularity)[, .SD, .SDcols = granularity], self$key)[]
             invisible(self)
+        },
+        schema = function(){ # for each dimensions
+            i = setNames(seq_along(self$hierarchies), names(self$hierarchies))
+            hierarchies_schema = rbindlist(lapply(i, function(i) self$hierarchies[[i]]$schema()), idcol = "hierarchy")
+            dimension_data_schema = schema.data.table(self$data, empty = c("hierarchy","level"))
+            rbindlist(list(dimension_data_schema, hierarchies_schema))
         }
     )
 )
@@ -168,28 +190,44 @@ fact = R6Class(
             if(isTRUE(getOption("datacube.jj"))) message(paste(deparse(jj, width.cutoff = 500), collapse = "\n"))
             jj
         },
-        query = function(i, by, measure.vars = self$measure.vars){
+        query = function(i, i.dt, by, measure.vars = self$measure.vars){
             
             ii = substitute(i)
             jj = self$build.j(measure.vars)
             bb = substitute(by)
+            id = substitute(i.dt)
             
             l = list(
                 as.symbol("["),
                 x = call("$", as.name("self"), as.name("data")) # this can point to data.table or big.data.table
             )
-            if(!missing(i)) l[["i"]] = ii
+            stopifnot(!(!missing(i) & !missing(i.dt)))
+            if(!missing(i)){
+                l[["i"]] = ii
+            } else if(!missing(i.dt)){
+                l[["i"]] = id
+            }
             l[["j"]] = jj
             if(!missing(by)) l[["by"]] = bb
+            if(!missing(i.dt)){
+                jn = copy(names(i.dt))
+                l[["on"]] = setNames(nm = jn)
+                l[["nomatch"]] = 0L
+            }
             dcq = as.call(l)
             dt = eval(dcq)
             if( !self$local ) {
                 # re-aggr
                 dcq["i"] = NULL
+                dcq["on"] = NULL
+                dcq["nomatch"] = 0L
                 dcq[["x"]] = as.name("dt")
                 dt = eval(dcq)
             }
             dt
+        },
+        schema = function(){
+            schema.data.table(self$data, empty = c("hierarchy","level"))
         }
     )
 )
@@ -211,6 +249,32 @@ data.cube = R6Class(
             self$dimensions = dimensions
             self$keys = lapply(self$dimensions, `[[`, "key")
             self$fact = fact
+            invisible(self)
+        },
+        query = function(){
+            NULL
+        },
+        index = function(){
+            NULL
+        },
+        schema = function(){
+            rbindlist(list(
+                dimension = rbindlist(lapply(self$dimensions, function(x) x$schema()), idcol = "name"),
+                fact = rbindlist(list(fact = self$fact$schema()), idcol = "name")
+            ), idcol = "type")
+        },
+        print = function(){
+            dict = self$schema()
+            prnt = character()
+            prnt["header"] = "<data.cube>"
+            #prnt["distributed"] = if(!self$fact$local) sprintf("distributed: %s", NA_integer_)
+            prnt["fact"] = dict[.N, sprintf("fact:\n  %s rows x %s cols (%.2f MB)", nrow, ncol, mb)]
+            if(length(self$dimensions)){
+                dt = dict[type=="dimension", .(nrow = nrow[is.na(level)], ncol = ncol[is.na(level)], mb = sum(mb, na.rm = TRUE), hierarchies = uniqueN(hierarchy[!is.na(hierarchy)])), .(name)]
+                prnt["dims"] = paste0("dimensions:\n", paste(dt[, sprintf("  %s %s rows x %s cols (%.2f MB)", name, nrow, ncol, mb)], collapse="\n"))
+            }
+            prnt["size"] = sprintf("total size: %.2f MB", dict[,sum(mb)])
+            cat(prnt, sep = "\n")
             invisible(self)
         }
     )
@@ -278,3 +342,28 @@ as.data.cube = function(x, dimensions, ...){
 #     # local
 # 
 # }
+
+# data.cube methods `[`, `[[` ----
+
+#' @title Subset cube
+#' @param x data.cube object
+#' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy
+#' @param drop logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.
+#' @return data.cube class object
+"[.data.cube" = function(x, ..., drop = TRUE){
+    if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
+    r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
+    if(isTRUE(drop)) r$drop() else r
+    r
+}
+
+#' @title Extract cube
+#' @param x data.cube object
+#' @param i list of values used to slice and dice on cube
+#' @param j expression to evaluate on fact
+#' @param by expression/character vector to aggregate measures accroding to *j* argument.
+#' @return data.cube?? class object
+"[[.data.cube" = function(x, i, j, by){
+    r = x$extract(by = by, .call = match.call())
+    r
+}

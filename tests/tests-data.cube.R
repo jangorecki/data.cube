@@ -90,6 +90,32 @@ stopifnot(
     sapply(ff$measures, inherits, "measure")
 )
 
+# fact$query ----
+
+# by = geog_abb
+r = ff$query(by = "geog_abb", measure.vars = c("amount"))
+stopifnot(
+    is.data.table(r),
+    c("geog_abb","amount") %in% names(r),
+    nrow(r) == 50L
+)
+
+# i %in% 1:2, by = geog_abb
+r = ff$query(i = geog_abb %in% c("ND","TX"), by = "geog_abb", measure.vars = c("value"))
+stopifnot(
+    is.data.table(r),
+    c("geog_abb","value") %in% names(r),
+    nrow(r) == 2L
+)
+
+# i = CJ(1:2, 1:3), by = .(geog_abb, time_date)
+r = ff$query(i.dt = CJ(geog_abb = c("ND","TX"), time_date = as.Date(c("2010-01-01","2010-01-02","2010-01-03")), unique = TRUE), by = .(geog_abb, time_date))
+stopifnot(
+    is.data.table(r),
+    c("geog_abb","time_date","amount","value") %in% names(r),
+    nrow(r) == 3L
+)
+
 # data.cube ----
 
 X = populate_star(N = 1e5, surrogate.keys = FALSE)
@@ -120,6 +146,7 @@ geog = dimension$new(X$dims$geography,
 ff = fact$new(x = X$fact$sales,
               id.vars = c("geog_abb","time_date"),
               measure.vars = c("amount","value"),
+              fun.aggregate = "sum",
               na.rm = TRUE)
 
 dc = data.cube$new(fact = ff, dimensions = list(time = time, geography = geog))
@@ -133,22 +160,33 @@ stopifnot(
     identical(dim(dc$dimensions$time$hierarchies[[1L]]$levels$time_date$data), c(1826L, 4L))
 )
 
-# fact$query ----
+# data.cube$print ----
 
-r = ff$query(by = "geog_abb", measure.vars = c("amount"))
+out = capture.output(print(dc))
 stopifnot(
-    is.data.table(r),
-    c("geog_abb","amount") %in% names(r),
-    nrow(r) == 50L
+    out[1L] == "<data.cube>",
+    out[2L] == "fact:",
+    out[4L] == "dimensions:",
+    length(out) == 7L
 )
 
-r = ff$query(i = geog_abb %in% c("ND","TX"), by = "geog_abb", measure.vars = c("amount"))
+# data.cube$schema ----
+
+dict = dc$schema()
 stopifnot(
-    is.data.table(r),
-    c("geog_abb","amount") %in% names(r),
-    nrow(r) == 2L
+    nrow(dict) == 13L,
+    c("type","name","hierarchy","level","nrow","ncol","mb","address") %in% names(dict),
+    dict[type=="fact", .N] == 1L
 )
 
 # data.cube$query ----
 
-#dc
+#dc$query()
+
+# `[.data.cube` ----
+
+#dc[]
+
+# `[[.data.cube` ----
+
+#dc[[]]

@@ -318,7 +318,7 @@ as.fact = function(x, id.vars = character(), measure.vars = character(), fun.agg
     fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = fun.aggregate, ... = ..., measures = measures)
 }
 
-#' @title Build fact
+#' @title Build cube
 #' @param x fact class object.
 #' @param dimensions list of dimension class objects.
 #' @param \dots ignored.

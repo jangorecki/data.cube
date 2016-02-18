@@ -34,7 +34,7 @@ level = R6Class(
         schema = function(){
             schema.data.table(self$data)
         },
-        head = function(n = 5L){
+        head = function(n = 6L){
             head(self$data, n)
         }
     )
@@ -49,26 +49,26 @@ level = R6Class(
 hierarchy = R6Class(
     classname = "hierarchy",
     public = list(
-        key = character(),
-        # just list of levels
+        # key = character(),
         levels = list(),
-        initialize = function(x, key = key(x), levels){
-            stopifnot(is.data.table(x), is.character(key), key %in% names(x), is.list(levels), as.logical(length(levels)), names(levels) %in% names(x))
-            self$key = key
-            rm(key)
-            lvli = setNames(seq_along(levels), names(levels))
-            self$levels = lapply(lvli, function(i){
-                level$new(x, key = names(lvli[i]), properties = levels[[i]])
-            })
+        initialize = function(levels){ # x, key = key(x), 
+            # stopifnot(is.data.table(x), is.character(key), key %in% names(x), is.list(levels), as.logical(length(levels)), names(levels) %in% names(x))
+            # self$key = key
+            # rm(key)
+            # lvli = setNames(seq_along(levels), names(levels))
+            # self$levels = lapply(lvli, function(i){
+            #     level$new(x, key = names(lvli[i]), properties = levels[[i]])
+            # })
+            self$levels = levels
             invisible(self)
-        },
-        schema = function(){
-            i = setNames(seq_along(self$levels), names(self$levels))
-            rbindlist(lapply(i, function(i) self$levels[[i]]$schema()), idcol = "level")
-        },
-        head = function(n = 5L){
-            lapply(self$levels, function(x) x$head(n = n))
         }
+        # schema = function(){
+        #     i = setNames(seq_along(self$levels), names(self$levels))
+        #     rbindlist(lapply(i, function(i) self$levels[[i]]$schema()), idcol = "level")
+        # },
+        # head = function(n = 5L){
+        #     lapply(self$levels, function(x) x$head(n = n))
+        # }
     )
 )
 
@@ -83,6 +83,7 @@ dimension = R6Class(
     public = list(
         key = character(),
         hierarchies = list(),
+        levels = list(),
         # dimension-data stores mapping from dimension key to of any of the level keys
         data = NULL,
         initialize = function(x, key = key(x), hierarchies){
@@ -95,20 +96,28 @@ dimension = R6Class(
             )
             self$key = key
             rm(key)
-            self$hierarchies = lapply(hierarchies, function(lvls) hierarchy$new(x, key = self$key, levels = lvls))
+            self$hierarchies = lapply(hierarchies, function(levels) hierarchy$new(levels = levels))
+            # combine by levels
+            common.levels = Reduce(f = function(x, y){
+                lapply(setNames(nm = unique(c(names(x), names(y)))),
+                       function(nm) c(x[[nm]], y[[nm]]))
+            }, hierarchies)
+            self$levels =  lapply(setNames(nm = names(common.levels)), function(lvlk){
+                level$new(x, key = lvlk, properties = common.levels[[lvlk]])
+            })
             # all.hierarchies.level.mappings
             granularity = unique(c(self$key, all.hierarchies.level.keys))
             self$data = setkeyv(unique(x, by = granularity)[, .SD, .SDcols = granularity], self$key)[]
             invisible(self)
         },
         schema = function(){ # for each dimensions
-            i = setNames(seq_along(self$hierarchies), names(self$hierarchies))
-            hierarchies_schema = rbindlist(lapply(i, function(i) self$hierarchies[[i]]$schema()), idcol = "hierarchy")
-            dimension_data_schema = schema.data.table(self$data, empty = c("hierarchy","level"))
-            rbindlist(list(dimension_data_schema, hierarchies_schema))
+            i = setNames(seq_along(self$levels), names(self$levels))
+            levels_schema = rbindlist(lapply(i, function(i) self$levels[[i]]$schema()), idcol = "entity")
+            dimension_data_schema = schema.data.table(self$data, empty = c("entity"))
+            rbindlist(list(dimension_data_schema, levels_schema))
         },
-        head = function(n = 5L){
-            list(base = head(self$data, n), hierarchies = lapply(self$hierarchies, function(x) x$head(n = n)))
+        head = function(n = 6L){
+            list(base = head(self$data, n), levels = lapply(self$levels, function(x) x$head(n = n)))
         }
     )
 )
@@ -237,9 +246,9 @@ fact = R6Class(
             dt
         },
         schema = function(){
-            schema.data.table(self$data, empty = c("hierarchy","level"))
+            schema.data.table(self$data, empty = c("entity"))
         },
-        head = function(n = 5L){
+        head = function(n = 6L){
             head(self$data, n)
         }
     )
@@ -272,8 +281,8 @@ data.cube = R6Class(
         },
         schema = function(){
             rbindlist(list(
-                dimension = rbindlist(lapply(self$dimensions, function(x) x$schema()), idcol = "name"),
-                fact = rbindlist(list(fact = self$fact$schema()), idcol = "name")
+                fact = rbindlist(list(fact = self$fact$schema()), idcol = "name"),
+                dimension = rbindlist(lapply(self$dimensions, function(x) x$schema()), idcol = "name")
             ), idcol = "type")
         },
         print = function(){
@@ -283,14 +292,14 @@ data.cube = R6Class(
             #prnt["distributed"] = if(!self$fact$local) sprintf("distributed: %s", NA_integer_)
             prnt["fact"] = dict[.N, sprintf("fact:\n  %s rows x %s cols (%.2f MB)", nrow, ncol, mb)]
             if(length(self$dimensions)){
-                dt = dict[type=="dimension", .(nrow = nrow[is.na(level)], ncol = ncol[is.na(level)], mb = sum(mb, na.rm = TRUE), hierarchies = uniqueN(hierarchy[!is.na(hierarchy)])), .(name)]
-                prnt["dims"] = paste0("dimensions:\n", paste(dt[, sprintf("  %s %s rows x %s cols (%.2f MB)", name, nrow, ncol, mb)], collapse="\n"))
+                dt = dict[type=="dimension", .(nrow = nrow[is.na(entity)], ncol = ncol[is.na(entity)], mb = sum(mb, na.rm = TRUE)), .(name)]
+                prnt["dims"] = paste0("dimensions:\n", paste(dt[, sprintf("  %s : %s entities x %s levels (%.2f MB)", name, nrow, ncol, mb)], collapse="\n"))
             }
             prnt["size"] = sprintf("total size: %.2f MB", dict[,sum(mb)])
             cat(prnt, sep = "\n")
             invisible(self)
         },
-        head = function(n = 5L){
+        head = function(n = 6L){
             list(fact = self$fact$head(n = n), dimensions = lapply(self$dimensions, function(x) x$head(n = n)))
         }
     )
@@ -309,6 +318,10 @@ is.fact = function(x) inherits(x, "fact")
 #' @title Test if dimension class
 #' @param x object to tests.
 is.dimension = function(x) inherits(x, "dimension")
+
+#' @title Test if measure class
+#' @param x object to tests.
+is.measure = function(x) inherits(x, "measure")
 
 # as.* ----
 

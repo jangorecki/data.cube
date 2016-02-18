@@ -1,5 +1,6 @@
 # data.cube 0.2.1
 
+* `levels` kept in `dimension` instead `hierarchy`.
 * `fact$query` works for local and remote, `i` / `i.dt`.
 * `schema` methods to produce denormalized metadata.
 * added `logR` to *Suggests*, added to tests, heavy non-R dep for postgres drivers.

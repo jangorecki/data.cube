@@ -48,6 +48,7 @@ export(as.fact)
 export(as.data.cube)
 
 # is.data.cube classess
+export(is.measure)
 export(is.dimension)
 export(is.fact)
 export(is.data.cube)

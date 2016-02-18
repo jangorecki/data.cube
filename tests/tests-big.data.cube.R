@@ -74,7 +74,7 @@ rscl.close(rscl)
 
 # data.cube ----
 
-X = data.cube::populate_star(N = 1e5, surrogate.keys = FALSE)
+X = populate_star(N = 1e5, surrogate.keys = FALSE)
 time = dimension$new(X$dims$time,
                      key = "time_date",
                      hierarchies = list(
@@ -113,11 +113,11 @@ dc = data.cube$new(fact = ff, dimensions = list(time = time, geography = geog))
 stopifnot(
     is.big.data.table(dc$fact$data),
     # Normalization
-    identical(dim(dc$dimensions$geography$hierarchies[[1L]]$levels$geog_abb$data), c(50L, 4L)),
-    identical(dim(dc$dimensions$geography$hierarchies[[1L]]$levels$geog_region_name$data), c(4L, 1L)),
-    identical(dim(dc$dimensions$time$hierarchies[[1L]]$levels$time_month$data), c(12L, 2L)),
-    identical(dim(dc$dimensions$time$hierarchies[[1L]]$levels$time_year$data), c(5L, 1L)),
-    identical(dim(dc$dimensions$time$hierarchies[[1L]]$levels$time_date$data), c(1826L, 4L)),
+    identical(dim(dc$dimensions$geography$levels$geog_abb$data), c(50L, 4L)),
+    identical(dim(dc$dimensions$geography$levels$geog_region_name$data), c(4L, 1L)),
+    identical(dim(dc$dimensions$time$levels$time_month$data), c(12L, 2L)),
+    identical(dim(dc$dimensions$time$levels$time_year$data), c(5L, 1L)),
+    identical(dim(dc$dimensions$time$levels$time_date$data), c(1826L, 5L)),
     all.equal(X$fact$sales[, .(value = sum(value))], dc$fact$data[, .(value = sum(value)), outer.aggregate = TRUE])
 )
 rscl.close(rscl)

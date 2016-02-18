@@ -21,7 +21,7 @@ dc = data.cube$new(fact = ff, dimensions = dims)
 
 dict = dc$schema()
 stopifnot(
-    nrow(dict) == 13L,
-    c("type","name","hierarchy","level","nrow","ncol","mb","address","sorted") %in% names(dict),
+    nrow(dict) == 11L,
+    c("type","name","entity","nrow","ncol","mb","address","sorted") %in% names(dict),
     dict[type=="fact", .N] == 1L
 )

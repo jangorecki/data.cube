@@ -3,7 +3,8 @@ schema.data.table = function(x, empty){
     dm = dim(x)
     mb = as.numeric(object.size(x))/(1024^2)
     adr = as.character(address(x))[1L]
-    dt = data.table(nrow = dm[1L], ncol = dm[2L], mb = mb, address = adr)
+    ky = if(haskey(x)) paste(key(x), collapse=", ") else NA_character_
+    dt = data.table(nrow = dm[1L], ncol = dm[2L], mb = mb, address = adr, sorted = ky)
     nn = copy(names(dt))
     if(!missing(empty)) setcolorder(dt[, c(empty) := NA], unique(c(empty, nn)))
     dt
@@ -32,6 +33,9 @@ level = R6Class(
         },
         schema = function(){
             schema.data.table(self$data)
+        },
+        head = function(n = 5L){
+            head(self$data, n)
         }
     )
 )
@@ -61,6 +65,9 @@ hierarchy = R6Class(
         schema = function(){
             i = setNames(seq_along(self$levels), names(self$levels))
             rbindlist(lapply(i, function(i) self$levels[[i]]$schema()), idcol = "level")
+        },
+        head = function(n = 5L){
+            lapply(self$levels, function(x) x$head(n = n))
         }
     )
 )
@@ -99,6 +106,9 @@ dimension = R6Class(
             hierarchies_schema = rbindlist(lapply(i, function(i) self$hierarchies[[i]]$schema()), idcol = "hierarchy")
             dimension_data_schema = schema.data.table(self$data, empty = c("hierarchy","level"))
             rbindlist(list(dimension_data_schema, hierarchies_schema))
+        },
+        head = function(n = 5L){
+            list(base = head(self$data, n), hierarchies = lapply(self$hierarchies, function(x) x$head(n = n)))
         }
     )
 )
@@ -228,6 +238,9 @@ fact = R6Class(
         },
         schema = function(){
             schema.data.table(self$data, empty = c("hierarchy","level"))
+        },
+        head = function(n = 5L){
+            head(self$data, n)
         }
     )
 )
@@ -276,6 +289,9 @@ data.cube = R6Class(
             prnt["size"] = sprintf("total size: %.2f MB", dict[,sum(mb)])
             cat(prnt, sep = "\n")
             invisible(self)
+        },
+        head = function(n = 5L){
+            list(fact = self$fact$head(n = n), dimensions = lapply(self$dimensions, function(x) x$head(n = n)))
         }
     )
 )
@@ -345,25 +361,25 @@ as.data.cube = function(x, dimensions, ...){
 
 # data.cube methods `[`, `[[` ----
 
-#' @title Subset cube
-#' @param x data.cube object
-#' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy
-#' @param drop logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.
-#' @return data.cube class object
-"[.data.cube" = function(x, ..., drop = TRUE){
-    if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
-    r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
-    if(isTRUE(drop)) r$drop() else r
-    r
-}
+# @title Subset cube
+# @param x data.cube object
+# @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy
+# @param drop logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.
+# @return data.cube class object
+# "[.data.cube" = function(x, ..., drop = TRUE){
+#     if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
+#     r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
+#     if(isTRUE(drop)) r$drop() else r
+#     r
+# }
 
-#' @title Extract cube
-#' @param x data.cube object
-#' @param i list of values used to slice and dice on cube
-#' @param j expression to evaluate on fact
-#' @param by expression/character vector to aggregate measures accroding to *j* argument.
-#' @return data.cube?? class object
-"[[.data.cube" = function(x, i, j, by){
-    r = x$extract(by = by, .call = match.call())
-    r
-}
+# @title Extract cube
+# @param x data.cube object
+# @param i list of values used to slice and dice on cube
+# @param j expression to evaluate on fact
+# @param by expression/character vector to aggregate measures accroding to *j* argument.
+# @return data.cube?? class object
+# "[[.data.cube" = function(x, i, j, by){
+#     r = x$extract(by = by, .call = match.call())
+#     r
+# }

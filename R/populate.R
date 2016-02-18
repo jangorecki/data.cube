@@ -10,10 +10,11 @@ add.surrogate.key = function(x, idcol){
 #' @param N integer count of rows in fact table before sub-aggregation to all dimensions.
 #' @param Y integer vector of year range (scalar or length 2) to generate *time* dimension, default `c(2010L, 2014L)` results in 365 dim cardinality.
 #' @param surrogate.keys logical if integer sequence column should be used or the lowest granularity natural key.
+#' @param hierarchies logical default FALSE, if TRUE the third element in list will be returned with hierarchy as list of character column names. List can be used when creating data.cube.
 #' @param seed integer used for `set.seed` when producing fact table from dimensions. Default fixed to `1L`.
 #' @description Populates example sales data based on *mtcars*, *state*, *HairEyeColor* datasets.
 #' @return List of two list named *fact* and *dims*. The *fact* list keeps single fact data.table sub-aggregated to all dimensions. The *dims* list keeps five dimension data.tables.
-populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, seed = 1L){
+populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, hierarchies = FALSE, seed = 1L){
     stopifnot(length(Y) %in% 1:2)
     `.` = prod_name = cyl = vs = am = gear = Hair = Eye = Sex = time_date = time_month = time_quarter = NULL
     # produce dimension based on mtcars dataset
@@ -58,6 +59,35 @@ populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, s
     sales[, `:=`(amount = round(runif(N, max=1e2), 2),
                  value = round(runif(N,max=1e4),4))]
     sales = sales[, lapply(.SD, sum),, c(keys)]
-    # wrap into lists
-    list(fact = list(sales=sales), dims = dims)
+    # - [x] metadata for data.cube class
+    if(isTRUE(hierarchies)){
+        hierarchies = list(
+            product = list(),
+            customer = list(),
+            geography = list(
+                list(
+                    "geog_region_name" = character(),
+                    "geog_division_name" = character(),
+                    "geog_abb" = c("geog_name","geog_division_name","geog_region_name")
+                )
+            ),
+            time = list(
+                "monthly" = list(
+                    "time_year" = character(),
+                    "time_quarter" = c("time_quarter_name"),
+                    "time_month" = c("time_month_name"),
+                    "time_date" = c("time_month","time_quarter","time_year")
+                ),
+                "weekly" = list(
+                    "time_year" = character(),
+                    "time_week" = character(),
+                    "time_date" = c("time_week","time_year")
+                )
+            ),
+            currency = list()
+        )
+        list(fact = list(sales=sales), dims = dims, hierarchies = hierarchies)
+    } else {
+        list(fact = list(sales=sales), dims = dims)
+    }
 }

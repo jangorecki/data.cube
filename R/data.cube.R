@@ -290,7 +290,8 @@ data.cube = R6Class(
             prnt = character()
             prnt["header"] = "<data.cube>"
             #prnt["distributed"] = if(!self$fact$local) sprintf("distributed: %s", NA_integer_)
-            prnt["fact"] = dict[.N, sprintf("fact:\n  %s rows x %s cols (%.2f MB)", nrow, ncol, mb)]
+            n.measures = length(dc$fact$measure.vars)
+            prnt["fact"] = dict[type=="fact", sprintf("fact:\n  %s rows x %s dimensions x %s measures (%.2f MB)", nrow, ncol - n.measures, n.measures, mb)]
             if(length(self$dimensions)){
                 dt = dict[type=="dimension", .(nrow = nrow[is.na(entity)], ncol = ncol[is.na(entity)], mb = sum(mb, na.rm = TRUE)), .(name)]
                 prnt["dims"] = paste0("dimensions:\n", paste(dt[, sprintf("  %s : %s entities x %s levels (%.2f MB)", name, nrow, ncol, mb)], collapse="\n"))

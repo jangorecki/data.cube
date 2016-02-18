@@ -61,9 +61,31 @@ populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, h
     sales = sales[, lapply(.SD, sum),, c(keys)]
     # - [x] metadata for data.cube class
     if(isTRUE(hierarchies)){
+        if(isTRUE(surrogate.keys)) stop("Hierarchies with surrogate keys not available.")
         hierarchies = list(
-            product = list(),
-            customer = list(),
+            product = list(
+                list(
+                    "prod_vs" = character(),
+                    "prod_am" = character(),
+                    "prod_gear" = character(),
+                    "prod_cyl" = character(),
+                    "prod_name" = c("prod_cyl","prod_vs","prod_am","prod_gear")
+                )
+            ),
+            customer = list(
+                list(
+                    "cust_sex" = character(),
+                    "cust_hair" = character(),
+                    "cust_eye" = character(),
+                    "cust_profile" = c("cust_eye","cust_hair","cust_sex")
+                )
+            ),
+            currency = list(
+                list(
+                    "curr_type" = character(),
+                    "curr_name" = c("curr_type")
+                )
+            ),
             geography = list(
                 list(
                     "geog_region_name" = character(),
@@ -83,8 +105,7 @@ populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, h
                     "time_week" = character(),
                     "time_date" = c("time_week","time_year")
                 )
-            ),
-            currency = list()
+            )
         )
         list(fact = list(sales=sales), dims = dims, hierarchies = hierarchies)
     } else {

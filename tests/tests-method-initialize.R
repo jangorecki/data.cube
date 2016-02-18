@@ -78,18 +78,18 @@ stopifnot(
 # data.cube ----
 
 X = populate_star(N = 1e5, surrogate.keys = FALSE, hierarchies = TRUE)
-time = dimension$new(X$dims$time,
-                     key = "time_date",
-                     hierarchies = X$hierarchies$time)
-geog = dimension$new(X$dims$geography,
-                     key = "geog_abb",
-                     hierarchies = X$hierarchies$geography)
+
+dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
+    dimension$new(X$dims[[i]],
+                  key = key(X$dims[[i]]),
+                  hierarchies = X$hierarchies[[i]])
+})
 ff = fact$new(x = X$fact$sales,
-              id.vars = c("geog_abb","time_date"),
+              id.vars = sapply(dims, `[[`, "key"),
               measure.vars = c("amount","value"),
               fun.aggregate = "sum",
               na.rm = TRUE)
-dc = data.cube$new(fact = ff, dimensions = list(time = time, geography = geog))
+dc = data.cube$new(fact = ff, dimensions = dims)
 stopifnot(
     is.data.table(dc$fact$data),
     # Normalization

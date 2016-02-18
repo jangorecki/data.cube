@@ -21,7 +21,6 @@ level = R6Class(
     public = list(
         key = character(),
         properties = character(),
-        # level-data stores hierarchy level key and it's related attributes
         data = NULL,
         initialize = function(x, key = key(x), properties){
             stopifnot(is.data.table(x), is.character(key), key %in% names(x), is.character(properties), properties %in% names(x))
@@ -45,30 +44,16 @@ level = R6Class(
 #' @title Hierarchy class
 #' @docType class
 #' @format An R6 class object.
-#' @details Class stores set of dimension levels into hierarchy. Initialized with key column and levels list.
+#' @details Class stores set of dimension levels into hierarchy. Currently just keeps a list.
 hierarchy = R6Class(
     classname = "hierarchy",
     public = list(
-        # key = character(),
         levels = list(),
         initialize = function(levels){ # x, key = key(x), 
-            # stopifnot(is.data.table(x), is.character(key), key %in% names(x), is.list(levels), as.logical(length(levels)), names(levels) %in% names(x))
-            # self$key = key
-            # rm(key)
-            # lvli = setNames(seq_along(levels), names(levels))
-            # self$levels = lapply(lvli, function(i){
-            #     level$new(x, key = names(lvli[i]), properties = levels[[i]])
-            # })
+            stopifnot(is.list(levels), as.logical(length(levels)))
             self$levels = levels
             invisible(self)
         }
-        # schema = function(){
-        #     i = setNames(seq_along(self$levels), names(self$levels))
-        #     rbindlist(lapply(i, function(i) self$levels[[i]]$schema()), idcol = "level")
-        # },
-        # head = function(n = 5L){
-        #     lapply(self$levels, function(x) x$head(n = n))
-        # }
     )
 )
 
@@ -84,7 +69,6 @@ dimension = R6Class(
         key = character(),
         hierarchies = list(),
         levels = list(),
-        # dimension-data stores mapping from dimension key to of any of the level keys
         data = NULL,
         initialize = function(x, key = key(x), hierarchies){
             stopifnot(is.data.table(x), is.character(key), key %in% names(x), is.list(hierarchies), as.logical(length(hierarchies)))

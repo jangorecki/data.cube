@@ -42,3 +42,15 @@ stopifnot(
     c("type","name","entity","nrow","ncol","mb","address","sorted") %in% names(dict),
     dict[type=="fact", .N] == 1L
 )
+
+# head ----
+
+r = dc$head()
+stopifnot(
+    identical(names(r), c("fact","dimensions")),
+    is.data.table(r$fact),
+    is.list(r$dimensions),
+    identical(names(r$dimensions), c("product", "customer", "currency", "geography", "time")),
+    sapply(lapply(r$dimensions, `[[`, "base"), nrow) == 6L,
+    unlist(lapply(r$dimensions, function(x) sapply(x$levels, is.data.table)))
+)

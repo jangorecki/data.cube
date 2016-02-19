@@ -57,12 +57,9 @@ rm(X)
 
 # measure ----
 
-m = measure$new(x = "z", label = "score etc.")
 m = measure$new(x = "z", label = "score etc.", fun.aggregate = "sum", na.rm = TRUE)
-
 stopifnot(
-    is.measure(m),
-    is.language(m$format())
+    is.measure(m)
 )
 
 # fact ----

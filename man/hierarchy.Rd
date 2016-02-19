@@ -11,7 +11,7 @@ hierarchy
 Hierarchy class
 }
 \details{
-Class stores set of dimension levels into hierarchy. Initialized with key column and levels list.
+Class stores set of dimension levels into hierarchy. Currently just keeps a list.
 }
 \keyword{datasets}
 

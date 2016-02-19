@@ -1,6 +1,8 @@
 library(data.table)
 library(data.cube)
 
+# initialize ----
+
 X = populate_star(N = 1e5, surrogate.keys = FALSE, hierarchies = TRUE)
 
 dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
@@ -14,6 +16,7 @@ ff = fact$new(x = X$fact$sales,
               fun.aggregate = "sum",
               na.rm = TRUE)
 dc = data.cube$new(fact = ff, dimensions = dims)
+
 stopifnot(
     is.data.table(dc$fact$data),
     # Normalization

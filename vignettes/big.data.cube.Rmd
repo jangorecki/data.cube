@@ -47,12 +47,12 @@ stopifnot(
     sapply(ff$measures, inherits, "measure"),
     identical(ff$measure.vars, c("amount","value"))
 )
-rscl.close(rscl)
+invisible(rscl.close(rscl))
 ```
 
 ```{r data.cube, message=FALSE}
 # dc = as.data.cube(X)
-rscl.close(rscl)
+# rscl.close(rscl)
 ```
 
 ```{r logr, message=FALSE}

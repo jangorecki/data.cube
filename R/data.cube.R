@@ -117,23 +117,25 @@ measure = R6Class(
     public = list(
         var = character(),
         fun.aggregate = character(),
+        fun.format = NULL,
         dots = list(),
         label = character(),
-        initialize = function(x, label = character(), fun.aggregate = "sum", ...){
+        initialize = function(x, label = character(), fun.aggregate = "sum", ..., fun.format = function(x) x){
             self$dots = match.call(expand.dots = FALSE)$`...`
             self$var = x
             self$label = label
             self$fun.aggregate = fun.aggregate
+            self$fun.format = fun.format
             invisible(self)
         },
-        format = function(){
+        expr = function(){
             as.call(c(
                 list(as.name(self$fun.aggregate), as.name(self$var)),
                 self$dots
             ))
         },
         print = function(){
-            cat(deparse(self$format(), width.cutoff = 500L), sep="\n")
+            cat(deparse(self$expr(), width.cutoff = 500L), sep="\n")
             invisible(self)
         }
     )
@@ -188,7 +190,7 @@ fact = R6Class(
             measure.which = sapply(self$measures, function(x) x$var %in% measure.vars)
             jj = as.call(c(
                 list(as.name("list")),
-                lapply(self$measures[measure.which], function(x) x$format())
+                lapply(self$measures[measure.which], function(x) x$expr())
             ))
             if(isTRUE(getOption("datacube.jj"))) message(paste(deparse(jj, width.cutoff = 500), collapse = "\n"))
             jj

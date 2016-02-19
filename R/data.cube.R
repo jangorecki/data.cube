@@ -30,11 +30,19 @@ level = R6Class(
             self$data = setkeyv(unique(x, by = self$key)[, j = .SD, .SDcols = unique(c(self$key, self$properties))], self$key)[]
             invisible(self)
         },
+        print = function(){
+            lvl.data.str = capture.output(str(self$data, give.attr = FALSE))
+            cat(c("<level>", lvl.data.str), sep="\n")
+            invisible(self)
+        },
         schema = function(){
             schema.data.table(self$data)
         },
         head = function(n = 6L){
             head(self$data, n)
+        },
+        subset = function(i, drop = TRUE){
+            as.level(x = self$data[eval(i)], key = key(self$data), properties = self$properties)
         }
     )
 )
@@ -53,6 +61,11 @@ hierarchy = R6Class(
             stopifnot(is.list(levels), as.logical(length(levels)))
             self$levels = levels
             invisible(self)
+        },
+        print = function(){
+            hierarchy.str = capture.output(str(self$levels, give.attr = FALSE))
+            cat(c("<hierarchy>", hierarchy.str), sep="\n")
+            invisible(self)
         }
     )
 )
@@ -67,10 +80,20 @@ dimension = R6Class(
     classname = "dimension",
     public = list(
         key = character(),
+        fields = character(),
         hierarchies = list(),
         levels = list(),
         data = NULL,
-        initialize = function(x, key = key(x), hierarchies){
+        initialize = function(x, key = key(x), hierarchies, .env){
+            if(!missing(.env)){
+                # skip heavy processing for env argument
+                self$data = .env$data # potentially null to be filled based on fact table
+                self$key = .env$key
+                self$hierarchies = .env$hierarchies
+                self$levels = .env$levels
+                self$fields = .env$fields
+                return(invisible(self))
+            }
             stopifnot(is.data.table(x), is.character(key), key %in% names(x), is.list(hierarchies), as.logical(length(hierarchies)))
             stopifnot(
                 # level keys in data.table
@@ -89,9 +112,16 @@ dimension = R6Class(
             self$levels =  lapply(setNames(nm = names(common.levels)), function(lvlk){
                 level$new(x, key = lvlk, properties = common.levels[[lvlk]])
             })
+            dt = rbindlist(lapply(names(self$levels), function(lvlk) data.table(properties = c(lvlk, self$levels[[lvlk]]$properties))[, level := lvlk]))[, tail(.SD, 1L), properties]
+            self$fields = setNames(dt$properties, dt$level)
             # all.hierarchies.level.mappings
             granularity = unique(c(self$key, all.hierarchies.level.keys))
             self$data = setkeyv(unique(x, by = granularity)[, .SD, .SDcols = granularity], self$key)[]
+            invisible(self)
+        },
+        print = function(){
+            dimension.data.str = capture.output(str(self$data, give.attr = FALSE))
+            cat(c("<dimension>", dimension.data.str), sep="\n")
             invisible(self)
         },
         schema = function(){ # for each dimensions
@@ -102,6 +132,41 @@ dimension = R6Class(
         },
         head = function(n = 6L){
             list(base = head(self$data, n), levels = lapply(self$levels, function(x) x$head(n = n)))
+        },
+        subset = function(i.meta, drop = TRUE){
+            stopifnot(is.list(i.meta), is.logical(drop))
+            filter.cols = names(i.meta)
+            filter.lvls = sapply(self$levels, function(x) any(filter.cols %in% c(x$key, x$properties)))
+            filter.lvls = names(filter.lvls)[filter.lvls]
+            level.fields = lapply(self$levels, function(x) c(x$key, x$properties))
+            filter.lvls.cols = lapply(level.fields, function(fields) filter.cols[filter.cols %in% fields])
+            # if(!identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls))) browser()
+            # stopifnot(identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls)))
+            r = new.env()
+            r$levels = lapply(setNames(nm = names(self$levels)), function(lvl){
+                if(lvl %in% filter.lvls){
+                    filter.cols.in.level = filter.lvls.cols[[lvl]]
+                    i.meta.lvl = i.meta[filter.cols.in.level]
+                    i.lvl = build.each.i(i.meta.lvl)
+                    self$levels[[lvl]]$subset(i.lvl, drop = drop)
+                } else self$levels[[lvl]]
+            })
+            # dimension base
+            r$data = if(length(filter.lvls)) NULL else self$data
+            r$key = key(self$data)
+            r$hierarchies = self$hierarchies
+            r$fields = self$fields
+            as.dimension(r)
+        },
+        base = function(x = self$data){
+            level.keys = unique(unlist(lapply(self$hierarchies, names)))
+            base.grain = unique(c(self$key, level.keys))
+            if(!length(x)) x = setDT(as.list(setNames(seq_along(base.grain), base.grain)))[0L]
+            self$data = setkeyv(unique(x, by = base.grain)[, .SD, .SDcols = base.grain], self$key)[]
+            invisible(self)
+        },
+        index = function(.log = getOption("datacube.log")){
+            NULL
         }
     )
 )
@@ -155,7 +220,16 @@ fact = R6Class(
         measure.vars = character(),
         measures = list(),
         data = NULL,
-        initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures){
+        initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures, .env){
+            if(!missing(.env)){
+                # skip heavy processing for env argument
+                self$local = .env$local
+                self$id.vars = .env$id.vars
+                self$measure.vars = .env$measure.vars
+                self$measures = .env$measures
+                self$data = .env$data
+                return(invisible(self))
+            }
             stopifnot(is.character(id.vars), is.character(measure.vars), is.character(fun.aggregate))
             self$id.vars = id.vars
             # - [x] `fact$new` creates measures, or use provided in `measures` argument
@@ -236,6 +310,12 @@ fact = R6Class(
         },
         head = function(n = 6L){
             head(self$data, n)
+        },
+        subset = function(){
+            NULL
+        },
+        index = function(.log = getOption("datacube.log")){
+            NULL
         }
     )
 )
@@ -252,7 +332,7 @@ data.cube = R6Class(
         fact = NULL,
         keys = character(),
         dimensions = list(),
-        initialize = function(fact, dimensions){
+        initialize = function(fact, dimensions, .env){
             stopifnot(is.fact(fact), sapply(dimensions, is.dimension))
             self$dimensions = dimensions
             self$keys = lapply(self$dimensions, `[[`, "key")
@@ -263,7 +343,11 @@ data.cube = R6Class(
             NULL
         },
         index = function(){
-            NULL
+            optional.logR = function(x, .log = getOption("datacube.log")){
+                if(isTRUE(.log)) eval(substitute(logR(x), list(x = substitute(x)))) else x
+            }
+            list(self$fact$index(),
+                 lapply(self$dimensions, function(x) optional.logR(x$index())))
         },
         schema = function(){
             rbindlist(list(
@@ -288,6 +372,85 @@ data.cube = R6Class(
         },
         head = function(n = 6L){
             list(fact = self$fact$head(n = n), dimensions = lapply(self$dimensions, function(x) x$head(n = n)))
+        },
+        parse.i = function(i){
+            # handling various types of input to [.cube `...` argument and [[.cube `i` argument.
+            parse.each.i = function(int, i, keys){
+                # preprocessing of `...` arg of `[.cube` and `i` arg of `[[.cube`
+                stopifnot(is.integer(int), is.pairlist(i), is.character(keys))
+                x = if(int > length(i)) list() else i[[int]] # fill missing args: x[,] to x[,,.()] in case of 3 dimensions
+                if(missing(x)) x = list() # empty args: x[,,"asd"] to x[.(),.(),"asd"]
+                else if(is.null(x)) x = setNames(list(NULL), keys[[int]]) # null args: x[NULL,NULL,"asd"] to x[.(keycol=NULL),.(keycol=NULL),"asd"]
+                if(is.call(x) && x[[1L]]==as.symbol(".")) x[[1L]] = quote(list) # decode x[.(y)] to x[list(y)]
+                x = eval.parent(x) # x[,,var] to x[,,.(keycol=c("val1","val2"))], x[,,c("asd","asd2")] to x[,,.(keycol=c("asd","asd2"))]
+                if(is.atomic(x)) x = setNames(list(x), keys[[int]]) # x[,,"asd"] to x[,,.(keycol="asd")]
+                stopifnot(is.list(x))
+                if(length(x)==1L && is.null(x[[1L]]) && is.null(names(x[1L]))) x = setNames(x, keys[[int]]) # x[.(NULL)] to x[.(keycol=NULL)]
+                if(length(x)) stopifnot(length(unique(names(x)))==length(names(x))) # unique names
+                x
+            }
+            keys = self$fact$id.vars
+            i = lapply(setNames(seq_along(keys), names(keys)), parse.each.i, i, keys)
+            # - [x] check if all cols exists in dims
+            cols_missing = sapply(names(i), function(dimk) !all(names(i[[dimk]]) %in% self$dimensions[[dimk]]$fields))
+            if(any(cols_missing)) stop(sprintf("Field used in query does not exists in dimensions: %s.", paste(names(cols_missing)[cols_missing], collapse=", ")))
+            i
+        },
+        # [.data.cube
+        subset = function(..., .dots, drop = TRUE){
+            # - [x] catch dots, preprocess, evaluate
+            if(missing(.dots)) .dots = match.call(expand.dots = FALSE)$`...`
+            i.meta = self$parse.i(.dots)
+            dims.filter = lapply(i.meta, build.each.i)
+            # - [x]  no filters returns self
+            fact_filter = !sapply(dims.filter, is.null)
+            if(all(!fact_filter)){
+                return(self)
+            }
+            # returned object
+            r = new.env()
+            r$keys = self$fact$id.vars
+            # - [x] filter dimensions and levels
+            dim.names = setNames(nm = names(self$dimensions))
+            r$dimensions = lapply(dim.names, function(d){
+                if(d %in% names(fact_filter)[fact_filter]) self$dimensions[[d]]$subset(i.meta = i.meta[[d]], drop = drop) else self$dimensions[[d]]
+            })
+            # - [x] NULL subset returns empty fact
+            if(any(sapply(dims.filter, identical, 0L))){
+                r$fact = as.fact(x = self$fact$data[0L], id.vars = self$fact$id.vars, measure.vars = self$fact$measure.vars, measures = self$fact$measures)
+                return(as.data.cube(r))
+            }
+            
+            browser()
+            
+            # dev
+            
+            # - [ ] get dimension base key values after dim filtering to subset fact table
+            if(any(fact_filter)){
+                lapply(dim.names, function(d){
+                    if(d %in% names(fact_filter)[fact_filter]) self$dimensions[[d]]$base(self$fact$data) else self$dimensions[[d]]
+                })
+                # i.meta = list()
+                # r$fact = self$fact$subset(i.dt, drop = drop)
+            }
+            
+            # # - [x] check if binary search possible, only leading fact filters
+            # if(isTRUE(fact_filter[[1L]])){
+            #     fact_filter2 = copy(fact_filter) # data.table#1419 rleid workaround as `copy()`, fixed in 1.9.7
+            #     binarysearch_dims = self$dims[rleid(fact_filter2)==1L]
+            #     if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: filter facts using binary search on '%s'.\n", paste(binarysearch_dims, collapse=", ")))
+            #     r$fact = self$fact$data[i = do.call(CJ, lapply(selfNames(binarysearch_dims), function(dim) r$dims[[dim]][[1L]])), nomatch = NA]
+            # } else binarysearch_dims = character()
+            # # - [x] fact-filter after the gap as vector scans
+            # vectorscan_dims = setdiff(self$dims[fact_filter], binarysearch_dims)
+            # if(length(vectorscan_dims)){
+            #     if(getOption("datacube.verbose", FALSE)) cat(sprintf("data.cube: filter facts using vector scan on '%s'.\n", paste(vectorscan_dims, collapse=", ")))
+            #     dims.keys = lapply(setNames(vectorscan_dims, keys[vectorscan_dims]), function(dim) r$dims[[dim]][[1L]])
+            #     qi = Reduce(function(a, b) bquote(.(a) & .(b)), lapply(names(dims.keys), function(col) as.call(list(quote(`%in%`), as.name(col), dims.keys[[col]]))))
+            #     r$fact[[self$fact]] = if(!length(r$fact[[self$fact]])) self$env$fact[[self$fact]][eval(qi)] else r$fact[[self$fact]][eval(qi)]
+            # }
+            # - [x] return cube with all dimensions filtered and fact filtered
+            return(as.data.cube(r))
         }
     )
 )
@@ -312,14 +475,51 @@ is.measure = function(x) inherits(x, "measure")
 
 # as.* ----
 
+# @title Make dummy a class
+# @param x any object.
+# @param \dots arguments passed to methods.
+# @return a class object.
+# as.a = function(x, ...) UseMethod("as.a")
+# as.a.default = function(x, ...) as.a.data.table(as.data.table(x))
+# as.a.data.table = function(x, ...) structure(list(x), class="a")
+# print.a = function(x) cat(c("<a>", capture.output(print(as.data.table(unclass(x[[1L]]))))), sep="\n")
+# dim.a = function(x) dim(as.data.table(unclass(x[[1L]])))
+
+as.level = function(x, ...){
+    UseMethod("as.level")
+}
+
+as.level.data.table = function(x, key = key(x), properties, ...){
+    stopifnot(is.character(properties), is.character(key), length(key) > 0L)
+    level$new(x = x, key = key, properties = properties)
+}
+
 #' @title Build dimension
-#' @param x data.table build dimension based on that dataset.
-#' @param key character scalar of dimension's primary key column.
-#' @param hierarchies list of hierarchies and levels within dimensions.
+#' @param x data.table or object with a \emph{as.data.table} method, build dimension based on that dataset.
+#' @param \dots arguments passed to methods.
+#' @param key character scalar of dimension primary key.
+#' @param hierarchies list of hierarchies of levels and its attributes.
 #' @return dimension class object.
-as.dimension = function(x, key = key(x), hierarchies){
+as.dimension = function(x, ...){
+    UseMethod("as.dimension")
+}
+
+#' @rdname as.dimension
+#' @method as.dimension default
+as.dimension.default = function(x, key, hierarchies, ...){
+    stopifnot(is.list(hierarchies), is.character(key), length(key) > 0L)
+    as.dimension.data.table(as.data.table(x), key = key, hierarchies = hierarchies)
+}
+
+#' @rdname as.dimension
+#' @method as.dimension data.table
+as.dimension.data.table = function(x, key = key(x), hierarchies, ...){
     stopifnot(is.list(hierarchies), is.character(key), length(key) > 0L)
     dimension$new(x = x, key = key, hierarchies = hierarchies)
+}
+
+as.dimension.environment = function(x, ...){
+    dimension$new(.env = x)
 }
 
 #' @title Form measure
@@ -341,16 +541,51 @@ as.measure = function(x, label = character(), fun.aggregate = "sum", ..., fun.fo
 #' @param \dots arguments to fun.aggregate.
 #' @param measures list of measures class objects, useful if various measures needs to have different `fun.aggregate`.
 #' @return fact class object.
-as.fact = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures){
+as.fact = function(x, ...){
+    UseMethod("as.fact")
+}
+
+#' @rdname as.fact
+#' @method as.fact default
+as.fact.default = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures){
+    as.fact.data.table(as.data.table(x, ...))
+}
+
+#' @rdname as.fact
+#' @method as.fact data.table
+as.fact.data.table = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures){
     fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = fun.aggregate, ... = ..., measures = measures)
 }
 
 #' @title Build cube
-#' @param x fact class object.
+#' @param x R object.
+#' @param \dots arguments passed to methods.
 #' @param dimensions list of dimension class objects.
-#' @param \dots ignored.
-#' @return fact class object.
-as.data.cube = function(x, dimensions, ...){
+#' @param na.rm logical, default TRUE, when FALSE the cube would store cross product of all dimension grain keys!
+#' @return data.cube class object.
+as.data.cube = function(x, ...){
+    UseMethod("as.data.cube")
+}
+
+#' @rdname as.data.cube
+#' @method as.data.cube default
+as.data.cube.default = function(x, ...){
+    as.data.cube.array(as.array(x, ...))
+}
+
+#' @rdname as.data.cube
+#' @method as.data.cube array
+as.data.cube.array = function(x, na.rm=TRUE, ...){
+    stop("DEV as.data.cube.array TO DO")
+    # stopifnot(is.character(fact), length(fact)==1L)
+    # dims = selfNames(names(dimnames(x)))
+    # as.data.cube(as.data.table(x, na.rm = na.rm), fact = fact, dims = lapply(selfNames(names(dimnames(x))), function(x) x))
+    # as.data.cube.fact()
+}
+
+#' @rdname as.data.cube
+#' @method as.data.cube fact
+as.data.cube.fact = function(x, dimensions, ...){
     stopifnot(
         is.list(dimensions),
         sapply(dimensions, is.dimension),
@@ -359,16 +594,9 @@ as.data.cube = function(x, dimensions, ...){
     data.cube$new(x, dimensions)
 }
 
-# as.data.cube.function = function(){
-#     # remote
-#     
-# }
-
-# as.data.cube.data.table = function(x){
-#     stopifnot(is.data.table(x))
-#     # local
-# 
-# }
+as.data.cube.environment = function(x, ...){
+    data.cube$new(.env = x)
+}
 
 # data.cube methods `[`, `[[` ----
 

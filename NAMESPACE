@@ -45,8 +45,14 @@ export(data.cube)
 # as.data.cube classess `as.*` methods
 export(as.measure)
 export(as.dimension)
+S3method(as.dimension, default)
+S3method(as.dimension, data.table)
 export(as.fact)
+S3method(as.fact, default)
+S3method(as.fact, data.table)
 export(as.data.cube)
+S3method(as.data.cube, default)
+S3method(as.data.cube, fact)
 
 # is.data.cube classess
 export(is.measure)

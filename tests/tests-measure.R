@@ -18,7 +18,7 @@ stopifnot(
     capture.output(m$print()) == "sum(z, na.rm = TRUE)"
 )
 
-# print ----
+# fun.format ----
 
 m = measure$new(x = "z", label = "score etc.", fun.aggregate = "sum", na.rm = TRUE, fun.format = function(x) sprintf("$ %s", x))
 stopifnot(

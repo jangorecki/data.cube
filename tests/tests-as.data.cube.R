@@ -1,7 +1,7 @@
 library(data.table)
 library(data.cube)
 
-X = populate_star(N = 1e5, surrogate.keys = FALSE)
+X = populate_star(N = 1e3, surrogate.keys = FALSE)
 time.hierarchies = list(
     "monthly" = list(
         "time_year" = character(),
@@ -20,6 +20,7 @@ geog.hierarchies = list(list(
     "geog_division_name" = character(),
     "geog_abb" = c("geog_name","geog_division_name","geog_region_name")
 ))
+
 dimensions = list(
     time = as.dimension(X$dims$time, key = "time_date", hierarchies = time.hierarchies),
     geography = as.dimension(X$dims$geography, key = "geog_abb", hierarchies = geog.hierarchies)

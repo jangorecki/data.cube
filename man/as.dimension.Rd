@@ -7,11 +7,10 @@
 \usage{
 as.dimension(x, ...)
 
-\method{as.dimension}{default}(x, id.vars, hierarchies, ...)
+\method{as.dimension}{default}(x, id.vars, hierarchies = NULL, ...)
 
-\method{as.dimension}{data.table}(x, id.vars = key(x),
-  hierarchies = list(setNames(rep(list(character(0)), length(id.vars)),
-  id.vars)), ...)
+\method{as.dimension}{data.table}(x, id.vars = key(x), hierarchies = NULL,
+  ...)
 }
 \arguments{
 \item{x}{data.table or object with a \emph{as.data.table} method, build dimension based on that dataset.}

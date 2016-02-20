@@ -2,8 +2,10 @@
 \name{as.data.cube}
 \alias{as.data.cube}
 \alias{as.data.cube.array}
+\alias{as.data.cube.data.table}
 \alias{as.data.cube.default}
 \alias{as.data.cube.fact}
+\alias{as.data.cube.list}
 \title{Build cube}
 \usage{
 as.data.cube(x, ...)
@@ -13,13 +15,31 @@ as.data.cube(x, ...)
 \method{as.data.cube}{array}(x, na.rm = TRUE, ...)
 
 \method{as.data.cube}{fact}(x, dimensions, ...)
+
+\method{as.data.cube}{list}(x, ...)
+
+\method{as.data.cube}{data.table}(x, id.vars = key(x), measure.vars,
+  fun.aggregate = "sum", dims = id.vars, hierarchies = NULL, ...,
+  dimensions, measures)
 }
 \arguments{
 \item{x}{R object.}
 
 \item{na.rm}{logical, default TRUE, when FALSE the cube would store cross product of all dimension grain keys!}
 
-\item{dimensions}{list of dimension class objects.}
+\item{dimensions}{list of \link{dimension} class objects.}
+
+\item{id.vars}{characater vector of foreign key columns.}
+
+\item{measure.vars}{characater vector of column names of metrics.}
+
+\item{fun.aggregate}{character function name, default to \emph{sum}.}
+
+\item{dims}{character vector of dimension names}
+
+\item{hierarchies}{list of hierarchies nested in list of dimensions passed to \link{as.dimension}.}
+
+\item{measures}{list of \link{measure} class objects passed to \link{as.fact}.}
 
 \item{\dots}{arguments passed to methods.}
 }

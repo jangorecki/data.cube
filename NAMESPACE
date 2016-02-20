@@ -53,6 +53,9 @@ S3method(as.fact, data.table)
 export(as.data.cube)
 S3method(as.data.cube, default)
 S3method(as.data.cube, fact)
+S3method(as.data.cube, list)
+S3method(as.data.cube, data.table)
+S3method(as.data.cube, cube)
 
 # from.data.cube classes `as.*.data.cube` methods
 S3method(as.array, data.cube)

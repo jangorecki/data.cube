@@ -42,18 +42,42 @@ stopifnot(
 # data.cube: 5 dimensions, hierarchies from `populate_star` ----
 
 X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
-dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
-    as.dimension(X$dims[[i]],
-                 key = key(X$dims[[i]]),
-                 hierarchies = X$hierarchies[[i]])
-})
+dims = lapply(setNames(seq_along(X$dims), names(X$dims)),
+              function(i) as.dimension(X$dims[[i]], hierarchies = X$hierarchies[[i]]))
 ff = as.fact(x = X$fact$sales,
              id.vars = key(X$fact$sales),
              measure.vars = c("amount","value"),
              fun.aggregate = "sum",
              na.rm = TRUE)
-dc = as.data.cube(ff, dims)
-stopifnot(is.data.cube(dc))
+dc.f = as.data.cube(ff, dims)
+dc.x = as.data.cube(X)
+cb.x = as.cube(X)
+
+stopifnot(
+    is.data.cube(dc.f),
+    is.data.cube(dc.x),
+    all.equal(dc.x, as.data.cube(cb.x, hierarchies = X$hierarchies))
+)
+
+# in
+dt = dc.f$denormalize()
+# z = as.cube(dt, dims = lapply(X$dims, names))
+dc.d = as.data.cube(dt,
+                    id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
+                    measure.vars = c("amount","value"),
+                    dims = names(X$dims), 
+                    hierarchies = X$hierarchies)
+# stopifnot(
+#     all.equal(dc.f, dc.d)
+# )
+# dc.f$id.vars
+# 
+# 
+# # out
+# stopifnot(
+#     all.equal(X, as.list(dc.f)),
+#     all.equal(dt, as.data.table(dc.d))
+# )
 
 # array: 3 dimensions ----
 

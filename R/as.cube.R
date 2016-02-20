@@ -10,13 +10,13 @@ as.cube = function(x, ...){
 }
 
 as.cube.default = function(x, ...){
-    as.cube(as.array(x, ...))
+    as.cube.array(as.array(x, ...))
 }
 
 as.cube.array = function(x, fact = "fact", na.rm=TRUE, ...){
     stopifnot(is.character(fact), length(fact)==1L)
     dims = selfNames(names(dimnames(x)))
-    as.cube(as.data.table(x, na.rm = na.rm), fact = fact, dims = lapply(selfNames(names(dimnames(x))), function(x) x))
+    as.cube.data.table(as.data.table(x, na.rm = na.rm), fact = fact, dims = lapply(selfNames(names(dimnames(x))), function(x) x))
 }
 
 #' @title Process dimension
@@ -47,7 +47,7 @@ as.cube.data.table = function(x, fact = "fact", dims, fun.aggregate = sum, ...){
     measure_cols = names(x)[!names(x) %in% unlist(dims)]
     cube$new(list(
         fact = setNames(list(x[, lapply(.SD, fun.aggregate, ...), c(key_cols), .SDcols = measure_cols]), fact), 
-        dims = lapply(selfNames(names(dims)), function(dim) process.dim(dim, x = unique(x, by = dims[[dim]])[, .SD, .SDcols = dims[[dim]]]))
+        dims = lapply(setNames(nm = names(dims)), function(dim) process.dim(dim, x = unique(x, by = dims[[dim]])[, .SD, .SDcols = dims[[dim]]]))
     ))
 }
 

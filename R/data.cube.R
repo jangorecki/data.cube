@@ -131,6 +131,7 @@ dimension = R6Class(
             invisible(self)
         },
         dim = function(){
+            if(!ncol(self$data)) return(0L)
             unname(unlist(self$data[, lapply(.SD, uniqueN), .SDcols = self$id.vars]))
         },
         print = function(){
@@ -363,7 +364,7 @@ data.cube = R6Class(
         id.vars = character(),
         dimensions = list(),
         initialize = function(fact, dimensions, .env){
-            stopifnot(is.fact(fact), sapply(dimensions, is.dimension))
+            stopifnot(is.fact(fact), all(sapply(dimensions, is.dimension)))
             self$dimensions = dimensions
             self$id.vars = lapply(self$dimensions, `[[`, "id.vars")
             self$fact = fact
@@ -586,6 +587,7 @@ as.dimension = function(x, ...){
 #' @rdname as.dimension
 #' @method as.dimension default
 as.dimension.default = function(x, id.vars, hierarchies = NULL, ...){
+    if(is.null(x)) return(null.dimension())
     as.dimension.data.table(as.data.table(x), id.vars = id.vars, hierarchies = hierarchies)
 }
 
@@ -599,6 +601,16 @@ as.dimension.data.table = function(x, id.vars = key(x), hierarchies = NULL, ...)
 
 as.dimension.environment = function(x, ...){
     dimension$new(.env = x)
+}
+
+null.dimension = function(...){
+    env = new.env()
+    env$data = data.table(NULL)
+    env$id.vars = character()
+    env$hierarchies = list()
+    env$levels = list()
+    env$fields = character()
+    as.dimension.environment(env)
 }
 
 #' @title Form measure
@@ -627,13 +639,28 @@ as.fact = function(x, ...){
 #' @rdname as.fact
 #' @method as.fact default
 as.fact.default = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures){
+    if(is.null(x)) return(null.fact())
     as.fact.data.table(as.data.table(x, ...))
 }
 
 #' @rdname as.fact
 #' @method as.fact data.table
-as.fact.data.table = function(x, id.vars = key(x), measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ..., measures){
+as.fact.data.table = function(x, id.vars = as.character(key(x)), measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ..., measures){
     fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = fun.aggregate, ... = ..., measures = measures)
+}
+
+as.fact.environment = function(x, ...){
+    fact$new(.env = x)
+}
+
+null.fact = function(...){
+    env = new.env()
+    env$local = TRUE
+    env$id.vars = character()
+    env$measure.vars = character()
+    env$measures = list()
+    env$data = data.table(NULL)
+    as.fact.environment(env)
 }
 
 #' @title Build cube
@@ -671,7 +698,7 @@ as.data.cube.array = function(x, na.rm = TRUE, ...){
     dt = as.data.table(x, na.rm = na.rm)
     ff = as.fact(dt, id.vars = key(dt), measure.vars = "value")
     dd = lapply(setNames(nm = names(ar.dimnames)), function(nm){
-        as.dimension(setNames(list(ar.dimnames[[nm]]), nm),
+        as.dimension(as.data.table(setNames(list(ar.dimnames[[nm]]), nm)),
                      id.vars = nm,
                      hierarchies = list(setNames(list(character(0)), nm)))
         
@@ -681,8 +708,8 @@ as.data.cube.array = function(x, na.rm = TRUE, ...){
 
 #' @rdname as.data.cube
 #' @method as.data.cube fact
-as.data.cube.fact = function(x, dimensions, ...){
-    stopifnot(is.list(dimensions), sapply(dimensions, is.dimension), is.fact(x))
+as.data.cube.fact = function(x, dimensions = list(), ...){
+    stopifnot(is.list(dimensions), all(sapply(dimensions, is.dimension)), is.fact(x))
     data.cube$new(x, dimensions)
 }
 

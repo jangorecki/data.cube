@@ -10,7 +10,7 @@ as.fact(x, ...)
 \method{as.fact}{default}(x, id.vars = character(),
   measure.vars = character(), fun.aggregate = "sum", ..., measures)
 
-\method{as.fact}{data.table}(x, id.vars = key(x),
+\method{as.fact}{data.table}(x, id.vars = as.character(key(x)),
   measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ...,
   measures)
 }

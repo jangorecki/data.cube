@@ -14,7 +14,7 @@ as.data.cube(x, ...)
 
 \method{as.data.cube}{array}(x, na.rm = TRUE, ...)
 
-\method{as.data.cube}{fact}(x, dimensions, ...)
+\method{as.data.cube}{fact}(x, dimensions = list(), ...)
 
 \method{as.data.cube}{list}(x, ...)
 

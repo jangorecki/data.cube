@@ -786,3 +786,44 @@ as.data.cube.cube = function(x, hierarchies = NULL, ...){
 #     r = x$extract(by = by, .call = match.call())
 #     r
 # }
+
+# dimnames ----
+
+dimnames.data.cube = function(x){
+    r = x$dims.apply(function(x) x$data[[1L]])
+    if(!length(r)) return(NULL)
+    r
+}
+
+# str ----
+
+str.data.cube = function(object, ...){
+    print(object$schema())
+    invisible()
+}
+
+# format ----
+
+# format.data.cube = function(x, measure.format = list(), dots.format = list(), dcast = FALSE, ...){
+#     stopifnot(is.list(measure.format))
+#     keys = x$dapply(key, simplify = TRUE)
+#     measures = setdiff(names(x$env$fact[[x$fact]]), keys)
+#     if(length(measure.format)) stopifnot(
+#         sapply(measure.format, is.function),
+#         length(names(measure.format))==length(measure.format), 
+#         names(measure.format) %in% measures
+#     )
+#     if(length(keys)) r = setorderv(copy(x$env$fact[[x$fact]]), cols = keys, order=1L, na.last=TRUE) else {
+#         stopifnot(nrow(x$env$fact[[x$fact]])==1L) # grant total
+#         r = copy(x$env$fact[[x$fact]])
+#     }
+#     if(length(measure.format)){
+#         for(mf in names(measure.format)){
+#             FUN = measure.format[[mf]]
+#             DOTS = dots.format[[mf]]
+#             set(r, i = NULL, j = mf, value = FUN(r[[mf]], ... = DOTS))
+#         }
+#     }
+#     if(isTRUE(dcast)) r = dcast.data.table(r, ...)
+#     r[]
+# }

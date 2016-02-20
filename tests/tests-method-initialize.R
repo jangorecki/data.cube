@@ -94,5 +94,5 @@ stopifnot(
     identical(dim(dc$dimensions$geography$levels$geog_region_name$data), c(4L, 1L)),
     identical(dim(dc$dimensions$time$levels$time_month$data), c(12L, 2L)),
     identical(dim(dc$dimensions$time$levels$time_year$data), c(5L, 1L)),
-    identical(dim(dc$dimensions$time$levels$time_date$data), c(1826L, 5L))
+    identical(dim(dc$dimensions$time$levels$time_date$data), c(1826L, 6L))
 )

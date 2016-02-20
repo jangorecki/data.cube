@@ -103,7 +103,8 @@ populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, h
                 "weekly" = list(
                     "time_year" = character(),
                     "time_week" = character(),
-                    "time_date" = c("time_week","time_year")
+                    "time_weekday" = character(),
+                    "time_date" = c("time_weekday","time_week","time_year")
                 )
             )
         )

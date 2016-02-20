@@ -33,6 +33,7 @@ S3method(as.array, data.table)
 S3method(rollup, data.table)
 export(populate_star)
 export(process.dim)
+export(is.unique)
 
 # data.cube classes
 export(level)
@@ -73,3 +74,7 @@ export(is.cube)
 S3method(dim, dimension)
 S3method(dim, fact)
 S3method(dim, data.cube)
+
+# str and dimnames
+S3method(str, data.cube)
+S3method(dimnames, data.cube)

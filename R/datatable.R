@@ -64,9 +64,12 @@ as.array.data.table = function(x, dimcols, measure, dimnames, ...){
     if(length(dimnames)==1L) c(r) else r
 }
 
+#' @title Test if object unique
+#' @param x R object
+#' @return logical, or a NULL.
 is.unique = function(x){
     if(is.null(x)) return(TRUE) # fixed in 1.9.7 data.table#1429
-    length(x)==uniqueN(x)
+    identical(length(x), uniqueN(x))
 }
 
 # fast check if data aggregated to all dimensions

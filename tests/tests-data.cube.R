@@ -23,7 +23,7 @@ stopifnot(
     identical(dim(dc$dimensions$geography$levels$geog_region_name$data), c(4L, 1L)),
     identical(dim(dc$dimensions$time$levels$time_month$data), c(12L, 2L)),
     identical(dim(dc$dimensions$time$levels$time_year$data), c(5L, 1L)),
-    identical(dim(dc$dimensions$time$levels$time_date$data), c(1826L, 5L))
+    identical(dim(dc$dimensions$time$levels$time_date$data), c(1826L, 6L))
 )
 
 # print ----
@@ -36,11 +36,27 @@ stopifnot(
     length(out) == 10L
 )
 
+# str ----
+
+r = capture.output(str(dc))
+stopifnot(
+    all.equal(r, capture.output(dc$schema()))
+)
+
+# dimnames ----
+
+r = dimnames(dc)
+stopifnot(
+    is.list(r),
+    identical(names(r), c("product","customer","currency","geography","time")),
+    sapply(r, function(x) is.unique(r))
+)
+
 # schema ----
 
 dict = dc$schema()
 stopifnot(
-    nrow(dict) == 25L,
+    nrow(dict) == 26L,
     c("type","name","entity","nrow","ncol","mb","address","sorted") %in% names(dict),
     dict[type=="fact", .N] == 1L
 )

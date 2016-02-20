@@ -54,5 +54,5 @@ stopifnot(
 ld = lapply(dims, as.data.table)
 stopifnot(
     sapply(ld, is.data.table),
-    all.equal(sapply(ld, ncol), structure(c(5L, 4L, 2L, 4L, 7L), .Names = c("product", "customer", "currency", "geography", "time")))
+    all.equal(sapply(ld, ncol), structure(c(5L, 4L, 2L, 4L, 8L), .Names = c("product", "customer", "currency", "geography", "time")))
 )

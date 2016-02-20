@@ -124,9 +124,11 @@ dc1 = as.data.cube(ff, list())
 dc2 = as.data.cube(ff, lapply(1:3, function(i) as.dimension(NULL)))
 stopifnot(
     # dc1
+    all.equal(dim(dc1), list()),
     identical(dim(dc1$fact$data), c(0L,0L)),
     all.equal(sapply(dc1$dimensions, dim), list()),
     # dc2
+    all.equal(dim(dc2), rep(0L, 3)),
     identical(dim(dc2$fact$data), c(0L,0L)),
     all.equal(sapply(dc2$dimensions, dim), rep(0L, 3))
 )
@@ -137,12 +139,13 @@ ff = as.fact(data.table(value = 10:11))
 dc1 = as.data.cube(ff, list())
 # null.ff 3 null.dd, 1 row fact, 3 null dim, fact as grand total
 dc2 = as.data.cube(ff, lapply(1:3, function(i) as.dimension(NULL)))
-
 stopifnot(
     # dc1
+    all.equal(dim(dc1), list()),
     identical(dim(dc1$fact$data), c(1L,1L)),
     all.equal(sapply(dc1$dimensions, dim), list()),
     # dc2
+    all.equal(dim(dc2), rep(0L, 3)),
     identical(dim(dc2$fact$data), c(1L,1L)),
     all.equal(sapply(dc2$dimensions, dim), rep(0L, 3))
 )

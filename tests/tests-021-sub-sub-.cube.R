@@ -37,7 +37,7 @@
 # 
 # dla = devtools::load_all
 # dla()
-# X = populate_star(1e5s)
+# X = populate_star(1e5)
 # cb = as.cube(X)
 # 
 # cb[[.(currency = .(curr_name = c("BTC","EUR"), curr_type = "crypto"), time = .()), .(value=sum(value)), .(time_year, curr_type)]]

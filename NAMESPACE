@@ -67,6 +67,7 @@ export(is.measure)
 export(is.dimension)
 export(is.fact)
 export(is.data.cube)
+export(is.cube)
 
 # `dim.*` methods
 S3method(dim, dimension)

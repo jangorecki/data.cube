@@ -40,7 +40,7 @@ stopifnot(all.equal(dim(rr), c(5L,5L)), identical(names(rr), c("year","active_gr
 
 ### hierarchy ---------------------------------------------------------------
 
-cb = as.cube(populate_star(1e5))
+cb = as.cube(populate_star(1e3))
 
 # sorting of NA to last
 r = rollup(cb, MARGIN = c("prod_name","geog_abb"), j = .(value = sum(value)))
@@ -88,7 +88,7 @@ stopifnot(
 # format levels of aggregates
 r = rollup(cb, c("time_year","geog_region_name", "curr_type","prod_gear"), FUN = sum)
 stopifnot(
-    nrow(format(r[,,,,0L]))==120L,
+    nrow(format(r[,,,,0L]))==117L,
     nrow(format(r[,,,,1L]))==5L,
     nrow(format(r[,,,,2L]))==20L,
     nrow(format(r[,,,,3L]))==40L,

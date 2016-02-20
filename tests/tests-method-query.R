@@ -5,7 +5,7 @@ options("datacube.jj" = FALSE)
 
 # fact$initialize ----
 
-X = populate_star(N = 1e5, surrogate.keys = FALSE)
+X = populate_star(N = 1e3, surrogate.keys = FALSE)
 ff = fact$new(x = X$fact$sales,
               id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
               measure.vars = c("amount","value"),
@@ -26,15 +26,15 @@ stopifnot(
 )
 
 # i %in% 1:2, by = geog_abb
-r = ff$query(i = geog_abb %in% c("ND","TX"), by = "geog_abb", measure.vars = c("value"))
+r = ff$query(i = geog_abb %in% c("VT","AL"), by = "geog_abb", measure.vars = c("value"))
 stopifnot(
     is.data.table(r),
     c("geog_abb","value") %in% names(r),
     nrow(r) == 2L
 )
 
-# i = CJ(1:2, 1:3), by = .(geog_abb, time_date)
-r = ff$query(i.dt = CJ(geog_abb = c("ND","TX"), time_date = as.Date(c("2010-01-01","2010-01-02","2010-01-03")), unique = TRUE), by = .(geog_abb, time_date))
+# i = CJ(1:3, 1:3), by = .(geog_abb, time_date)
+r = ff$query(i.dt = CJ(geog_abb = c("VT","AL","TX"), time_date = as.Date(c("2010-01-01","2010-01-02","2010-01-03")), unique = TRUE), by = .(geog_abb, time_date))
 stopifnot(
     is.data.table(r),
     c("geog_abb","time_date","amount","value") %in% names(r),
@@ -45,7 +45,7 @@ stopifnot(
 
 # initialize ----
 
-X = populate_star(N = 1e5, surrogate.keys = FALSE, hierarchies = TRUE)
+X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
 
 dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
     dimension$new(X$dims[[i]],

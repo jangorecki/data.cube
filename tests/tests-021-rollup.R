@@ -66,7 +66,7 @@ stopifnot(
 
 ### hierarchy ---------------------------------------------------------------
 
-cb = as.cube(populate_star(1e5))
+cb = as.cube(populate_star(1e3))
 
 # various aggregate levels from rollup
 by = c("time_year","geog_region_name", "curr_type","prod_gear")

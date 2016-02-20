@@ -1,7 +1,7 @@
 library(data.table)
 library(data.cube)
 
-X = populate_star(1e5, Y = 2015)
+X = populate_star(1e3, Y = 2015)
 cb = as.cube(X)[,,,"NY",as.Date("2015-01-15")] # drop time and geog dimensions to fit array well into memory
 cb.dimnames = dimnames(cb)
 measure = "value"

@@ -42,13 +42,18 @@ stopifnot(
 
 ## cube in-out --------------------------------------------------------------
 
-l = populate_star(1e5)
+l = populate_star(1e3)
 
 # in
 cb.l = as.cube(l)
 dt = cb.l$denormalize()
 cb.dt = as.cube(dt, fact = "sales", dims = lapply(l$dims, names))
-stopifnot(all.equal(cb.l, cb.dt))
+stopifnot(
+    is.cube(cb.dt),
+    # all.equal(cb.l, cb.dt) # cannot be equal because cb.dt has already dropped unused dimension values, so there is a different subset of date
+    all.equal(cb.l$env$fact, cb.dt$env$fact),
+    all.equal(cb.l$dims, cb.dt$dims)
+)
 
 # out
 stopifnot(all.equal(l, as.list(cb.l, fact = "sales")), all.equal(dt, as.data.table(cb.dt)))

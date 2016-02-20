@@ -90,7 +90,7 @@ stopifnot(
 
 ### hierarchy ---------------------------------------------------------------
 
-cb = as.cube(populate_star(1e5)) # na.rm=TRUE
+cb = as.cube(populate_star(1e3)) # na.rm=TRUE
 
 # by 1 low attribute from 1 dimension
 r = capply(cb, "geog_abb", sum)

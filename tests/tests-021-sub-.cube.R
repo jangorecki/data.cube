@@ -90,7 +90,7 @@ stopifnot(
 
 # slice and dice on dimension hierarchy -----------------------------------
 
-cb = as.cube(populate_star(1e5))
+cb = as.cube(populate_star(1e3))
 
 # slice keys
 r = cb["Mazda RX4"]

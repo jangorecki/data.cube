@@ -278,6 +278,8 @@ cube = R6Class(
     r
 }
 
+#' @title Test if cube class
+#' @param x object to tests.
 is.cube = function(x) inherits(x, "cube")
 
 dim.cube = function(x){

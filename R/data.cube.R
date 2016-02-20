@@ -1,4 +1,17 @@
-# stats collector for data.table
+# stats collector for data.table and big.data.table
+schema.big.data.table = function(x, empty){
+    if(requireNamespace("big.data.table", quietly = TRUE)){
+        rscl = attr(x, "rscl")
+        dm = dim(x)
+        mb = sum(big.data.table::rscl.eval(rscl, as.numeric(object.size(x))/(1024^2), simplify = TRUE))
+        adr = NA_character_
+        ky = big.data.table::rscl.eval(rscl[1L], if(haskey(x)) paste(key(x), collapse=", ") else NA_character_, simplify = TRUE)
+        dt = data.table(nrow = dm[1L], ncol = dm[2L], mb = mb, address = adr, sorted = ky)
+        nn = copy(names(dt))
+        if(!missing(empty)) setcolorder(dt[, c(empty) := NA], unique(c(empty, nn)))
+        dt
+    } else stop("schema.big.data.table can be only used with `big.data.table` package which is not installed.")
+}
 schema.data.table = function(x, empty){
     dm = dim(x)
     mb = as.numeric(object.size(x))/(1024^2)
@@ -19,15 +32,14 @@ schema.data.table = function(x, empty){
 level = R6Class(
     classname = "level",
     public = list(
-        key = character(),
+        id.vars = character(),
         properties = character(),
         data = NULL,
-        initialize = function(x, key = key(x), properties){
-            stopifnot(is.data.table(x), is.character(key), key %in% names(x), is.character(properties), properties %in% names(x))
-            self$key = key
-            rm(key)
+        initialize = function(x, id.vars = key(x), properties){
+            stopifnot(is.data.table(x), is.character(id.vars), id.vars %in% names(x), is.character(properties), properties %in% names(x))
+            self$id.vars = id.vars
             self$properties = unique(properties)
-            self$data = setkeyv(unique(x, by = self$key)[, j = .SD, .SDcols = unique(c(self$key, self$properties))], self$key)[]
+            self$data = setkeyv(unique(x, by = self$id.vars)[, j = .SD, .SDcols = unique(c(self$id.vars, self$properties))], self$id.vars)[]
             invisible(self)
         },
         print = function(){
@@ -42,7 +54,7 @@ level = R6Class(
             head(self$data, n)
         },
         subset = function(i, drop = TRUE){
-            as.level(x = self$data[eval(i)], key = key(self$data), properties = self$properties)
+            level$new(x = self$data[eval(i)], id.vars = key(self$data), properties = self$properties)
         }
     )
 )
@@ -57,7 +69,7 @@ hierarchy = R6Class(
     classname = "hierarchy",
     public = list(
         levels = list(),
-        initialize = function(levels){ # x, key = key(x), 
+        initialize = function(levels){
             stopifnot(is.list(levels), as.logical(length(levels)))
             self$levels = levels
             invisible(self)
@@ -79,50 +91,59 @@ hierarchy = R6Class(
 dimension = R6Class(
     classname = "dimension",
     public = list(
-        key = character(),
+        id.vars = character(),
         fields = character(),
         hierarchies = list(),
         levels = list(),
         data = NULL,
-        initialize = function(x, key = key(x), hierarchies, .env){
+        initialize = function(x, id.vars = key(x), hierarchies, .env){
             if(!missing(.env)){
                 # skip heavy processing for env argument
                 self$data = .env$data # potentially null to be filled based on fact table
-                self$key = .env$key
+                self$id.vars = .env$id.vars
                 self$hierarchies = .env$hierarchies
                 self$levels = .env$levels
                 self$fields = .env$fields
                 return(invisible(self))
             }
-            stopifnot(is.data.table(x), is.character(key), key %in% names(x), is.list(hierarchies), as.logical(length(hierarchies)))
+            stopifnot(is.data.table(x), is.character(id.vars), id.vars %in% names(x), is.list(hierarchies), as.logical(length(hierarchies)))
             stopifnot(
                 # level keys in data.table
                 (all.hierarchies.level.keys <- unique(unlist(lapply(hierarchies, names)))) %in% names(x),
                 # level attributes in data.table
                 (all.hierarchies.level.attrs <- unique(unname(unlist(hierarchies, recursive = TRUE)))) %in% names(x)
             )
-            self$key = key
-            rm(key)
+            self$id.vars = id.vars
             self$hierarchies = lapply(hierarchies, function(levels) hierarchy$new(levels = levels))
             # combine by levels
-            common.levels = Reduce(f = function(x, y){
+            common.levels = Reduce(function(x, y){
                 lapply(setNames(nm = unique(c(names(x), names(y)))),
                        function(nm) c(x[[nm]], y[[nm]]))
             }, hierarchies)
             self$levels =  lapply(setNames(nm = names(common.levels)), function(lvlk){
-                level$new(x, key = lvlk, properties = common.levels[[lvlk]])
+                level$new(x, id.vars = lvlk, properties = common.levels[[lvlk]])
             })
             dt = rbindlist(lapply(names(self$levels), function(lvlk) data.table(properties = c(lvlk, self$levels[[lvlk]]$properties))[, level := lvlk]))[, tail(.SD, 1L), properties]
-            self$fields = setNames(dt$properties, dt$level)
+            self$fields = dt$properties # TEST on error use: setNames(dt$properties, dt$level)
             # all.hierarchies.level.mappings
-            granularity = unique(c(self$key, all.hierarchies.level.keys))
-            self$data = setkeyv(unique(x, by = granularity)[, .SD, .SDcols = granularity], self$key)[]
+            granularity = unique(c(self$id.vars, all.hierarchies.level.keys))
+            self$data = setkeyv(unique(x, by = granularity)[, .SD, .SDcols = granularity], self$id.vars)[]
             invisible(self)
+        },
+        dim = function(){
+            unname(unlist(self$data[, lapply(.SD, uniqueN), .SDcols = self$id.vars]))
         },
         print = function(){
             dimension.data.str = capture.output(str(self$data, give.attr = FALSE))
             cat(c("<dimension>", dimension.data.str), sep="\n")
             invisible(self)
+        },
+        # lvls.apply
+        lvls.apply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE, lvls = names(self$levels)){
+            FUN = match.fun(FUN)
+            sapply(X = self$levels[lvls],
+                   FUN = FUN, ...,
+                   simplify = simplify, USE.NAMES = USE.NAMES)
         },
         schema = function(){ # for each dimensions
             i = setNames(seq_along(self$levels), names(self$levels))
@@ -136,9 +157,9 @@ dimension = R6Class(
         subset = function(i.meta, drop = TRUE){
             stopifnot(is.list(i.meta), is.logical(drop))
             filter.cols = names(i.meta)
-            filter.lvls = sapply(self$levels, function(x) any(filter.cols %in% c(x$key, x$properties)))
+            filter.lvls = sapply(self$levels, function(x) any(filter.cols %in% c(x$id.vars, x$properties)))
             filter.lvls = names(filter.lvls)[filter.lvls]
-            level.fields = lapply(self$levels, function(x) c(x$key, x$properties))
+            level.fields = lapply(self$levels, function(x) c(x$id.vars, x$properties))
             filter.lvls.cols = lapply(level.fields, function(fields) filter.cols[filter.cols %in% fields])
             # if(!identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls))) browser()
             # stopifnot(identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls)))
@@ -153,16 +174,16 @@ dimension = R6Class(
             })
             # dimension base
             r$data = if(length(filter.lvls)) NULL else self$data
-            r$key = key(self$data)
+            r$id.vars = key(self$data)
             r$hierarchies = self$hierarchies
-            r$fields = self$fields
+            r$fields = unname(self$fields)
             as.dimension(r)
         },
         base = function(x = self$data){
             level.keys = unique(unlist(lapply(self$hierarchies, names)))
-            base.grain = unique(c(self$key, level.keys))
+            base.grain = unique(c(self$id.vars, level.keys))
             if(!length(x)) x = setDT(as.list(setNames(seq_along(base.grain), base.grain)))[0L]
-            self$data = setkeyv(unique(x, by = base.grain)[, .SD, .SDcols = base.grain], self$key)[]
+            self$data = setkeyv(unique(x, by = base.grain)[, .SD, .SDcols = base.grain], self$id.vars)[]
             invisible(self)
         },
         index = function(.log = getOption("datacube.log")){
@@ -233,13 +254,16 @@ fact = R6Class(
             stopifnot(is.character(id.vars), is.character(measure.vars), is.character(fun.aggregate))
             self$id.vars = id.vars
             # - [x] `fact$new` creates measures, or use provided in `measures` argument
-            if(missing(measures)){
+            if(!missing(measures)){
+                self$measures = measures
+                self$measure.vars = names(self$measures)
+            } else {
+                if(!length(measure.vars)) stop("You need to provide at least one measure column name")#measure.vars = setdiff(names(x), self$id.vars)
                 self$measure.vars = measure.vars
                 self$measures = lapply(setNames(nm = self$measure.vars), function(var) measure$new(var, fun.aggregate = fun.aggregate, ... = ...))
-            } else {
-                self$measure.vars = names(self$measures)
-                self$measures = measures
             }
+            #if(!all(sapply(self$measures, inherits, "measure"))) 
+                # browser()
             stopifnot(
                 sapply(self$measures, inherits, "measure"),
                 TRUE
@@ -258,6 +282,14 @@ fact = R6Class(
                 bdt[[expr = dtq, lazy = FALSE, send = TRUE]]
                 self$data = bdt
             }
+            invisible(self)
+        },
+        dim = function(){
+            unname(unlist(self$data[, lapply(.SD, uniqueN), .SDcols = self$id.vars]))
+        },
+        print = function(){
+            fact.data.str = capture.output(str(self$data, give.attr = FALSE))
+            cat(c("<fact>", fact.data.str), sep="\n")
             invisible(self)
         },
         build.j = function(measure.vars = self$measure.vars){
@@ -306,7 +338,7 @@ fact = R6Class(
             dt
         },
         schema = function(){
-            schema.data.table(self$data, empty = c("entity"))
+            if(!self$local) schema.big.data.table(self$data, empty = c("entity")) else schema.data.table(self$data, empty = c("entity"))
         },
         head = function(n = 6L){
             head(self$data, n)
@@ -330,38 +362,29 @@ data.cube = R6Class(
     classname = "data.cube",
     public = list(
         fact = NULL,
-        keys = character(),
+        id.vars = character(),
         dimensions = list(),
         initialize = function(fact, dimensions, .env){
             stopifnot(is.fact(fact), sapply(dimensions, is.dimension))
             self$dimensions = dimensions
-            self$keys = lapply(self$dimensions, `[[`, "key")
+            self$id.vars = lapply(self$dimensions, `[[`, "id.vars")
             self$fact = fact
             invisible(self)
         },
-        query = function(){
-            NULL
-        },
-        index = function(){
-            optional.logR = function(x, .log = getOption("datacube.log")){
-                if(isTRUE(.log)) eval(substitute(logR(x), list(x = substitute(x)))) else x
-            }
-            list(self$fact$index(),
-                 lapply(self$dimensions, function(x) optional.logR(x$index())))
-        },
-        schema = function(){
-            rbindlist(list(
-                fact = rbindlist(list(fact = self$fact$schema()), idcol = "name"),
-                dimension = rbindlist(lapply(self$dimensions, function(x) x$schema()), idcol = "name")
-            ), idcol = "type")
+        dim = function(){
+            # fd = self$fact$dim() # heavy
+            unname(sapply(self$dimensions, function(x) nrow(x$data)))
         },
         print = function(){
             dict = self$schema()
             prnt = character()
             prnt["header"] = "<data.cube>"
-            #prnt["distributed"] = if(!self$fact$local) sprintf("distributed: %s", NA_integer_)
-            n.measures = length(dc$fact$measure.vars)
-            prnt["fact"] = dict[type=="fact", sprintf("fact:\n  %s rows x %s dimensions x %s measures (%.2f MB)", nrow, ncol - n.measures, n.measures, mb)]
+            #prnt["distributed"] = 
+            n.measures = length(self$fact$measure.vars)
+            prnt["fact"] = dict[type=="fact",
+                                sprintf("fact%s:\n  %s rows x %s dimensions x %s measures (%.2f MB)", 
+                                        if(!self$fact$local) sprintf(" (distributed on %s nodes)", length(attr(self$fact$data, "rscl"))) else "",
+                                        nrow, ncol - n.measures, n.measures, mb)]
             if(length(self$dimensions)){
                 dt = dict[type=="dimension", .(nrow = nrow[is.na(entity)], ncol = ncol[is.na(entity)], mb = sum(mb, na.rm = TRUE)), .(name)]
                 prnt["dims"] = paste0("dimensions:\n", paste(dt[, sprintf("  %s : %s entities x %s levels (%.2f MB)", name, nrow, ncol, mb)], collapse="\n"))
@@ -369,6 +392,43 @@ data.cube = R6Class(
             prnt["size"] = sprintf("total size: %.2f MB", dict[,sum(mb)])
             cat(prnt, sep = "\n")
             invisible(self)
+        },
+        # dims.apply
+        dims.apply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE, dims = names(self$dimensions)){
+            FUN = match.fun(FUN)
+            sapply(X = self$dimensions[dims],#lapply(setNames(nm = dims), function(dd) self$dimensions[[dd]]),
+                   FUN = FUN, ...,
+                   simplify = simplify, USE.NAMES = USE.NAMES)
+        },
+        # fact.apply
+        fact.apply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE){
+            FUN = match.fun(FUN)
+            sapply(X = list(self$fact),
+                   FUN = FUN, ...,
+                   simplify = simplify, USE.NAMES = USE.NAMES)
+        },
+        denormalize = function(dims = names(self$dimensions), na.fill = FALSE){
+            n.dims = length(dims)
+            all_cols = lapply(self$dims.apply(function(x) lapply(x$levels, names.level), dims = dims), `[[`, 1L)
+            key_cols = sapply(all_cols, `[[`, 1L)
+            lkp_cols = lapply(all_cols, `[`, -1L)
+            # that already solved later in `lookupv`
+            #if(!is.unique(unlist(lkp_cols))) browser()#stop("Cannot lookup dimension attributes due to the column names duplicated between dimensions.")
+            r = if(!na.fill | n.dims == 0L){
+                copy(self$fact$data)
+            } else {
+                # `nomatch` to be extended after data.table#857 resolved
+                self$fact$data[i = do.call(CJ, c(self$dims.apply(function(x) x$data[[1L]]), list(sorted = TRUE, unique = TRUE))), nomatch = NA, on = swap.on(key_cols)]
+            }
+            # lookup
+            lookupv(dims = lapply(self$dimensions[dims], as.data.table.dimension), r)
+            if(n.dims > 0L) setkeyv(r, unname(key_cols))[] else r[]
+        },
+        schema = function(){
+            rbindlist(list(
+                fact = rbindlist(list(fact = self$fact$schema()), idcol = "name"),
+                dimension = rbindlist(lapply(self$dimensions, function(x) x$schema()), idcol = "name")
+            ), idcol = "type")
         },
         head = function(n = 6L){
             list(fact = self$fact$head(n = n), dimensions = lapply(self$dimensions, function(x) x$head(n = n)))
@@ -409,7 +469,7 @@ data.cube = R6Class(
             }
             # returned object
             r = new.env()
-            r$keys = self$fact$id.vars
+            r$id.vars = self$fact$id.vars
             # - [x] filter dimensions and levels
             dim.names = setNames(nm = names(self$dimensions))
             r$dimensions = lapply(dim.names, function(d){
@@ -451,9 +511,40 @@ data.cube = R6Class(
             # }
             # - [x] return cube with all dimensions filtered and fact filtered
             return(as.data.cube(r))
+        },
+        index = function(){
+            optional.logR = function(x, .log = getOption("datacube.log")){
+                if(isTRUE(.log)) eval(substitute(logR(x), list(x = substitute(x)))) else x
+            }
+            list(self$fact$index(),
+                 lapply(self$dimensions, function(x) optional.logR(x$index())))
         }
     )
 )
+
+# dim.* ----
+
+dim.dimension = function(x){
+    stopifnot(is.dimension(x))
+    x$dim()
+}
+
+dim.fact = function(x){
+    stopifnot(is.fact(x))
+    x$dim()
+}
+
+dim.data.cube = function(x){
+    stopifnot(is.data.cube(x))
+    x$dim()
+}
+
+# names.* ----
+
+names.level = function(x) names(x$data)
+names.dimension = function(x) names(x$data)
+names.fact = function(x) names(x$data)
+names.data.cube = function(x) names(x$fact)
 
 # is.* ----
 
@@ -475,29 +566,19 @@ is.measure = function(x) inherits(x, "measure")
 
 # as.* ----
 
-# @title Make dummy a class
-# @param x any object.
-# @param \dots arguments passed to methods.
-# @return a class object.
-# as.a = function(x, ...) UseMethod("as.a")
-# as.a.default = function(x, ...) as.a.data.table(as.data.table(x))
-# as.a.data.table = function(x, ...) structure(list(x), class="a")
-# print.a = function(x) cat(c("<a>", capture.output(print(as.data.table(unclass(x[[1L]]))))), sep="\n")
-# dim.a = function(x) dim(as.data.table(unclass(x[[1L]])))
-
 as.level = function(x, ...){
     UseMethod("as.level")
 }
 
-as.level.data.table = function(x, key = key(x), properties, ...){
-    stopifnot(is.character(properties), is.character(key), length(key) > 0L)
-    level$new(x = x, key = key, properties = properties)
+as.level.data.table = function(x, id.vars = key(x), properties, ...){
+    stopifnot(is.character(properties), is.character(id.vars), length(id.vars) > 0L)
+    level$new(x = x, id.vars = id.vars, properties = properties)
 }
 
 #' @title Build dimension
 #' @param x data.table or object with a \emph{as.data.table} method, build dimension based on that dataset.
 #' @param \dots arguments passed to methods.
-#' @param key character scalar of dimension primary key.
+#' @param id.vars character scalar of dimension primary key.
 #' @param hierarchies list of hierarchies of levels and its attributes.
 #' @return dimension class object.
 as.dimension = function(x, ...){
@@ -506,16 +587,16 @@ as.dimension = function(x, ...){
 
 #' @rdname as.dimension
 #' @method as.dimension default
-as.dimension.default = function(x, key, hierarchies, ...){
-    stopifnot(is.list(hierarchies), is.character(key), length(key) > 0L)
-    as.dimension.data.table(as.data.table(x), key = key, hierarchies = hierarchies)
+as.dimension.default = function(x, id.vars, hierarchies, ...){
+    stopifnot(is.list(hierarchies), is.character(id.vars), length(id.vars) > 0L)
+    as.dimension.data.table(as.data.table(x), id.vars = id.vars, hierarchies = hierarchies)
 }
 
 #' @rdname as.dimension
 #' @method as.dimension data.table
-as.dimension.data.table = function(x, key = key(x), hierarchies, ...){
-    stopifnot(is.list(hierarchies), is.character(key), length(key) > 0L)
-    dimension$new(x = x, key = key, hierarchies = hierarchies)
+as.dimension.data.table = function(x, id.vars = key(x), hierarchies = list(setNames(rep(list(character(0)), length(id.vars)), id.vars)), ...){
+    stopifnot(is.list(hierarchies), is.character(id.vars), length(id.vars) > 0L)
+    dimension$new(x = x, id.vars = id.vars, hierarchies = hierarchies)
 }
 
 as.dimension.environment = function(x, ...){
@@ -553,7 +634,7 @@ as.fact.default = function(x, id.vars = character(), measure.vars = character(),
 
 #' @rdname as.fact
 #' @method as.fact data.table
-as.fact.data.table = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures){
+as.fact.data.table = function(x, id.vars = key(x), measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ..., measures){
     fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = fun.aggregate, ... = ..., measures = measures)
 }
 
@@ -575,12 +656,17 @@ as.data.cube.default = function(x, ...){
 
 #' @rdname as.data.cube
 #' @method as.data.cube array
-as.data.cube.array = function(x, na.rm=TRUE, ...){
-    stop("DEV as.data.cube.array TO DO")
-    # stopifnot(is.character(fact), length(fact)==1L)
-    # dims = selfNames(names(dimnames(x)))
-    # as.data.cube(as.data.table(x, na.rm = na.rm), fact = fact, dims = lapply(selfNames(names(dimnames(x))), function(x) x))
-    # as.data.cube.fact()
+as.data.cube.array = function(x, na.rm = TRUE, ...){
+    ar.dimnames = dimnames(x)
+    dt = as.data.table(x, na.rm = na.rm)
+    ff = as.fact(dt, id.vars = key(dt), measure.vars = "value")
+    dd = lapply(setNames(nm = names(ar.dimnames)), function(nm){
+        as.dimension(setNames(list(ar.dimnames[[nm]]), nm),
+                     id.vars = nm,
+                     hierarchies = list(setNames(list(character(0)), nm)))
+        
+    })
+    as.data.cube.fact(ff, dd)
 }
 
 #' @rdname as.data.cube
@@ -596,6 +682,12 @@ as.data.cube.fact = function(x, dimensions, ...){
 
 as.data.cube.environment = function(x, ...){
     data.cube$new(.env = x)
+}
+
+as.data.cube.cube = function(x, ...){
+    ff = x$fapply(as.fact.data.table)[[x$fact]]
+    dd = x$dapply(as.dimension.data.table)
+    as.data.cube.fact(ff, dd)
 }
 
 # data.cube methods `[`, `[[` ----

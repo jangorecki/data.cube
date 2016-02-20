@@ -7,14 +7,16 @@
 \usage{
 as.dimension(x, ...)
 
-\method{as.dimension}{default}(x, key, hierarchies, ...)
+\method{as.dimension}{default}(x, id.vars, hierarchies, ...)
 
-\method{as.dimension}{data.table}(x, key = key(x), hierarchies, ...)
+\method{as.dimension}{data.table}(x, id.vars = key(x),
+  hierarchies = list(setNames(rep(list(character(0)), length(id.vars)),
+  id.vars)), ...)
 }
 \arguments{
 \item{x}{data.table or object with a \emph{as.data.table} method, build dimension based on that dataset.}
 
-\item{key}{character scalar of dimension primary key.}
+\item{id.vars}{character scalar of dimension primary key.}
 
 \item{hierarchies}{list of hierarchies of levels and its attributes.}
 

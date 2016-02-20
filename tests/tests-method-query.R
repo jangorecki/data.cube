@@ -3,6 +3,8 @@ library(data.cube)
 
 options("datacube.jj" = FALSE)
 
+# fact$initialize ----
+
 X = populate_star(N = 1e5, surrogate.keys = FALSE)
 ff = fact$new(x = X$fact$sales,
               id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
@@ -38,3 +40,28 @@ stopifnot(
     c("geog_abb","time_date","amount","value") %in% names(r),
     nrow(r) == 3L
 )
+
+# data.cube$initialize ----
+
+# initialize ----
+
+X = populate_star(N = 1e5, surrogate.keys = FALSE, hierarchies = TRUE)
+
+dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
+    dimension$new(X$dims[[i]],
+                  id.vars = key(X$dims[[i]]),
+                  hierarchies = X$hierarchies[[i]])
+})
+ff = fact$new(x = X$fact$sales,
+              id.vars = sapply(dims, `[[`, "id.vars"),
+              measure.vars = c("amount","value"),
+              fun.aggregate = "sum",
+              na.rm = TRUE)
+dc = data.cube$new(fact = ff, dimensions = dims)
+
+# data.cube$query ----
+
+# r = dc$query()
+# stopifnot(
+#     TRUE
+# )

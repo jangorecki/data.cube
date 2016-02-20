@@ -3,19 +3,18 @@ library(data.cube)
 
 # initialize ----
 
-X = populate_star(N = 1e5, surrogate.keys = FALSE, hierarchies = TRUE)
-
+X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
 dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
-    dimension$new(X$dims[[i]],
-                  key = key(X$dims[[i]]),
-                  hierarchies = X$hierarchies[[i]])
+    as.dimension(X$dims[[i]],
+                 key = key(X$dims[[i]]),
+                 hierarchies = X$hierarchies[[i]])
 })
 ff = fact$new(x = X$fact$sales,
-              id.vars = sapply(dims, `[[`, "key"),
+              id.vars = key(X$fact$sales),
               measure.vars = c("amount","value"),
               fun.aggregate = "sum",
               na.rm = TRUE)
-dc = data.cube$new(fact = ff, dimensions = dims)
+dc = as.data.cube(ff, dims)
 
 stopifnot(
     is.data.table(dc$fact$data),
@@ -57,3 +56,20 @@ stopifnot(
     sapply(lapply(r$dimensions, `[[`, "base"), nrow) == 6L,
     unlist(lapply(r$dimensions, function(x) sapply(x$levels, is.data.table)))
 )
+
+# subset ----
+
+
+
+# d = dc$subset(.(prod_name = "Mazda RX4", prod_gear = c(3L, 4L)),, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter = c(1L,2L), time_quarter_name = c("Q1","Q2")))
+# 
+# stopifnot(all.equal(
+#     cb[.("Mazda RX4", prod_gear = c(3L, 4L)),, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))],
+#     cb[product = "Mazda RX4",
+#        customer = .(),
+#        currency = .(curr_type = "crypto"),
+#        geography = .(),
+#        time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+# ))
+
+

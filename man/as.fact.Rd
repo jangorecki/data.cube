@@ -10,8 +10,9 @@ as.fact(x, ...)
 \method{as.fact}{default}(x, id.vars = character(),
   measure.vars = character(), fun.aggregate = "sum", ..., measures)
 
-\method{as.fact}{data.table}(x, id.vars = character(),
-  measure.vars = character(), fun.aggregate = "sum", ..., measures)
+\method{as.fact}{data.table}(x, id.vars = key(x),
+  measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ...,
+  measures)
 }
 \arguments{
 \item{x}{data.table build dimension based on that dataset.}

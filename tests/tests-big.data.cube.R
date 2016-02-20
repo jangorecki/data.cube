@@ -76,7 +76,7 @@ rscl.close(rscl)
 
 X = populate_star(N = 1e5, surrogate.keys = FALSE)
 time = dimension$new(X$dims$time,
-                     key = "time_date",
+                     id.vars = "time_date",
                      hierarchies = list(
                          "monthly" = list(
                              "time_year" = character(),
@@ -91,7 +91,7 @@ time = dimension$new(X$dims$time,
                          )
                      ))
 geog = dimension$new(X$dims$geography,
-                     key = "geog_abb",
+                     id.vars = "geog_abb",
                      hierarchies = list(
                          list(
                              "geog_region_name" = character(),
@@ -100,7 +100,7 @@ geog = dimension$new(X$dims$geography,
                          )
                      ))
 
-rscl = big.data.table::rscl.connect(port = 33311:33314)
+rscl = rscl.connect(port = 33311:33314)
 rscl.require(rscl, c("data.table","data.cube"))
 bdt = as.big.data.table(X$fact$sales, rscl)
 ff = fact$new(x = rscl,

@@ -86,6 +86,9 @@ swap.on = function(x){
 
 # join and lookup chosen columns
 lookup = function(fact, dim, cols){
+    stopifnot(haskey(dim))
+    if(missing(cols)) cols = copy(setdiff(names(dim), key(dim)))
+    if(!length(cols)) return(TRUE)
     if(any(cols %in% names(fact))) stop(sprintf("Column name collision on lookup for '%s' columns.", paste(cols[cols %in% names(fact)], collapse=", ")))
     fact[dim, (cols) := mget(paste0("i.", cols)), on = c(key(dim))]
     # workaround for data.table#1166 - lookup NAs manually

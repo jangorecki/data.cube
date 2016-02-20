@@ -1,6 +1,8 @@
 library(data.table)
 library(data.cube)
 
+# data.cube: 2 dimensions, produce hierarchies ----
+
 X = populate_star(N = 1e3, surrogate.keys = FALSE)
 time.hierarchies = list(
     "monthly" = list(
@@ -36,3 +38,52 @@ dc = as.data.cube(facts, dimensions)
 stopifnot(
     is.data.cube(dc)
 )
+
+# data.cube: 5 dimensions, hierarchies from `populate_star` ----
+
+X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
+dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
+    as.dimension(X$dims[[i]],
+                 key = key(X$dims[[i]]),
+                 hierarchies = X$hierarchies[[i]])
+})
+ff = as.fact(x = X$fact$sales,
+             id.vars = key(X$fact$sales),
+             measure.vars = c("amount","value"),
+             fun.aggregate = "sum",
+             na.rm = TRUE)
+dc = as.data.cube(ff, dims)
+stopifnot(is.data.cube(dc))
+
+# array: 3 dimensions ----
+
+set.seed(1L)
+ar.dimnames = list(color = sort(c("green","yellow","red")), 
+                   year = as.character(2011:2015), 
+                   status = sort(c("active","inactive","archived","removed")))
+ar.dim = sapply(ar.dimnames, length)
+ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE), 
+           unname(ar.dim),
+           ar.dimnames)
+
+# in
+cb.ar = as.cube(ar)
+dc.ar = as.data.cube(ar)
+stopifnot(all.equal(dim(cb.ar), dim(dc.ar)))
+
+# out
+stopifnot(
+    all.equal(ar, as.array(cb.ar)),
+    all.equal(ar, as.array(dc.ar)),
+    all.equal(as.data.table(cb.ar), as.data.table(dc.ar)),
+    nrow(as.data.table(dc.ar, na.fill = TRUE)) > nrow(as.data.table(dc.ar, na.fill = FALSE)),
+    all.equal(dc.ar, as.data.cube(cb.ar))
+)
+
+# zero dimension fact
+# r = aggregate(dc.ar, character(), FUN = sum)
+# stopifnot(
+#     nrow(format(r))==1L,
+#     all.equal(format(r), as.data.table(r)),
+#     all.equal(format(r)$value, as.array(r))
+# )

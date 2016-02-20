@@ -61,23 +61,27 @@ stopifnot(
 
 # in
 dt = dc.f$denormalize()
-# z = as.cube(dt, dims = lapply(X$dims, names))
-dc.d = as.data.cube(dt,
-                    id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
-                    measure.vars = c("amount","value"),
-                    dims = names(X$dims), 
-                    hierarchies = X$hierarchies)
-# stopifnot(
-#     all.equal(dc.f, dc.d)
-# )
-# dc.f$id.vars
-# 
-# 
-# # out
-# stopifnot(
-#     all.equal(X, as.list(dc.f)),
-#     all.equal(dt, as.data.table(dc.d))
-# )
+dc.d = as.data.cube(
+    x = dt,
+    id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
+    measure.vars = c("amount","value"),
+    fun.aggregate = "sum",
+    na.rm = TRUE,
+    dims = c("product","customer","currency","geography","time"), 
+    hierarchies = X$hierarchies
+)
+stopifnot(
+    is.data.cube(dc.d),
+    # all.equal(dc.f, dc.d) # cannot be equal because dc.d has already dropped unused dimension values, so there is a different subset of date
+    all.equal(dc.f$fact, dc.d$fact),
+    all.equal(names(dc.f$id.vars), names(dc.d$id.vars)),
+    all.equal(names(dc.f$dimensions), names(dc.d$dimensions))
+)
+
+# out
+stopifnot(
+    all.equal(dt, as.data.table(dc.d))
+)
 
 # array: 3 dimensions ----
 

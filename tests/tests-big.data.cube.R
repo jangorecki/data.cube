@@ -164,7 +164,7 @@ if(apkg){
         # data.cube queries # TO DO
         
         on = options("datatable.prettyprint.char" = 80L)
-        print(lr)
+        print(lr[])
         options(on)
         
         rscl.close(rscl)

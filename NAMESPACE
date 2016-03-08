@@ -34,21 +34,31 @@ S3method(rollup, data.table)
 export(populate_star)
 export(process.dim)
 
-# as.data.cube classes `as.*` methods
+# measure
 export(as.measure)
+
+# level
 export(as.level)
 S3method(as.level, default)
 S3method(as.level, data.table)
+
+# hierarchy
 export(as.hierarchy)
 S3method(as.hierarchy, default)
 S3method(as.hierarchy, list)
+
+# dimension
 export(as.dimension)
 S3method(as.dimension, default)
 S3method(as.dimension, data.table)
+
+# fact
 export(as.fact)
 S3method(as.fact, default)
 S3method(as.fact, data.table)
 S3method(as.fact, list)
+
+# data.cube
 export(as.data.cube)
 S3method(as.data.cube, default)
 S3method(as.data.cube, fact)
@@ -61,7 +71,7 @@ S3method(as.array, data.cube)
 S3method(as.data.table, data.cube)
 S3method(as.data.table, dimension)
 
-# is.data.cube classess
+# is.* classess
 export(is.measure)
 export(is.dimension)
 export(is.fact)

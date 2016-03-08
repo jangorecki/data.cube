@@ -30,8 +30,8 @@ as.array.data.table = function(x, dimcols, measure, dimnames, ...){
         if(length(x) > 1L) stopifnot(is.character(measure), length(measure)==1L, measure %in% names(x))
         return(x[[measure]])
     }
-    if(!missing(dimcols)) stopifnot(is.character(dimcols), is.unique(names(dimcols)), is.unique(dimcols), dimcols %in% names(x))
-    if(!missing(dimnames)) stopifnot(is.list(dimnames), !is.null(names(dimnames)), is.unique(names(dimnames)))
+    if(!missing(dimcols)) stopifnot(is.character(dimcols), !anyDuplicated(names(dimcols)), !anyDuplicated(dimcols), dimcols %in% names(x))
+    if(!missing(dimnames)) stopifnot(is.list(dimnames), !is.null(names(dimnames)), !anyDuplicated(names(dimnames)))
     if(!missing(dimcols) && !missing(dimnames)){
         if(length(dimcols) && is.null(names(dimcols))) dimcols = setNames(dimcols, names(dimnames))
     }
@@ -62,20 +62,6 @@ as.array.data.table = function(x, dimcols, measure, dimnames, ...){
                   dimnames = dimnames)
     }
     if(length(dimnames)==1L) c(r) else r
-}
-
-#' @title Test if object unique
-#' @param x R object
-#' @return logical, or a NULL.
-is.unique = function(x){
-    if(is.null(x)) return(TRUE) # fixed in 1.9.7 data.table#1429
-    identical(length(x), length(unique(x)))
-}
-
-# fast check if data aggregated to all dimensions
-is.unique.data.table = function(x, by = key(x)){
-    if(is.null(x)) return(logical(0)) # fixed in 1.9.7 data.table#1429
-    nrow(x)==uniqueN(x, by = by)
 }
 
 # not yet exported from data.table

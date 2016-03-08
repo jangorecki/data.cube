@@ -30,7 +30,7 @@ process.dim = function(dim, x){
         else stop("Unsupported type of dimension values.")
     }
     if(!identical(key(x), names(x)[1L])) setkeyv(x, names(x)[1L])
-    if(!is.unique.data.table(x)){
+    if(anyDuplicated(x)){
         nr_before = nrow(x)
         x = unique(x, by = key(x))
         nr_after = nrow(x)
@@ -42,7 +42,7 @@ process.dim = function(dim, x){
 # @param fact name for fact table
 # @param dims list of vectors columns names for each dimension
 as.cube.data.table = function(x, fact = "fact", dims, fun.aggregate = sum, ...){
-    stopifnot(is.data.table(x), is.character(fact), is.list(dims), as.logical(length(dims)), is.unique(names(dims)), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(fun.aggregate))
+    stopifnot(is.data.table(x), is.character(fact), is.list(dims), as.logical(length(dims)), !anyDuplicated(names(dims)), all(sapply(dims, is.character)), all(sapply(dims, length)), is.function(fun.aggregate))
     key_cols = sapply(dims, `[`, 1L)
     measure_cols = names(x)[!names(x) %in% unlist(dims)]
     cube$new(list(
@@ -61,7 +61,7 @@ as.cube.list = function(x, fact, dims, fun.aggregate = sum, ...){
     # - [ ] decode base R *dimnames* structure `list(dim1=c(...),dim2=c(...))` to support it as an input
     x$dims = lapply(selfNames(names(x$dims)), function(dim) process.dim(dim, x = x$dims[[dim]]))
     fact = names(x$fact)
-    if(!is.unique.data.table(x$fact[[fact]])){
+    if(anyDuplicated(x$fact[[fact]])){
         if(missing(fun.aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `fun.aggregate` argument is missing. Sub-aggregated your fact table or provide aggregate function to be used on all measures."))
         if(!is.function(fun.aggregate)) stop(sprintf("Fact table is not sub-aggregated and the `fun.aggregate` argument is not a function. Sub-aggregated your fact table or provide aggregate function to be used on all measures."))
         # - [x] sub-aggregate fact table

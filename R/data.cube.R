@@ -412,7 +412,7 @@ data.cube = R6Class(
             key_cols = sapply(all_cols, `[[`, 1L)
             lkp_cols = lapply(all_cols, `[`, -1L)
             # that already solved later in `lookupv`
-            #if(!is.unique(unlist(lkp_cols))) browser()#stop("Cannot lookup dimension attributes due to the column names duplicated between dimensions.")
+            #if(anyDuplicated(unlist(lkp_cols))) browser()#stop("Cannot lookup dimension attributes due to the column names duplicated between dimensions.")
             r = if(!na.fill | n.dims == 0L){
                 copy(self$fact$data)
             } else {

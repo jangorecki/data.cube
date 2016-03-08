@@ -90,7 +90,7 @@ cube = R6Class(
             all_cols = self$dapply(names, dims = dims)
             key_cols = sapply(all_cols, `[`, 1L)
             lkp_cols = lapply(all_cols, `[`, -1L)
-            if(!is.unique(unlist(lkp_cols))) stop("Cannot lookup dimension attributes due to the column names duplicated between dimensions.")
+            if(anyDuplicated(unlist(lkp_cols))) stop("Cannot lookup dimension attributes due to the column names duplicated between dimensions.")
             r = if(!na.fill | length(dims)==0L){
                 copy(self$env$fact[[self$fact]])
             } else {

@@ -49,7 +49,7 @@ r = dimnames(dc)
 stopifnot(
     is.list(r),
     identical(names(r), c("product","customer","currency","geography","time")),
-    sapply(r, function(x) is.unique(r))
+    !sapply(r, function(x) anyDuplicated(r))
 )
 
 # schema ----

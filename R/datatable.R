@@ -69,7 +69,7 @@ as.array.data.table = function(x, dimcols, measure, dimnames, ...){
 #' @return logical, or a NULL.
 is.unique = function(x){
     if(is.null(x)) return(TRUE) # fixed in 1.9.7 data.table#1429
-    identical(length(x), uniqueN(x))
+    identical(length(x), length(unique(x)))
 }
 
 # fast check if data aggregated to all dimensions

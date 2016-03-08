@@ -95,7 +95,7 @@ geog = dimension$new(X$dims$geography,
                      hierarchies = list(
                          list(
                              "geog_region_name" = character(),
-                             "geog_division_name" = character(),
+                             "geog_division_name" = c("geog_region_name"),
                              "geog_abb" = c("geog_name","geog_division_name","geog_region_name")
                          )
                      ))

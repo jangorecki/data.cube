@@ -3,7 +3,7 @@ library(data.cube)
 
 # initialize ----
 
-m = measure$new(x = "z", label = "score etc.", fun.aggregate = "sum", na.rm = TRUE)
+m = as.measure(x = "z", label = "score etc.", fun.aggregate = "sum", na.rm = TRUE)
 stopifnot(is.measure(m))
 
 # expr ----
@@ -20,8 +20,12 @@ stopifnot(
 
 # fun.format ----
 
-m = measure$new(x = "z", label = "score etc.", fun.aggregate = "sum", na.rm = TRUE, fun.format = function(x) sprintf("$ %s", x))
+m = as.measure(x = "z", label = "score etc.", fun.aggregate = "sum", na.rm = TRUE, fun.format = function(x) sprintf("$ %s", x))
 stopifnot(
     is.function(m$fun.format),
     m$fun.format(12.5) == "$ 12.5"
 )
+
+# tests status ------------------------------------------------------------
+
+invisible(FALSE)

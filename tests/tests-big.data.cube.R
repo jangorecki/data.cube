@@ -31,11 +31,11 @@ rscl = big.data.table::rscl.connect(port = 33311:33314)
 rscl.require(rscl, c("data.table","data.cube"))
 X = populate_star(N = 1e5, surrogate.keys = FALSE)
 bdt = as.big.data.table(X$fact$sales, rscl)
-ff = fact$new(x = rscl,
-              id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
-              measure.vars = c("amount","value"),
-              fun.aggregate = "sum",
-              na.rm = TRUE)
+ff = as.fact(x = rscl,
+             id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
+             measure.vars = c("amount","value"),
+             fun.aggregate = "sum",
+             na.rm = TRUE)
 stopifnot(
     is.big.data.table(ff$data),
     inherits(ff, "fact"),
@@ -75,41 +75,41 @@ rscl.close(rscl)
 # data.cube ----
 
 X = populate_star(N = 1e5, surrogate.keys = FALSE)
-time = dimension$new(X$dims$time,
-                     id.vars = "time_date",
-                     hierarchies = list(
-                         "monthly" = list(
-                             "time_year" = character(),
-                             "time_quarter" = c("time_quarter_name"),
-                             "time_month" = c("time_month_name"),
-                             "time_date" = c("time_month","time_quarter","time_year")
-                         ),
-                         "weekly" = list(
-                             "time_year" = character(),
-                             "time_week" = character(),
-                             "time_date" = c("time_week","time_year")
-                         )
-                     ))
-geog = dimension$new(X$dims$geography,
-                     id.vars = "geog_abb",
-                     hierarchies = list(
-                         list(
-                             "geog_region_name" = character(),
-                             "geog_division_name" = c("geog_region_name"),
-                             "geog_abb" = c("geog_name","geog_division_name","geog_region_name")
-                         )
-                     ))
+time = as.dimension(X$dims$time,
+                    id.vars = "time_date",
+                    hierarchies = list(
+                        "monthly" = list(
+                            "time_year" = character(),
+                            "time_quarter" = c("time_quarter_name"),
+                            "time_month" = c("time_month_name"),
+                            "time_date" = c("time_month","time_quarter","time_year")
+                        ),
+                        "weekly" = list(
+                            "time_year" = character(),
+                            "time_week" = character(),
+                            "time_date" = c("time_week","time_year")
+                        )
+                    ))
+geog = as.dimension(X$dims$geography,
+                    id.vars = "geog_abb",
+                    hierarchies = list(
+                        list(
+                            "geog_region_name" = character(),
+                            "geog_division_name" = c("geog_region_name"),
+                            "geog_abb" = c("geog_name","geog_division_name","geog_region_name")
+                        )
+                    ))
 
 rscl = rscl.connect(port = 33311:33314)
 rscl.require(rscl, c("data.table","data.cube"))
 bdt = as.big.data.table(X$fact$sales, rscl)
-ff = fact$new(x = rscl,
-              id.vars = c("geog_abb","time_date"),
-              measure.vars = c("amount","value"),
-              na.rm = TRUE)
+ff = as.fact(x = rscl,
+             id.vars = c("geog_abb","time_date"),
+             measure.vars = c("amount","value"),
+             na.rm = TRUE)
 rm(bdt)
 
-dc = data.cube$new(fact = ff, dimensions = list(time = time, geography = geog))
+dc = as.data.cube(ff, list(time = time, geography = geog))
 stopifnot(
     is.big.data.table(dc$fact$data),
     # Normalization
@@ -143,10 +143,10 @@ if(apkg){
         stopifnot(rscl.require(rscl, c("data.table", "logR")))
         stopifnot(rscl.eval(rscl, logR::logR_connect(quoted = TRUE), lazy = FALSE))
         bdt = as.big.data.table(X$fact$sales, rscl)
-        ff = fact$new(x = rscl,
-                      id.vars = c("geog_abb","time_date"),
-                      measure.vars = c("amount","value"),
-                      na.rm = TRUE)
+        ff = as.fact(x = rscl,
+                     id.vars = c("geog_abb","time_date"),
+                     measure.vars = c("amount","value"),
+                     na.rm = TRUE)
         r = bdt[1L]
         # TO DO: add data.cube `[` queries when ready
         options(on)

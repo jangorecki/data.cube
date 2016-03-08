@@ -9,11 +9,11 @@ dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
                  key = key(X$dims[[i]]),
                  hierarchies = X$hierarchies[[i]])
 })
-ff = fact$new(x = X$fact$sales,
-              id.vars = key(X$fact$sales),
-              measure.vars = c("amount","value"),
-              fun.aggregate = "sum",
-              na.rm = TRUE)
+ff = as.fact(x = X$fact$sales,
+             id.vars = key(X$fact$sales),
+             measure.vars = c("amount","value"),
+             fun.aggregate = "sum",
+             na.rm = TRUE)
 dc = as.data.cube(ff, dims)
 
 stopifnot(
@@ -89,3 +89,6 @@ stopifnot(
 # ))
 
 
+# tests status ------------------------------------------------------------
+
+invisible(FALSE)

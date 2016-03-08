@@ -4,7 +4,7 @@ library(data.cube)
 # initialize ----
 
 dt = data.table(a = rep(1:6,2), b = letters[1:3], d = letters[1:2], z = NA)
-ddim = dimension$new(
+ddim = as.dimension(
     x = dt,
     id.vars = "a",
     hierarchies = list(
@@ -23,9 +23,9 @@ stopifnot(
 # time dimension ----
 
 X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
-time = dimension$new(X$dims$time,
-                     id.vars = "time_date",
-                     hierarchies = X$hierarchies$time)
+time = as.dimension(X$dims$time,
+                    id.vars = "time_date",
+                    hierarchies = X$hierarchies$time)
 stopifnot(
     inherits(time, "dimension"),
     names(time$hierarchies) == c("monthly","weekly"),
@@ -38,9 +38,9 @@ stopifnot(
 
 X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
 dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
-    dimension$new(X$dims[[i]],
-                  id.vars = key(X$dims[[i]]),
-                  hierarchies = X$hierarchies[[i]])
+    as.dimension(X$dims[[i]],
+                 id.vars = key(X$dims[[i]]),
+                 hierarchies = X$hierarchies[[i]])
 })
 
 stopifnot(
@@ -56,3 +56,7 @@ stopifnot(
     sapply(ld, is.data.table),
     all.equal(sapply(ld, ncol), structure(c(5L, 4L, 2L, 4L, 8L), .Names = c("product", "customer", "currency", "geography", "time")))
 )
+
+# tests status ------------------------------------------------------------
+
+invisible(FALSE)

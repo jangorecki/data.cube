@@ -3,6 +3,7 @@
 \alias{as.fact}
 \alias{as.fact.data.table}
 \alias{as.fact.default}
+\alias{as.fact.list}
 \title{Build fact}
 \usage{
 as.fact(x, ...)
@@ -11,6 +12,10 @@ as.fact(x, ...)
   measure.vars = character(), fun.aggregate = "sum", ..., measures)
 
 \method{as.fact}{data.table}(x, id.vars = as.character(key(x)),
+  measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ...,
+  measures)
+
+\method{as.fact}{list}(x, id.vars = as.character(key(x)),
   measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ...,
   measures)
 }

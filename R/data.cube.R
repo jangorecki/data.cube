@@ -114,14 +114,14 @@ dimension = R6Class(
                 (all.hierarchies.level.attrs <- unique(unname(unlist(hierarchies, recursive = TRUE)))) %in% names(x)
             )
             self$id.vars = id.vars
-            self$hierarchies = lapply(hierarchies, function(levels) hierarchy$new(levels = levels))
+            self$hierarchies = lapply(hierarchies, function(levels) as.hierarchy(levels))
             # combine by levels
             common.levels = Reduce(function(x, y){
                 lapply(setNames(nm = unique(c(names(x), names(y)))),
                        function(nm) c(x[[nm]], y[[nm]]))
             }, hierarchies)
             self$levels =  lapply(setNames(nm = names(common.levels)), function(lvlk){
-                level$new(x, id.vars = lvlk, properties = common.levels[[lvlk]])
+                as.level(x, id.vars = lvlk, properties = common.levels[[lvlk]])
             })
             dt = rbindlist(lapply(names(self$levels), function(lvlk) data.table(properties = c(lvlk, self$levels[[lvlk]]$properties))[, level := lvlk]))[, tail(.SD, 1L), properties]
             self$fields = dt$properties # TEST on error use: setNames(dt$properties, dt$level)
@@ -261,7 +261,7 @@ fact = R6Class(
             } else {
                 if(!length(measure.vars)) stop("You need to provide at least one measure column name")#measure.vars = setdiff(names(x), self$id.vars)
                 self$measure.vars = measure.vars
-                self$measures = lapply(setNames(nm = self$measure.vars), function(var) measure$new(var, fun.aggregate = fun.aggregate, ... = ...))
+                self$measures = lapply(setNames(nm = self$measure.vars), function(var) as.measure(var, fun.aggregate = fun.aggregate, ... = ...))
             }
             stopifnot(
                 sapply(self$measures, inherits, "measure"),
@@ -565,13 +565,57 @@ is.measure = function(x) inherits(x, "measure")
 
 # as.* ----
 
+#' @title Create level
+#' @param x data.table or object with a \emph{as.data.table} method, build level based on that dataset.
+#' @param \dots arguments passed to methods.
+#' @param id.vars character scalar of level primary key.
+#' @param properties character vector of column names from dataset to include on that levell.
+#' @return level class object.
 as.level = function(x, ...){
     UseMethod("as.level")
 }
 
+#' @rdname as.level
+#' @method as.level default
+as.level.default = function(x, id.vars = key(x), properties, ...){
+    if(is.null(x)) return(null.level())
+    as.level.data.table(as.data.table(x, ...), id.vars = id.vars, properties = properties)
+}
+
+#' @rdname as.level
+#' @method as.level data.table
 as.level.data.table = function(x, id.vars = key(x), properties, ...){
     stopifnot(is.character(properties), is.character(id.vars), length(id.vars) > 0L)
     level$new(x = x, id.vars = id.vars, properties = properties)
+}
+
+null.level = function(...){
+    stop("null.level object is not allowed")
+}
+
+#' @title Create hierarchy
+#' @param x list or object with a \emph{as.list} method.
+#' @param \dots arguments passed to methods.
+#' @return hierarchy class object.
+as.hierarchy = function(x, ...){
+    UseMethod("as.hierarchy")
+}
+
+#' @rdname as.hierarchy
+#' @method as.hierarchy default
+as.hierarchy.default = function(x, ...){
+    if(is.null(x)) return(null.hierarchy())
+    as.hierarchy.list(as.list(x, ...))
+}
+
+#' @rdname as.hierarchy
+#' @method as.hierarchy list
+as.hierarchy.list = function(x, ...){
+    hierarchy$new(x)
+}
+
+null.hierarchy = function(...){
+    stop("null hierarchy not allowed")
 }
 
 #' @title Build dimension
@@ -646,6 +690,13 @@ as.fact.default = function(x, id.vars = character(), measure.vars = character(),
 #' @rdname as.fact
 #' @method as.fact data.table
 as.fact.data.table = function(x, id.vars = as.character(key(x)), measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ..., measures){
+    fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = fun.aggregate, ... = ..., measures = measures)
+}
+
+#' @rdname as.fact
+#' @method as.fact list
+as.fact.list = function(x, id.vars = as.character(key(x)), measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ..., measures){
+    stopifnot(requireNamespace("big.data.table", quietly = TRUE), big.data.table::is.rscl(x))
     fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = fun.aggregate, ... = ..., measures = measures)
 }
 

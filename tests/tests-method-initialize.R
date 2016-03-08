@@ -4,7 +4,7 @@ library(data.cube)
 # level ----
 
 dt = data.table(a = rep(1:6,2), b = letters[1:3], d = letters[1:2], z = NA)
-lvl = level$new(x = dt, id.vars = "a", properties = c("b","d"))
+lvl = as.level(x = dt, id.vars = "a", properties = c("b","d"))
 stopifnot(
     inherits(lvl, "level"),
     identical(lvl$id.vars, "a"),
@@ -14,8 +14,8 @@ stopifnot(
 
 # hierarchy ----
 
-hrh1 = hierarchy$new(levels = list("b" = character(), "a" = c("b")))
-hrh2 = hierarchy$new(levels = list("d" = character(), "a" = c("d")))
+hrh1 = as.hierarchy(list("b" = character(), "a" = c("b")))
+hrh2 = as.hierarchy(list("d" = character(), "a" = c("d")))
 stopifnot(
     is.list(hrh1$levels),
     length(hrh1$levels) == 2L,
@@ -25,7 +25,7 @@ stopifnot(
 # dimension ----
 
 dt = data.table(a = rep(1:6,2), b = letters[1:3], d = letters[1:2], z = NA)
-ddim = dimension$new(
+ddim = as.dimension(
     x = dt,
     id.vars = "a",
     hierarchies = list(
@@ -43,9 +43,9 @@ stopifnot(
 
 # time dimension
 X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
-time = dimension$new(X$dims$time,
-                     id.vars = "time_date",
-                     hierarchies = X$hierarchies$time)
+time = as.dimension(X$dims$time,
+                    id.vars = "time_date",
+                    hierarchies = X$hierarchies$time)
 stopifnot(
     inherits(time, "dimension"),
     names(time$hierarchies) == c("monthly","weekly"),
@@ -57,7 +57,7 @@ rm(X)
 
 # measure ----
 
-m = measure$new(x = "z", label = "score etc.", fun.aggregate = "sum", na.rm = TRUE)
+m = as.measure(x = "z", label = "score etc.", fun.aggregate = "sum", na.rm = TRUE)
 stopifnot(
     is.measure(m)
 )
@@ -65,9 +65,9 @@ stopifnot(
 # fact ----
 
 dt = data.table(a = rep(1:6,2), b = letters[1:3], d = letters[1:2], z = 1:12*sin(1:12))
-ff = fact$new(x = dt,
-              id.vars = c("a","b","d"),
-              measure.vars = "z")
+ff = as.fact(x = dt,
+             id.vars = c("a","b","d"),
+             measure.vars = "z")
 stopifnot(
     identical(dim(ff$data), c(6L, 4L))
 )
@@ -77,16 +77,16 @@ stopifnot(
 X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
 
 dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
-    dimension$new(X$dims[[i]],
-                  id.vars = key(X$dims[[i]]),
-                  hierarchies = X$hierarchies[[i]])
+    as.dimension(X$dims[[i]],
+                 id.vars = key(X$dims[[i]]),
+                 hierarchies = X$hierarchies[[i]])
 })
-ff = fact$new(x = X$fact$sales,
-              id.vars = sapply(dims, `[[`, "id.vars"),
-              measure.vars = c("amount","value"),
-              fun.aggregate = "sum",
-              na.rm = TRUE)
-dc = data.cube$new(fact = ff, dimensions = dims)
+ff = as.fact(x = X$fact$sales,
+             id.vars = sapply(dims, `[[`, "id.vars"),
+             measure.vars = c("amount","value"),
+             fun.aggregate = "sum",
+             na.rm = TRUE)
+dc = as.data.cube(ff, dims)
 stopifnot(
     is.data.table(dc$fact$data),
     # Normalization

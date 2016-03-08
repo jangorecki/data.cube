@@ -33,14 +33,14 @@ library(data.table)
 library(big.data.table)
 library(data.cube)
 
-rscl = big.data.table::rscl.connect(port = 33311:33314)
+rscl = rscl.connect(port = 33311:33314)
 rscl.require(rscl, c("data.table","data.cube"))
 X = populate_star(N = 1e5, surrogate.keys = FALSE)
 bdt = as.big.data.table(X$fact$sales, rscl)
-ff = fact$new(x = rscl,
-              id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
-              measure.vars = c("amount","value"),
-              na.rm = TRUE)
+ff = as.fact(x = rscl,
+             id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
+             measure.vars = c("amount","value"),
+             na.rm = TRUE)
 stopifnot(
     is.big.data.table(ff$data),
     inherits(ff, "fact"),

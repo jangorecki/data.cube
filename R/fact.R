@@ -110,8 +110,10 @@ fact = R6Class(
         head = function(n = 6L){
             head(self$data, n)
         },
-        subset = function(){
-            NULL
+        subset = function(x){
+            browser()
+            # must return fact, not a data.table
+            as.fact(x)
         },
         index = function(.log = getOption("datacube.log")){
             NULL

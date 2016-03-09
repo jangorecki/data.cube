@@ -79,6 +79,7 @@ dimension = R6Class(
             # if(!identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls))) browser()
             # stopifnot(identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls)))
             r = new.env()
+            browser()
             r$levels = lapply(setNames(nm = names(self$levels)), function(lvl){
                 if(lvl %in% filter.lvls){
                     filter.cols.in.level = filter.lvls.cols[[lvl]]
@@ -88,7 +89,10 @@ dimension = R6Class(
                 } else self$levels[[lvl]]
             })
             # dimension base
-            r$data = if(length(filter.lvls)) NULL else self$data
+            if (drop) {
+                r$data = self$data # if(!length(filter.lvls)) NULL else self$data
+            }
+            
             r$id.vars = key(self$data)
             r$hierarchies = self$hierarchies
             r$fields = unname(self$fields)

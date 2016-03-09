@@ -43,8 +43,6 @@ stopifnot(
 
 # data.cube$initialize ----
 
-# initialize ----
-
 X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
 
 dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
@@ -59,9 +57,11 @@ ff = as.fact(x = X$fact$sales,
              na.rm = TRUE)
 dc = as.data.cube(ff, dims)
 
-# data.cube$query ----
+# data.cube$subset ----
 
-# r = dc$query()
+# dc[,,"BTC", c("TX","NY"), .(year = 2010L)]
+# dc[,,"BTC", c("TX","NY")] # 4 args
+# r = dc$subset()
 # stopifnot(
 #     TRUE
 # )

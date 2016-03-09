@@ -75,8 +75,6 @@ stopifnot(
 
 # subset ----
 
-
-
 # d = dc$subset(.(prod_name = "Mazda RX4", prod_gear = c(3L, 4L)),, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter = c(1L,2L), time_quarter_name = c("Q1","Q2")))
 # 
 # stopifnot(all.equal(

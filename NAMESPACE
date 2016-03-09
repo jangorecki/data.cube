@@ -58,7 +58,7 @@ S3method(as.fact, default)
 S3method(as.fact, data.table)
 S3method(as.fact, list)
 
-# data.cube
+# as.data.cube
 export(as.data.cube)
 S3method(as.data.cube, default)
 S3method(as.data.cube, fact)
@@ -66,19 +66,22 @@ S3method(as.data.cube, list)
 S3method(as.data.cube, data.table)
 S3method(as.data.cube, cube)
 
-# from.data.cube classes `as.*.data.cube` methods
+# [.data.cube
+S3method("[", data.cube)
+
+# as.*.data.cube
 S3method(as.array, data.cube)
 S3method(as.data.table, data.cube)
 S3method(as.data.table, dimension)
 
-# is.* classess
+# is.*
 export(is.measure)
 export(is.dimension)
 export(is.fact)
 export(is.data.cube)
 export(is.cube)
 
-# `dim.*` methods
+# dim.*
 S3method(dim, dimension)
 S3method(dim, fact)
 S3method(dim, data.cube)

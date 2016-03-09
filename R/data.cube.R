@@ -90,13 +90,13 @@ data.cube = R6Class(
                 if(is.atomic(x)) x = setNames(list(x), keys[[int]]) # x[,,"asd"] to x[,,.(keycol="asd")]
                 stopifnot(is.list(x))
                 if(length(x)==1L && is.null(x[[1L]]) && is.null(names(x[1L]))) x = setNames(x, keys[[int]]) # x[.(NULL)] to x[.(keycol=NULL)]
-                if(length(x)) stopifnot(length(unique(names(x)))==length(names(x))) # unique names
+                if(length(x)) stopifnot(!anyDuplicated(names(x))) # unique names
                 x
             }
-            keys = self$fact$id.vars
+            keys = setNames(self$fact$id.vars, names(self$dimensions))
             i = lapply(setNames(seq_along(keys), names(keys)), parse.each.i, i, keys)
             # - [x] check if all cols exists in dims
-            cols_missing = sapply(names(i), function(dimk) !all(names(i[[dimk]]) %in% self$dimensions[[dimk]]$fields))
+            cols_missing = sapply(names(i), function(dim) !all(names(i[[dim]]) %in% self$dimensions[[dim]]$fields))
             if(any(cols_missing)) stop(sprintf("Field used in query does not exists in dimensions: %s.", paste(names(cols_missing)[cols_missing], collapse=", ")))
             i
         },
@@ -107,15 +107,15 @@ data.cube = R6Class(
             i.meta = self$parse.i(.dots)
             dims.filter = lapply(i.meta, build.each.i)
             # - [x]  no filters returns self
+            dim.names = setNames(nm = names(self$dimensions))
             fact_filter = !sapply(dims.filter, is.null)
-            if(all(!fact_filter)){
+            if(!any(fact_filter)){
                 return(self)
             }
             # returned object
             r = new.env()
             r$id.vars = self$fact$id.vars
-            # - [x] filter dimensions and levels
-            dim.names = setNames(nm = names(self$dimensions))
+            # - [x] filter dimensions and levels while quering them to new environment
             r$dimensions = lapply(dim.names, function(d){
                 if(d %in% names(fact_filter)[fact_filter]) self$dimensions[[d]]$subset(i.meta = i.meta[[d]], drop = drop) else self$dimensions[[d]]
             })
@@ -130,12 +130,18 @@ data.cube = R6Class(
             # dev
             
             # - [ ] get dimension base key values after dim filtering to subset fact table
-            if(any(fact_filter)){
-                lapply(dim.names, function(d){
-                    if(d %in% names(fact_filter)[fact_filter]) self$dimensions[[d]]$base(self$fact$data) else self$dimensions[[d]]
-                })
-                # i.meta = list()
-                # r$fact = self$fact$subset(i.dt, drop = drop)
+            if(any(fact_filter)){ 
+                keys = self$dims.apply(function(x) x$data[[1L]], dims = names(fact_filter)[fact_filter])
+                qi = Reduce(function(a, b) bquote(.(a) & .(b)), lapply(names(dims.keys), function(col) as.call(list(quote(`%in%`), as.name(col), dims.keys[[col]]))))
+                # product = prod(sapply(keys, length))
+                # if (product > 1e3L) {
+                #     1
+                # }
+                r$fact = self$fact$subset()
+                dims.keys = lapply(setNames(vectorscan_dims, keys[vectorscan_dims]), function(dim) r$dims[[dim]][[1L]])
+                qi = Reduce(function(a, b) bquote(.(a) & .(b)), lapply(names(dims.keys), function(col) as.call(list(quote(`%in%`), as.name(col), dims.keys[[col]]))))
+                r$fact[[self$fact]] = if(!length(r$fact[[self$fact]])) self$env$fact[[self$fact]][eval(qi)] else r$fact[[self$fact]][eval(qi)]
+                # r$fact = self$fact$subset(..., drop = drop)
             }
             
             # # - [x] check if binary search possible, only leading fact filters
@@ -154,7 +160,7 @@ data.cube = R6Class(
             #     r$fact[[self$fact]] = if(!length(r$fact[[self$fact]])) self$env$fact[[self$fact]][eval(qi)] else r$fact[[self$fact]][eval(qi)]
             # }
             # - [x] return cube with all dimensions filtered and fact filtered
-            return(as.data.cube(r))
+            as.data.cube(r)
         },
         index = function(){
             optional.logR = function(x, .log = getOption("datacube.log")){
@@ -170,19 +176,19 @@ data.cube = R6Class(
 #' @param x object to tests.
 is.data.cube = function(x) inherits(x, "data.cube")
 
-# @title Subset cube
-# @param x data.cube object
-# @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy
-# @param drop logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.
-# @return data.cube class object
-# "[.data.cube" = function(x, ..., drop = TRUE){
-#     if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
-#     r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
-#     if(isTRUE(drop)) r$drop() else r
-#     r
-# }
+#' @title Subset data.cube
+#' @param x data.cube object
+#' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchies
+#' @param drop logical, default TRUE, drop redundant dimensions, same as *drop* argument in \code{[.array}.
+#' @return data.cube class object
+"[.data.cube" = function(x, ..., drop = TRUE){
+    if(!is.logical(drop)) stop("`drop` argument to data.cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
+    r = x$subset(.dots = match.call(expand.dots = FALSE)$`...`)
+    if(isTRUE(drop)) r$drop() else r
+    r
+}
 
-# @title Extract cube
+# @title Extract data.cube
 # @param x data.cube object
 # @param i list of values used to slice and dice on cube
 # @param j expression to evaluate on fact

@@ -11,7 +11,7 @@ pages:
     - apt-get update -qq
     - apt-get -qq install -y libpq-dev
     # install deps
-    - Rscript -e 'install.packages(c("R6","data.table"), repos="https://cran.rstudio.com")'
+    - Rscript -e 'install.packages(c("R6","data.table"), repos=c("https://cran.rstudio.com","https://Rdatatable.github.io/data.table"))'
     # install suggests including cascades
     - Rscript -e 'install.packages(c("Rserve","RSclient","big.data.table","microbenchmarkCore","logR"), repos = paste0("https://", c("cran.rstudio.com","jangorecki.github.io/big.data.table","olafmersmann.github.io/drat","jangorecki.github.io/logR")))'
     # build pkg

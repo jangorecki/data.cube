@@ -1,4 +1,4 @@
-image: quay.io/jangorecki/r-pkg
+image: docker.io/jangorecki/r-pkg
 services:
 - postgres
 
@@ -18,15 +18,8 @@ pages:
     - R CMD build .
     # run check
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-manual --as-cran
-    # gl-pages dir and Rcheck results dir
-    - mkdir public Rcheck
-    # install drat with `insertArtifacts` function
-    - Rscript -e 'install.packages("drat", repos = "https://jangorecki.github.io/drat")'
     # produce artifacts
-    - Rscript -e 'drat::insertArtifacts(repodir = "public", repo.url = "https://jangorecki.github.io/data.cube", repo.cran = TRUE)'
-    # export Rcheck results
-    - mv $(find . -maxdepth 1 -name "*.Rcheck" -type d) Rcheck
+    - Rscript -e 'drat::insertArtifacts(repodir="public", repo.url="https://jangorecki.gitlab.io/data.cube", repo.cran=TRUE)'
   artifacts:
     paths:
-      - Rcheck
       - public

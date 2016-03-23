@@ -19,6 +19,10 @@ as.cube.array = function(x, fact = "fact", na.rm=TRUE, ...){
     as.cube.data.table(as.data.table(x, na.rm = na.rm), fact = fact, dims = lapply(selfNames(names(dimnames(x))), function(x) x))
 }
 
+as.cube.matrix = function(x, ...){
+    stop("matrix method is not available for as.cube, force your matrix into array or use as.data.cube function.")
+}
+
 #' @title Process dimension
 #' @param dim character scalar name of dimension
 #' @param x list value for element *dim*

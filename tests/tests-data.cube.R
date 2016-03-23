@@ -93,11 +93,12 @@ stopifnot(
 #dev
 # arr = ar["green",,, drop=TRUE]
 # dcr = dc["green", drop=TRUE]
+# as.cube(arr)
 # as.data.cube(arr)
-stopifnot(
-    #all.equal(dc["green", drop=TRUE], as.data.cube(ar["green",,, drop=TRUE])),
-    all.equal(as.array(dc["green", drop=TRUE]), ar["green",,, drop=TRUE])
-)
+# stopifnot(
+#     #all.equal(dc["green", drop=TRUE], as.data.cube(ar["green",,, drop=TRUE])),
+#     all.equal(as.array(dc["green", drop=TRUE]), ar["green",,, drop=TRUE])
+# )
 # # 1x1xN
 # dc["green","2014"]
 # ar["green","2014",]

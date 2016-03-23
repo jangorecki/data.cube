@@ -110,10 +110,37 @@ fact = R6Class(
         head = function(n = 6L){
             head(self$data, n)
         },
-        subset = function(x){
-            browser()
+        subset = function(x, drop = TRUE){
             # must return fact, not a data.table
-            as.fact(x)
+            r = new.env()
+            r$local = self$local
+            r$id.vars = self$id.vars
+            r$measure.vars = self$measure.vars
+            r$measures = self$measures
+            if (self$local) {
+                i = 0L
+                for (dimk in names(x)) {
+                    i = i + 1L
+                    if (i == 1L) {
+                        r$data = self$data[x[dimk], nomatch=0L, on=dimk]
+                    } else {
+                        r$data = r$data[x[dimk], nomatch=0L, on=dimk]
+                    }
+                }
+                if (drop) {
+                    drop.dims = sapply(x, length) == 1L
+                    drop.cols = names(drop.dims)[drop.dims]
+                    sapply(drop.cols, function(col) {
+                        set(r$data, j = col, value = NULL)
+                        TRUE
+                    })
+                    r$id.vars = r$id.vars[!r$id.vars %chin% drop.cols]
+                }
+                setkeyv(r$data, r$id.vars)
+            } else {
+                stop("not yet implemented")
+            }
+            as.fact(r)
         },
         index = function(.log = getOption("datacube.log")){
             NULL

@@ -3,7 +3,7 @@ as.array.data.cube = function(x, measure, na.fill = NA, ...){
     if(length(measure) > 1L) stop("Your cube seems to have multiple measures, you must provide scalar column name as 'measure' argument to as.array.")
     dimcols = lapply(x$dimensions, function(x) x$id.vars)
     stopifnot(sapply(dimcols, length) == 1L) # every key should be a single column key
-    r = as.array(x = x$fact$data, dimcols = unlist(dimcols), measure = measure)
+    r = as.array(x = x$fact$data, dimcols = unlist(dimcols), measure = measure, dimnames = dimnames(x))
     # below will be removed after data.table#857 resolved, logic will goes into cb$denormalize method
     if(!is.na(na.fill)) r[is.na(r)] = na.fill
     r

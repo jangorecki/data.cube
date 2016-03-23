@@ -10,8 +10,8 @@ dimension = R6Class(
         hierarchies = list(),
         levels = list(),
         data = NULL,
-        initialize = function(x, id.vars = key(x), hierarchies, .env){
-            if(!missing(.env)){
+        initialize = function(x, id.vars = key(x), hierarchies, .env) {
+            if(!missing(.env)) {
                 # skip heavy processing for env argument
                 self$data = .env$data # potentially null to be filled based on fact table
                 self$id.vars = .env$id.vars
@@ -79,23 +79,37 @@ dimension = R6Class(
             # if(!identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls))) browser()
             # stopifnot(identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls)))
             r = new.env()
-            browser()
-            r$levels = lapply(setNames(nm = names(self$levels)), function(lvl){
-                if(lvl %in% filter.lvls){
+            # subset levels
+            r$levels = lapply(setNames(nm = names(self$levels)), function(lvl) {
+                if (lvl %in% filter.lvls) {
                     filter.cols.in.level = filter.lvls.cols[[lvl]]
                     i.meta.lvl = i.meta[filter.cols.in.level]
                     i.lvl = build.each.i(i.meta.lvl)
                     self$levels[[lvl]]$subset(i.lvl, drop = drop)
-                } else self$levels[[lvl]]
+                } else {
+                    NULL # build that after subsetting base of dimension
+                }
             })
-            # dimension base
-            if (drop) {
-                r$data = self$data # if(!length(filter.lvls)) NULL else self$data
-            }
-            
-            r$id.vars = key(self$data)
+            r$id.vars = self$id.vars
             r$hierarchies = self$hierarchies
-            r$fields = unname(self$fields)
+            r$fields = self$fields
+            # subset base
+            i = 0L
+            for (lvl in names(self$levels)[names(self$levels) %in% filter.lvls]) {
+                i = i + 1L
+                jn.on = key(r$levels[[lvl]]$data)
+                if (i == 1L) {
+                    r$data = self$data[r$levels[[lvl]]$data, .SD, .SDcols=names(self$data), nomatch=0L, on=jn.on]
+                } else {
+                    r$data = r$data[r$levels[[lvl]]$data, .SD, .SDcols=names(self$data), nomatch=0L, on=jn.on]
+                }
+            }
+            setkeyv(r$data, r$id.vars)
+            # subset non-filtered levels to base
+            upd = sapply(r$levels, is.null)
+            r$levels[upd] = lapply(setNames(nm = names(self$levels)[upd]), function(lvl) {
+                self$levels[[lvl]]$subset(r$data)
+            })
             as.dimension(r)
         },
         base = function(x = self$data){

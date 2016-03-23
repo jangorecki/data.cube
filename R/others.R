@@ -30,7 +30,13 @@ level = R6Class(
             head(self$data, n)
         },
         subset = function(i, drop = TRUE){
-            level$new(x = self$data[eval(i)], id.vars = key(self$data), properties = self$properties)
+            if (is.language(i)) level$new(x = self$data[eval(i)], 
+                                          id.vars = key(self$data), 
+                                          properties = self$properties)
+            else if (is.data.table(i)) level$new(x = self$data[i, .SD, .SDcols=c(self$id.vars, self$properties), nomatch=0L, on=self$id.vars], 
+                                                 id.vars = key(self$data), 
+                                                 properties = self$properties)
+            else stop("unsupported 'i' argument")
         }
     )
 )

@@ -110,6 +110,7 @@ as.data.cube.data.table = function(x, id.vars = key(x), measure.vars, fun.aggreg
 
 as.data.cube.cube = function(x, hierarchies = NULL, ...){
     id.vars = key(x$env$fact[[x$fact]])
+    if (length(hierarchies) && (length(hierarchies) != length(id.vars))) stop("list provided to 'hierarchies' argument must correspond to 'id.vars' dimensions")
     ff = x$fapply(as.fact.data.table, id.vars = id.vars)[[x$fact]]
     di = setNames(seq_along(x$dims), x$dims)
     dd = lapply(di, function(i) as.dimension.data.table(x$env$dims[[i]], id.vars = id.vars[i], hierarchies = hierarchies[[i]]))

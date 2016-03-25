@@ -4,6 +4,7 @@
 #' @param x R object
 #' @param \dots arguments passed to methods
 #' @description Converts arguments to *cube* class. Supports *list*, *array* (no hierarchies), *data.table*.
+#' @note Consider to use \code{\link{data.cube}} class objects instead. \code{data.cube} is a set of R6 classes for cube/fact/dimension/etc and will be more actively developed than \code{cube} class.
 #' @return *cube* class object.
 as.cube = function(x, ...){
     UseMethod("as.cube")

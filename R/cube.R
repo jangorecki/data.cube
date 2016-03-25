@@ -51,6 +51,7 @@ build.each.i = function(dim.i){
 #' @format An R6 class object.
 #' @name cube
 #' @details Generates cube class objects.
+#' @note Consider to use \code{\link{data.cube}} class objects instead. \code{data.cube} is a set of R6 classes for cube/fact/dimension/etc and will be more actively developed than \code{cube} class.
 cube = R6Class(
     classname = "cube",
     public = list(
@@ -259,6 +260,7 @@ cube = R6Class(
 #' @param x cube object
 #' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchy
 #' @param drop logical, default TRUE, drop dimensions same as *drop* argument in `[.array`.
+#' @note Consider to use \code{\link{data.cube}} class objects instead. \code{data.cube} is a set of R6 classes for cube/fact/dimension/etc and will be more actively developed than \code{cube} class.
 #' @return Cube class object
 "[.cube" = function(x, ..., drop = TRUE){
     if(!is.logical(drop)) stop("`drop` argument to cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
@@ -272,6 +274,7 @@ cube = R6Class(
 #' @param i list of values used to slice and dice on cube
 #' @param j expression to evaluate on fact
 #' @param by expression/character vector to aggregate measures accroding to *j* argument.
+#' @note Consider to use \code{\link{data.cube}} class objects instead. \code{data.cube} is a set of R6 classes for cube/fact/dimension/etc and will be more actively developed than \code{cube} class.
 #' @return Cube class object
 "[[.cube" = function(x, i, j, by){
     r = x$extract(by = by, .call = match.call())
@@ -333,6 +336,7 @@ format.cube = function(x, measure.format = list(), dots.format = list(), dcast =
 #' @param FUN function
 #' @param ... arguments passed to *FUN*
 #' @description Wrapper around `[[.cube` and `j`, `by` arg.
+#' @note Consider to use \code{\link{data.cube}} class objects instead. \code{data.cube} is a set of R6 classes for cube/fact/dimension/etc and will be more actively developed than \code{cube} class.
 capply = aggregate.cube = function(x, MARGIN, FUN, ...){
     `.` = NULL
     stopifnot(is.cube(x), !missing(MARGIN), !missing(FUN), is.function(FUN))

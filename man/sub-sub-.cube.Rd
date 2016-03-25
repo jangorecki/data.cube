@@ -20,4 +20,7 @@ Cube class object
 \description{
 Extract cube
 }
+\note{
+Consider to use \code{\link{data.cube}} class objects instead. \code{data.cube} is a set of R6 classes for cube/fact/dimension/etc and will be more actively developed than \code{cube} class.
+}
 

@@ -17,36 +17,40 @@ as.data.cube = function(x, ...) {
 #' @rdname as.data.cube
 #' @method as.data.cube default
 as.data.cube.default = function(x, ...) {
+    # this is local extension of base::as.array.default, which add ability to provide names for each of dimension, passed as `dims = c("A","B")`, useful to manually recreate name of dropped dimension
+    as.array.default = function (x, dims) {
+        if (is.array(x)) 
+            return(x)
+        n <- names(x)
+        dim(x) <- length(x)
+        if (missing(dims))
+            dims = as.character(seq_along(dim(x)))
+        if (length(n)) 
+            dimnames(x) <- setattr(list(n), "names", dims)
+        return(x)
+    }
     as.data.cube.array(as.array(x, ...))
 }
 
+#' @rdname as.data.cube
+#' @method as.data.cube matrix
 as.data.cube.matrix = function(x, na.rm = TRUE, ...) {
     stopifnot(is.matrix(x), is.logical(na.rm))
-    browser()
-    stop("TODO dev")
-    # multidimensional version of as.data.table.matrix, different than data.table::as.data.table.matrix
-    as.data.table.matrix = function(x, na.rm = TRUE) {
-        
-    }
-    ar.dimnames = dimnames(x)
-    dt = as.data.table.matrix(x, na.rm = na.rm)
-    ff = as.fact(dt, id.vars = key(dt), measure.vars = "value")
-    dd = lapply(setNames(nm = names(ar.dimnames)), function(nm) {
-        as.dimension(as.data.table(setNames(list(ar.dimnames[[nm]]), nm)),
-                     id.vars = nm,
-                     hierarchies = list(setNames(list(character(0)), nm)))
-        
-    })
-    as.data.cube.fact(ff, dd)
+    as.data.cube.array(x, na.rm=na.rm, ...=...)
 }
 
 #' @rdname as.data.cube
 #' @method as.data.cube array
 as.data.cube.array = function(x, na.rm = TRUE, ...) {
-    stopifnot(is.array(x), is.logical(na.rm))
+    stopifnot(is.array(x), is.logical(na.rm)) # process matrix also!
+    ar.dim = dim(x)
     ar.dimnames = dimnames(x)
-    dt = as.data.table(x, na.rm = na.rm)
-    ff = as.fact(dt, id.vars = key(dt), measure.vars = "value")
+    if (is.null(names(ar.dimnames))) {
+        setattr(attributes(x)$dimnames, "names", as.character(seq_along(ar.dimnames)))
+        ar.dimnames = dimnames(x)
+    }
+    dt = as.data.table.array(x, na.rm = na.rm) # added .array explicitly cause .matrix is redirected here
+    ff = as.fact(dt, id.vars = key(dt), measure.vars = "value", ...)
     dd = lapply(setNames(nm = names(ar.dimnames)), function(nm) {
         as.dimension(as.data.table(setNames(list(ar.dimnames[[nm]]), nm)),
                      id.vars = nm,

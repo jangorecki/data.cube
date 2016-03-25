@@ -87,21 +87,23 @@ ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
 dc = as.data.cube(ar)
 # 1xNxN
 stopifnot(
+    # drop=FALSE
     all.equal(dc["green", drop=FALSE], as.data.cube(ar["green",,, drop=FALSE])),
-    all.equal(as.array(dc["green", drop=FALSE]), ar["green",,, drop=FALSE])
+    all.equal(as.array(dc["green", drop=FALSE]), ar["green",,, drop=FALSE]),
+    # drop-TRUE
+    all.equal(dc["green", drop=TRUE], as.data.cube(ar["green",,, drop=TRUE])),
+    all.equal(as.array(dc["green", drop=TRUE]), ar["green",,, drop=TRUE])
 )
-#dev
-# arr = ar["green",,, drop=TRUE]
-# dcr = dc["green", drop=TRUE]
-# as.cube(arr)
-# as.data.cube(arr)
-# stopifnot(
-#     #all.equal(dc["green", drop=TRUE], as.data.cube(ar["green",,, drop=TRUE])),
-#     all.equal(as.array(dc["green", drop=TRUE]), ar["green",,, drop=TRUE])
-# )
-# # 1x1xN
-# dc["green","2014"]
-# ar["green","2014",]
+# 1x1xN
+stopifnot(
+    # drop=FALSE
+    all.equal(dc["green","2015", drop=FALSE], as.data.cube(ar["green","2015",, drop=FALSE])),
+    all.equal(as.array(dc["green","2015", drop=FALSE]), ar["green","2015",, drop=FALSE]),
+    # drop-TRUE
+    all.equal(dc["green","2015", drop=TRUE], as.data.cube(ar["green","2015",, drop=TRUE], dims="status")), # undrop dim name
+    all.equal(as.array(dc["green","2015", drop=TRUE]), ar["green","2015",, drop=TRUE])
+)
+# DEV
 # # 1x2xN
 # dc["green",c("2013","2014")]
 # ar["green",c("2013","2014"),]

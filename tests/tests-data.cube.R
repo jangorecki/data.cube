@@ -75,7 +75,7 @@ stopifnot(
 
 # subset ----
 
-# [ ] subset array consistency 3D with drop: 3x5x4
+# [x] subset array consistency 3D with drop: 3x5x4
 set.seed(1L)
 ar.dimnames = list(color = sort(c("green","yellow","red")), 
                    year = as.character(2011:2015), 
@@ -100,24 +100,42 @@ stopifnot(
     all.equal(dc["green","2015", drop=FALSE], as.data.cube(ar["green","2015",, drop=FALSE])),
     all.equal(as.array(dc["green","2015", drop=FALSE]), ar["green","2015",, drop=FALSE]),
     # drop-TRUE
-    all.equal(dc["green","2015", drop=TRUE], as.data.cube(ar["green","2015",, drop=TRUE], dims="status")), # undrop dim name
+    all.equal(dc["green","2015", drop=TRUE], as.data.cube(ar["green","2015",, drop=TRUE], dims="status")), # undrop dim name because `drop=T` reduces to vector
     all.equal(as.array(dc["green","2015", drop=TRUE]), ar["green","2015",, drop=TRUE])
 )
+# 1x2xN
+stopifnot(
+    # drop=FALSE
+    all.equal(dc["green",c("2012","2013"), drop=FALSE], as.data.cube(ar["green",c("2012","2013"),, drop=FALSE])),
+    all.equal(as.array(dc["green",c("2012","2013"), drop=FALSE]), ar["green",c("2012","2013"),, drop=FALSE]),
+    # drop-TRUE
+    all.equal(dc["green",c("2012","2013"), drop=TRUE], as.data.cube(ar["green",c("2012","2013"),, drop=TRUE])),
+    all.equal(as.array(dc["green",c("2012","2013"), drop=TRUE]), ar["green",c("2012","2013"),, drop=TRUE])
+)
+# 2x2xN
+stopifnot(
+    # drop=FALSE
+    all.equal(dc[c("green","red"),c("2012","2013"), drop=FALSE], as.data.cube(ar[c("green","red"),c("2012","2013"),, drop=FALSE])),
+    all.equal(as.array(dc[c("green","red"),c("2012","2013"), drop=FALSE]), ar[c("green","red"),c("2012","2013"),, drop=FALSE]),
+    # drop-TRUE
+    all.equal(dc[c("green","red"),c("2012","2013"), drop=TRUE], as.data.cube(ar[c("green","red"),c("2012","2013"),, drop=TRUE])),
+    all.equal(as.array(dc[c("green","red"),c("2012","2013"), drop=TRUE]), ar[c("green","red"),c("2012","2013"),, drop=TRUE])
+)
+# 2x2x3
+stopifnot(
+    # drop=FALSE
+    all.equal(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=FALSE], as.data.cube(ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=FALSE])),
+    all.equal(as.array(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=FALSE]), ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=FALSE]),
+    # drop-TRUE
+    all.equal(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE], as.data.cube(ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])),
+    all.equal(as.array(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE]), ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])
+)
+
+# - [ ] subset hierarchy consistency to old `cube`
+
 # DEV
-# # 1x2xN
-# dc["green",c("2013","2014")]
-# ar["green",c("2013","2014"),]
-# # 2x2xN
-# dc[c("green","red"),c("2013","2014")]
-# ar[c("green","red"),c("2013","2014"),]
-# # 2x2x3
-# dc[c("green","red"),c("2013","2014"),c("active","archived","inactive")]
-# ar[c("green","red"),c("2013","2014"),c("active","archived","inactive")]
-
-# hierarchy
-
-# cb = as.cube(populate_star(1e3))
-# dc = as.data.cube(populate_star(1e3, hierarchies = TRUE))
+cb = as.cube(populate_star(1e3))
+dc = as.data.cube(populate_star(1e3, hierarchies = TRUE))
 
 # DEV TODO
 

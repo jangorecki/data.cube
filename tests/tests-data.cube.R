@@ -123,11 +123,13 @@ stopifnot(
     all.equal(as.array(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE]), ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])
 )
 
-# - [ ] subset hierarchy consistency to old `cube`
+# - [x] subset hierarchy consistency to old `cube`
 
-cb = as.cube(populate_star(1e3))
-dc = as.data.cube(X <- populate_star(1e3, hierarchies = TRUE))
-stopifnot(
+X = populate_star(1e3, hierarchies = TRUE)
+cb = as.cube(X)
+dc = as.data.cube(X)
+stopifnot( # slice single values
+    ## drop=TRUE
     # slice keys
     all.equal(dc["Mazda RX4"], as.data.cube(cb["Mazda RX4"], hierarchies = X$hierarchies[-1L])), # exclude dropped product dim
     # slice two keys
@@ -140,69 +142,65 @@ stopifnot(
     # slice two hierarchies
     all.equal(r <- dc[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L)], as.data.cube(cb[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L)], hierarchies = X$hierarchies)),
     identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
+    identical(dim(r)[4:5], c(5L, 365L)),
+    ## drop=FALSE
+    # slice keys, * we need to drop indexes afterward with $serindex(drop=TRUE)
+    all.equal(dc["Mazda RX4", drop=FALSE]$setindex(TRUE), as.data.cube(cb["Mazda RX4", drop=FALSE], hierarchies = X$hierarchies)$setindex(TRUE)), # exclude dropped product dim
+    # slice two keys
+    all.equal(r <- dc["Mazda RX4",,,"NY", drop=FALSE], as.data.cube(cb["Mazda RX4",,,"NY", drop=FALSE], hierarchies = X$hierarchies)),
+    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
+    # slice hierarchy
+    all.equal(r <- dc[,,,.(geog_division_name = "East North Central"), drop=FALSE], as.data.cube(cb[,,,.(geog_division_name = "East North Central"), drop=FALSE], hierarchies = X$hierarchies)),
+    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
+    dim(r)[4L]==5L,
+    # slice two hierarchies
+    all.equal(r <- dc[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L), drop=FALSE], as.data.cube(cb[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L), drop=FALSE], hierarchies = X$hierarchies)),
+    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
     identical(dim(r)[4:5], c(5L, 365L))
 )
-# DEV
-# # slice keys drop=F
-# cbr = cb["Mazda RX4", drop=FALSE]
-# dcr = dc["Mazda RX4", drop=FALSE]
-# zz = as.cube(dcr)
-# str(zz)
-# str(cbr)
-# zz$env$fact$fact
-# cbr$env$fact$fact
-# dcr$fact$data
-# 
-# all.equal(dcr, as.data.cube(cbr))
-# all.equal(as.cube(dcr), cbr)
-# stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), dim(r)[1L]==1L)
-# slice two keys drop=F
-# cbr = cb["Mazda RX4",,,"NY", drop=FALSE]
-# stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), identical(dim(r)[c(1L,4L)], c(1L,1L)))
-# slice hierarchy drop=F - would not be dropped anyway
-# cbr = cb[,,,.(geog_division_name = "East North Central"), drop=FALSE]
-# stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), dim(r)[4L]==5L)
-# slice two hierarchies drop=F - would not be dropped anyway
-# cbr = cb[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L), drop=FALSE]
-# stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), identical(dim(r)[4:5], c(5L, 365L)))
-
-# slice
-# cbr = cb[c("Mazda RX4","Honda Civic")]
-# stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), dim(r)[1L]==2L)
-# dice two, one hierarchy
-# cbr = cb[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific"))]
-# stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), identical(dim(r)[c(1L,4L)], c(2L,13L)))
-
-# dice drop=F - would not be dropped anyway
-# cbr = cb[c("Mazda RX4","Honda Civic"), drop=FALSE]
-# stopifnot(identical(names(dimnames(r)), c("product","customer","currency","geography","time")), dim(r)[1L]==2L)
-
-# use own names in ...
-# stopifnot(all.equal(
-#     dc["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))],
-#     dc[product = "Mazda RX4",
-#        customer = .(),
-#        currency = .(curr_type = "crypto"),
-#        geography = .(),
-#        time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
-# ))
-
-# NULL subset
-# stopifnot(
-#     nrow(as.data.table(dc[NULL]))==0L
-#     , nrow(as.data.table(dc[.(NULL)]))==0L
-#     , nrow(as.data.table(dc[,,NULL,,NULL]))==0L
-#     , nrow(as.data.table(dc[,,.(NULL),,.(NULL)]))==0L
-#     , nrow(as.data.table(dc[,,,,.(time_year = 2014L, time_quarter_name = NULL)]))==0L
-# )
-
+stopifnot( # multi value
+    # drop=TRUE
+    all.equal(r <- dc[c("Mazda RX4","Honda Civic")]$setindex(TRUE), 
+              as.data.cube(cb[c("Mazda RX4","Honda Civic")], hierarchies = X$hierarchies)$setindex(TRUE)),
+    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
+    dim(r)[1L]==2L,
+    # dice two, one hierarchy
+    all.equal(r <- dc[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific"))], 
+              as.data.cube(cb[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific"))], hierarchies = X$hierarchies)),
+    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
+    identical(dim(r)[c(1L,4L)], c(2L,13L)),
+    # drop=FALSE - would not be dropped anyway
+    all.equal(r <- dc[c("Mazda RX4","Honda Civic"), drop=FALSE]$setindex(TRUE), 
+              as.data.cube(cb[c("Mazda RX4","Honda Civic"), drop=FALSE], hierarchies = X$hierarchies)$setindex(TRUE)),
+    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
+    dim(r)[1L]==2L,
+    all.equal(r <- dc[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific")), drop=FALSE], 
+              as.data.cube(cb[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific")), drop=FALSE], hierarchies = X$hierarchies)),
+    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
+    identical(dim(r)[c(1L,4L)], c(2L, 13L))
+)
+stopifnot(all.equal( # use own names in ...
+    dc["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))],
+    dc[product = "Mazda RX4",
+       customer = .(),
+       currency = .(curr_type = "crypto"),
+       geography = .(),
+       time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+))
+stopifnot( # NULL subset
+    nrow(as.data.table(dc[NULL]))==0L
+    , nrow(as.data.table(dc[.(NULL)]))==0L
+    , nrow(as.data.table(dc[,,NULL,,NULL]))==0L
+    , nrow(as.data.table(dc[,,.(NULL),,.(NULL)]))==0L
+    , nrow(as.data.table(dc[,,,,.(time_year = 2014L, time_quarter_name = NULL)]))==0L
+)
 # drop arg
-# stopifnot(
-#     length(dim(dc[]))==5L
-#     , length(dim(dc["Mazda RX4"]))==4L
-#     , length(dim(dc["Mazda RX4", drop=FALSE]))==5L
-# )
+stopifnot(
+    length(dim(dc[]))==5L
+    , length(dim(dc["Mazda RX4"]))==4L
+    , length(dim(dc["Mazda RX4", drop=FALSE]))==5L
+)
 
 # tests status ------------------------------------------------------------
 
-invisible(FALSE)
+invisible(TRUE)

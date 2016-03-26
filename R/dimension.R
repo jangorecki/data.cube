@@ -30,11 +30,11 @@ dimension = R6Class(
             self$id.vars = id.vars
             self$hierarchies = lapply(hierarchies, function(levels) as.hierarchy(levels))
             # combine by levels
-            common.levels = Reduce(function(x, y){
+            common.levels = Reduce(function(x, y) {
                 lapply(setNames(nm = unique(c(names(x), names(y)))),
                        function(nm) c(x[[nm]], y[[nm]]))
             }, hierarchies)
-            self$levels =  lapply(setNames(nm = names(common.levels)), function(lvlk){
+            self$levels =  lapply(setNames(nm = names(common.levels)), function(lvlk) {
                 as.level(x, id.vars = lvlk, properties = common.levels[[lvlk]])
             })
             dt = rbindlist(lapply(names(self$levels), function(lvlk) data.table(properties = c(lvlk, self$levels[[lvlk]]$properties))[, level := lvlk]))[, tail(.SD, 1L), properties]
@@ -44,32 +44,32 @@ dimension = R6Class(
             self$data = setkeyv(unique(x, by = granularity)[, .SD, .SDcols = granularity], self$id.vars)[]
             invisible(self)
         },
-        dim = function(){
+        dim = function() {
             if(!ncol(self$data)) return(0L)
             unname(unlist(self$data[, lapply(.SD, uniqueN), .SDcols = self$id.vars]))
         },
-        print = function(){
+        print = function() {
             dimension.data.str = capture.output(str(self$data, give.attr = FALSE))
             cat(c("<dimension>", dimension.data.str), sep="\n")
             invisible(self)
         },
         # lvls.apply
-        lvls.apply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE, lvls = names(self$levels)){
+        lvls.apply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE, lvls = names(self$levels)) {
             FUN = match.fun(FUN)
             sapply(X = self$levels[lvls],
                    FUN = FUN, ...,
                    simplify = simplify, USE.NAMES = USE.NAMES)
         },
-        schema = function(){ # for each dimensions
+        schema = function() { # for each dimensions
             i = setNames(seq_along(self$levels), names(self$levels))
             levels_schema = rbindlist(lapply(i, function(i) self$levels[[i]]$schema()), idcol = "entity")
             dimension_data_schema = schema.data.table(self$data, empty = c("entity"))
             rbindlist(list(dimension_data_schema, levels_schema))
         },
-        head = function(n = 6L){
+        head = function(n = 6L) {
             list(base = head(self$data, n), levels = lapply(self$levels, function(x) x$head(n = n)))
         },
-        subset = function(i.meta, drop = TRUE){
+        subset = function(i.meta, drop = TRUE) {
             stopifnot(is.list(i.meta), is.logical(drop))
             filter.cols = names(i.meta)
             filter.lvls = sapply(self$levels, function(x) any(filter.cols %in% c(x$id.vars, x$properties)))
@@ -80,12 +80,19 @@ dimension = R6Class(
             # stopifnot(identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls)))
             r = new.env()
             # subset levels
+            null.sub = unlist(lapply(setNames(nm = names(self$levels)), function(lvl) {
+                identical(if (lvl %in% filter.lvls) {
+                    filter.cols.in.level = filter.lvls.cols[[lvl]]
+                    i.meta.lvl = i.meta[filter.cols.in.level]
+                    build.each.i(i.meta.lvl)
+                }, 0L)
+            }))
             r$levels = lapply(setNames(nm = names(self$levels)), function(lvl) {
                 if (lvl %in% filter.lvls) {
                     filter.cols.in.level = filter.lvls.cols[[lvl]]
                     i.meta.lvl = i.meta[filter.cols.in.level]
                     i.lvl = build.each.i(i.meta.lvl)
-                    self$levels[[lvl]]$subset(i.lvl, drop = drop)
+                    self$levels[[lvl]]$subset(i.lvl)
                 } else {
                     NULL # build that after subsetting base of dimension
                 }
@@ -93,15 +100,20 @@ dimension = R6Class(
             r$id.vars = self$id.vars
             r$hierarchies = self$hierarchies
             r$fields = self$fields
-            # subset base
-            i = 0L
-            for (lvl in names(self$levels)[names(self$levels) %in% filter.lvls]) {
-                i = i + 1L
-                jn.on = key(r$levels[[lvl]]$data)
-                if (i == 1L) {
-                    r$data = self$data[r$levels[[lvl]]$data, .SD, .SDcols=names(self$data), nomatch=0L, on=jn.on]
-                } else {
-                    r$data = r$data[r$levels[[lvl]]$data, .SD, .SDcols=names(self$data), nomatch=0L, on=jn.on]
+            # loop over levels
+            if (any(null.sub)) {
+                r$data = self$data[0L]
+            } else {
+                # subset base
+                i = 0L
+                for (lvl in names(self$levels)[names(self$levels) %in% filter.lvls]) {
+                    i = i + 1L
+                    jn.on = key(r$levels[[lvl]]$data)
+                    if (i == 1L) {
+                        r$data = self$data[r$levels[[lvl]]$data, .SD, .SDcols=names(self$data), nomatch=0L, on=jn.on]
+                    } else {
+                        r$data = r$data[r$levels[[lvl]]$data, .SD, .SDcols=names(self$data), nomatch=0L, on=jn.on]
+                    }
                 }
             }
             setkeyv(r$data, r$id.vars)
@@ -112,15 +124,17 @@ dimension = R6Class(
             })
             as.dimension(r)
         },
-        base = function(x = self$data){
+        base = function(x = self$data) {
             level.keys = unique(unlist(lapply(self$hierarchies, names)))
             base.grain = unique(c(self$id.vars, level.keys))
             if(!length(x)) x = setDT(as.list(setNames(seq_along(base.grain), base.grain)))[0L]
             self$data = setkeyv(unique(x, by = base.grain)[, .SD, .SDcols = base.grain], self$id.vars)[]
             invisible(self)
         },
-        index = function(.log = getOption("datacube.log")){
-            NULL
+        setindex = function(drop = FALSE) {
+            setindexv(self$data, if (!drop) names(self$data)) # this is base of a dimensions so all columns!
+            lapply(self$levels, function(x) x$setindex(drop=drop))
+            invisible(self)
         }
     )
 )

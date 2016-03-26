@@ -145,12 +145,15 @@ data.cube = R6Class(
             # - [x] return cube with all dimensions filtered and fact filtered
             as.data.cube(r)
         },
-        index = function() {
+        setindex = function(drop = FALSE) {
             optional.logR = function(x, .log = getOption("datacube.log")) {
-                if(isTRUE(.log)) eval(substitute(logR(x), list(x = substitute(x)))) else x
+                if(isTRUE(.log)) eval.parent(substitute(logR(x), list(x = substitute(x)))) else x
             }
-            list(self$fact$index(),
-                 lapply(self$dimensions, function(x) optional.logR(x$index())))
+            r = list(
+                fact = optional.logR(self$fact$setindex(drop=drop)),
+                dimensions = lapply(self$dimensions, function(x) optional.logR(x$setindex(drop=drop)))
+            ) # r - not used further but evaluated on lower classes
+            invisible(self)
         }
     )
 )

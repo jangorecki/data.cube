@@ -10,7 +10,7 @@ fact = R6Class(
         measure.vars = character(),
         measures = list(),
         data = NULL,
-        initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures, .env){
+        initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures, .env) {
             if(!missing(.env)){
                 # skip heavy processing for env argument
                 self$local = .env$local
@@ -51,15 +51,15 @@ fact = R6Class(
             }
             invisible(self)
         },
-        dim = function(){
+        dim = function() {
             unname(unlist(self$data[, lapply(.SD, uniqueN), .SDcols = self$id.vars]))
         },
-        print = function(){
+        print = function() {
             fact.data.str = capture.output(str(self$data, give.attr = FALSE))
             cat(c("<fact>", fact.data.str), sep="\n")
             invisible(self)
         },
-        build.j = function(measure.vars = self$measure.vars){
+        build.j = function(measure.vars = self$measure.vars) {
             measure.which = sapply(self$measures, function(x) x$var %in% measure.vars)
             jj = as.call(c(
                 list(as.name("list")),
@@ -68,7 +68,7 @@ fact = R6Class(
             if(isTRUE(getOption("datacube.jj"))) message(paste(deparse(jj, width.cutoff = 500), collapse = "\n"))
             jj
         },
-        query = function(i, i.dt, by, measure.vars = self$measure.vars){
+        query = function(i, i.dt, by, measure.vars = self$measure.vars) {
             
             ii = substitute(i)
             jj = self$build.j(measure.vars)
@@ -104,13 +104,13 @@ fact = R6Class(
             }
             dt
         },
-        schema = function(){
+        schema = function() {
             if(!self$local) schema.big.data.table(self$data, empty = c("entity")) else schema.data.table(self$data, empty = c("entity"))
         },
-        head = function(n = 6L){
+        head = function(n = 6L) {
             head(self$data, n)
         },
-        subset = function(x, drop = TRUE){
+        subset = function(x, drop = TRUE) {
             # must return fact, not a data.table
             r = new.env()
             r$local = self$local
@@ -142,8 +142,13 @@ fact = R6Class(
             }
             as.fact(r)
         },
-        index = function(.log = getOption("datacube.log")){
-            NULL
+        setindex = function(drop = FALSE) {
+            if (self$local) {
+                setindexv(self$data, if (!drop) self$id.vars)
+            } else {
+                stop("TO DO DEV")
+            }
+            invisible(self)
         }
     )
 )

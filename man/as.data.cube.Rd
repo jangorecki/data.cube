@@ -6,11 +6,14 @@
 \alias{as.data.cube.default}
 \alias{as.data.cube.fact}
 \alias{as.data.cube.list}
+\alias{as.data.cube.matrix}
 \title{Build cube}
 \usage{
 as.data.cube(x, ...)
 
 \method{as.data.cube}{default}(x, ...)
+
+\method{as.data.cube}{matrix}(x, na.rm = TRUE, ...)
 
 \method{as.data.cube}{array}(x, na.rm = TRUE, ...)
 

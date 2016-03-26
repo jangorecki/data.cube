@@ -58,22 +58,18 @@ data.cube = R6Class(
                    FUN = FUN, ...,
                    simplify = simplify, USE.NAMES = USE.NAMES)
         },
-        denormalize = function(dims = names(self$dimensions), na.fill = FALSE) {
-            n.dims = length(dims)
-            all_cols = lapply(self$dims.apply(function(x) lapply(x$levels, names.level), dims = dims), `[[`, 1L)
-            key_cols = sapply(all_cols, `[[`, 1L)
-            lkp_cols = lapply(all_cols, `[`, -1L)
-            # that already solved later in `lookupv`
-            #if(anyDuplicated(unlist(lkp_cols))) browser()#stop("Cannot lookup dimension attributes due to the column names duplicated between dimensions.")
-            r = if (!na.fill | n.dims == 0L){
+        denormalize = function(na.fill = FALSE, dims = names(self$dimensions)) {
+            r = if (!na.fill) {
                 copy(self$fact$data)
             } else {
-                # `nomatch` to be extended after data.table#857 resolved
-                self$fact$data[i = do.call(CJ, c(self$dims.apply(function(x) x$data[[1L]]), list(sorted = TRUE, unique = TRUE))), nomatch = NA, on = swap.on(key_cols)]
+                # `nomatch` to be extended to raise error if fact has values not in dims, after data.table#857 resolved
+                self$fact$data[i=do.call(CJ, c(self$dims.apply(function(x) x$data[[1L]]), list(sorted=TRUE, unique=TRUE))),
+                               nomatch=NA,
+                               on=setNames(nm=self$fact$id.vars)]
             }
             # lookup
             lookupv(dims = lapply(self$dimensions[dims], as.data.table.dimension), r)
-            if (n.dims > 0L) setkeyv(r, unname(key_cols))[] else r[]
+            if (length(self$fact$id.vars)) setkeyv(r, self$fact$id.vars)[] else r[]
         },
         schema = function() {
             rbindlist(list(
@@ -191,31 +187,29 @@ dimnames.data.cube = function(x) {
     r
 }
 
-str.data.cube = function(object, ...){
+str.data.cube = function(object, ...) {
     print(object$schema())
     invisible()
 }
 
-# format.data.cube = function(x, measure.format = list(), dots.format = list(), dcast = FALSE, ...){
-#     stopifnot(is.list(measure.format))
-#     keys = x$dapply(key, simplify = TRUE)
-#     measures = setdiff(names(x$env$fact[[x$fact]]), keys)
-#     if(length(measure.format)) stopifnot(
-#         sapply(measure.format, is.function),
-#         length(names(measure.format))==length(measure.format), 
-#         names(measure.format) %in% measures
-#     )
-#     if(length(keys)) r = setorderv(copy(x$env$fact[[x$fact]]), cols = keys, order=1L, na.last=TRUE) else {
-#         stopifnot(nrow(x$env$fact[[x$fact]])==1L) # grant total
-#         r = copy(x$env$fact[[x$fact]])
-#     }
-#     if(length(measure.format)){
-#         for(mf in names(measure.format)){
-#             FUN = measure.format[[mf]]
-#             DOTS = dots.format[[mf]]
-#             set(r, i = NULL, j = mf, value = FUN(r[[mf]], ... = DOTS))
-#         }
-#     }
-#     if(isTRUE(dcast)) r = dcast.data.table(r, ...)
-#     r[]
-# }
+format.data.cube = function(x, na.fill = FALSE, measure.format = list(), dots.format = list(), dcast = FALSE, ...) {
+    stopifnot(is.list(measure.format))
+    id.vars = x$id.vars
+    measure.vars = x$fact$measure.vars
+    if(length(measure.format)) stopifnot(
+        sapply(measure.format, is.function),
+        length(names(measure.format))==length(measure.format),
+        names(measure.format) %in% measure.vars
+    )
+    r = x$denormalize(dims = character(0), na.fill = na.fill)
+    if(length(id.vars)) r = setorderv(r, cols = id.vars, order=1L, na.last=TRUE) 
+    if(length(measure.format)){
+        for(mf in names(measure.format)){
+            FUN = measure.format[[mf]]
+            DOTS = dots.format[[mf]]
+            set(r, i = NULL, j = mf, value = FUN(r[[mf]], ... = DOTS))
+        }
+    }
+    if(isTRUE(dcast)) r = dcast.data.table(r, ...)
+    r[]
+}

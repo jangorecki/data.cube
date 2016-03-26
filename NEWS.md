@@ -1,5 +1,7 @@
 # data.cube 0.2.1
 
+* `format.data.cube`
+* `[.data.cube` passes firsts tests
 * `levels` kept in `dimension` instead `hierarchy`.
 * `fact$query` works for local and remote, `i` / `i.dt`.
 * `schema` methods to produce denormalized metadata.

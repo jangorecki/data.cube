@@ -201,6 +201,42 @@ stopifnot(
     , length(dim(dc["Mazda RX4", drop=FALSE]))==5L
 )
 
+# format ----
+
+set.seed(1L)
+ar.dimnames = list(color = sort(c("green","yellow","red")),
+                   year = as.character(2011:2015),
+                   status = sort(c("active","inactive","archived","removed")))
+ar.dim = sapply(ar.dimnames, length)
+ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
+           unname(ar.dim),
+           ar.dimnames)
+dc = as.data.cube(ar)
+print.equal = function(x, dt) {
+    stopifnot(is.array(x), is.data.table(dt))
+    # basic compare that works on data in tests, split columns
+    x = capture.output(print(x))
+    dt = capture.output(print(dt))
+    x = strsplit(x, " +")[-1L]
+    x[[1L]] = c("", x[[1L]]) # match first line for below row processing
+    x = lapply(x, `[`, -1L)
+    dt = lapply(strsplit(dt, " +"), `[`, -1L)
+    all.equal(x, dt)
+}
+stopifnot(
+    print.equal( # drop=TRUE
+        ar["green",,],
+        format(dc["green"], na.fill=TRUE, dcast = TRUE, formula = year ~ status)
+    ),
+    print.equal( # drop=FALSE, first there is drop=T because print must be on 2D array already to have tabular format
+        ar["green",,][as.character(c(2012:2014)),, drop=FALSE],
+        format(dc["green"][as.character(c(2012:2014)),, drop=FALSE], na.fill=TRUE, dcast = TRUE, formula = year ~ status)
+    )
+)
+# ar["green","2015",]
+# dc["green",c("2014","2015")]
+# ar["green",c("2014","2015"),]
+
 # tests status ------------------------------------------------------------
 
-invisible(TRUE)
+invisible(FALSE)

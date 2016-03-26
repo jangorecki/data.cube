@@ -213,14 +213,34 @@ ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
            ar.dimnames)
 dc = as.data.cube(ar)
 print.equal = function(x, dt) {
+    if (!is.array(x)) x = as.array(x)
     stopifnot(is.array(x), is.data.table(dt))
     # basic compare that works on data in tests, split columns
+    xdim = dim(x)
     x = capture.output(print(x))
     dt = capture.output(print(dt))
-    x = strsplit(x, " +")[-1L]
-    x[[1L]] = c("", x[[1L]]) # match first line for below row processing
-    x = lapply(x, `[`, -1L)
-    dt = lapply(strsplit(dt, " +"), `[`, -1L)
+    if (length(xdim) == 1L) {
+        as.num = function(x, na.strings = "NA") {
+            stopifnot(is.character(x))
+            na = x %in% na.strings
+            x[na] = 0
+            x = as.numeric(x)
+            x[na] = NA_real_
+            x
+        }
+        x = lapply(strsplit(x, " +"), `[`, -1L)
+        x[[2L]] = as.num(x[[2L]])
+        dt = lapply(strsplit(dt, " +"), `[`, -1L)
+        dt[[2L]] = as.num(dt[[2L]])
+        
+    } else if (length(xdim) == 2L) {
+        x = strsplit(x, " +")[-1L]
+        x[[1L]] = c("", x[[1L]]) # match first line for below line processing
+        x = lapply(x, `[`, -1L)
+        dt = lapply(strsplit(dt, " +"), `[`, -1L)
+    } else if (length(xdim) >= 3L) {
+        stop(sprintf("higher dimensionality arrays doesn't print to tabular format, your array has %s dimensions", length(xdim)))
+    }
     all.equal(x, dt)
 }
 stopifnot(
@@ -231,12 +251,25 @@ stopifnot(
     print.equal( # drop=FALSE, first there is drop=T because print must be on 2D array already to have tabular format
         ar["green",,][as.character(c(2012:2014)),, drop=FALSE],
         format(dc["green"][as.character(c(2012:2014)),, drop=FALSE], na.fill=TRUE, dcast = TRUE, formula = year ~ status)
+    ),
+    print.equal( # 1D
+        ar["green","2013",],
+        format(dc["green","2013",], na.fill=T, dcast=T, formula = . ~ status)[,-1L,with=F] # remove `.` column
+    ),
+    print.equal( # 2D
+        ar[,"2013",],
+        format(dc[,"2013",], na.fill=T, dcast=T, formula = color ~ status)
+    ),
+    print.equal( # 2D
+        ar[,,"active"],
+        format(dc[,,"active"], na.fill=T, dcast=T, formula = color ~ year)
+    ),
+    print.equal( # 2D
+        ar["green",c("2014","2015"),],
+        format(dc["green",c("2014","2015")], na.fill=T, dcast=T, formula = year ~ status)
     )
 )
-# ar["green","2015",]
-# dc["green",c("2014","2015")]
-# ar["green",c("2014","2015"),]
 
 # tests status ------------------------------------------------------------
 
-invisible(FALSE)
+invisible(TRUE)

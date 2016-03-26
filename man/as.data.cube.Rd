@@ -2,6 +2,7 @@
 \name{as.data.cube}
 \alias{as.data.cube}
 \alias{as.data.cube.array}
+\alias{as.data.cube.cube}
 \alias{as.data.cube.data.table}
 \alias{as.data.cube.default}
 \alias{as.data.cube.fact}
@@ -24,6 +25,8 @@ as.data.cube(x, ...)
 \method{as.data.cube}{data.table}(x, id.vars = key(x), measure.vars,
   fun.aggregate = "sum", dims = id.vars, hierarchies = NULL, ...,
   dimensions, measures)
+
+\method{as.data.cube}{cube}(x, hierarchies = NULL, ...)
 }
 \arguments{
 \item{x}{R object.}

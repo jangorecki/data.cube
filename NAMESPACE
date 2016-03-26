@@ -37,6 +37,7 @@ export(process.dim)
 
 # measure
 export(as.measure)
+export(currency.format)
 
 # level
 export(as.level)

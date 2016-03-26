@@ -108,6 +108,8 @@ as.data.cube.data.table = function(x, id.vars = key(x), measure.vars, fun.aggreg
     as.data.cube.fact(ff, dd)
 }
 
+#' @rdname as.data.cube
+#' @method as.data.cube cube
 as.data.cube.cube = function(x, hierarchies = NULL, ...){
     id.vars = key(x$env$fact[[x$fact]])
     if (length(hierarchies) && (length(hierarchies) != length(id.vars))) stop("list provided to 'hierarchies' argument must correspond to 'id.vars' dimensions")

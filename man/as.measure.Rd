@@ -4,7 +4,7 @@
 \title{Form measure}
 \usage{
 as.measure(x, label = character(), fun.aggregate = "sum", ...,
-  fun.format = function(x) x)
+  fun.format = NULL)
 }
 \arguments{
 \item{x}{character scalar column name of a measure.}
@@ -13,7 +13,7 @@ as.measure(x, label = character(), fun.aggregate = "sum", ...,
 
 \item{fun.aggregate}{character scalar function name.}
 
-\item{fun.format}{function to be used for formatting of a measure, such a currency.}
+\item{fun.format}{function to be used for formatting of a measure, such as \code{\link{currency.format}}.}
 
 \item{\dots}{arguments passed to \emph{fun.aggregate}.}
 }

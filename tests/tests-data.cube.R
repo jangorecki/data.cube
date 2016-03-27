@@ -122,6 +122,20 @@ stopifnot(
     all.equal(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE], as.data.cube(ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])),
     all.equal(as.array(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE]), ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])
 )
+# # DEV
+# set.seed(1L)
+# ar.dimnames = list(color = sort(c("green","yellow","red")), 
+#                    year = as.character(2011:2015), 
+#                    status = sort(c("active","inactive","archived","removed")))
+# ar.dim = sapply(ar.dimnames, length)
+# ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE), 
+#            unname(ar.dim),
+#            ar.dimnames)
+# dc = as.data.cube(ar)
+# dc
+# stopifnot( # retain order according to filter
+#     TRUE # TODO
+# )
 stopifnot( # NULL subset
     nrow(as.data.table(dc[NULL]))==0L
     , nrow(as.data.table(dc[.(NULL)]))==0L
@@ -352,7 +366,7 @@ stopifnot( # apply with new FUN
         as.array(apply.data.cube(dc, c("year","status"), sum, na.rm=FALSE)),
         apply(ar, c("year","status"), sum, na.rm=FALSE)
     ),
-    # sum na.rm=TRUE - na.fill = 0
+    # sum na.rm=TRUE
     all.equal(
         as.array(apply.data.cube(dc, "color", sum, na.rm=TRUE)),
         apply(ar, "color", sum, na.rm=TRUE)
@@ -370,7 +384,7 @@ stopifnot( # apply with new FUN
         as.array(apply.data.cube(dc, c("year","status"), mean, na.rm=FALSE)),
         apply(ar, c("year","status"), mean, na.rm=FALSE)
     ),
-    # mean na.rm=TRUE - na.fill = NaN
+    # mean na.rm=TRUE
     all.equal(
         as.array(apply.data.cube(dc, "color", mean, na.rm=TRUE)),
         apply(ar, "color", mean, na.rm=TRUE)
@@ -378,8 +392,25 @@ stopifnot( # apply with new FUN
     all.equal(
         as.array(apply.data.cube(dc, c("year","status"), mean, na.rm=TRUE)),
         apply(ar, c("year","status"), mean, na.rm=TRUE)
+    ),
+    # 3D aggr
+    all.equal(
+        as.array(apply.data.cube(dc, 1:3)),
+        apply(ar, 1:3, sum)
+    ),
+    all.equal( # sum na.fill = 0
+        as.array(apply.data.cube(dc, 1:3, sum, na.rm=TRUE), na.fill = 0),
+        apply(ar, 1:3, sum, na.rm=TRUE)
+    ),
+    all.equal(
+        as.array(apply.data.cube(dc, 1:3, mean)),
+        apply(ar, 1:3, mean)
+    ),
+    identical( # mean na.fill = NaN - all.equal wouldn't catch the data type, see `all.equal(NA_real_, NaN)`
+        as.array(apply.data.cube(dc, 1:3, mean, na.rm=TRUE), na.fill = NaN),
+        apply(ar, 1:3, mean, na.rm=TRUE)
     )
-    # rev order in MARGIN TODO
+    # rev order of MARGIN - TODO - waiting for rev order dimension subsetting
 )
 
 # subset with apply ----

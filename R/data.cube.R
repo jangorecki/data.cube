@@ -23,8 +23,7 @@ data.cube = R6Class(
             invisible(self)
         },
         dim = function() {
-            # fd = self$fact$dim() # heavy
-            unname(sapply(self$dimensions, function(x) nrow(x$data)))
+            as.integer(unname(sapply(self$dimensions, function(x) nrow(x$data))))
         },
         print = function() {
             dict = self$schema()
@@ -136,7 +135,7 @@ data.cube = R6Class(
                 fact_filter_cols = setNames(names(fact_filter)[fact_filter], nm = self$id.vars[fact_filter])
                 keys = lapply(fact_filter_cols, function(d) r$dimensions[[d]]$data[[1L]])
                 # - [x] allows to aggregate by dims with `.` symbol
-                by = if (length(drop.keys)) setdiff(r$id.vars, names(keys)) else character(0)
+                by = if (length(drop.keys)) setdiff(r$id.vars, c(names(keys), drop.keys))
                 r$fact = self$fact$subset(keys, by = by, drop = drop)
             }
             # - [x] drop 1L element dimensions
@@ -240,7 +239,7 @@ apply.data.cube = function(X, MARGIN, FUN, ...) {
     if (!missing(FUN)) warning("`FUN` not yet supported, fun.aggregate defined for each measure will be used.")
     if (!is.integer(MARGIN) && is.numeric(MARGIN)) MARGIN = as.integer(MARGIN) # 1 -> 1L
     if (is.integer(MARGIN)) MARGIN = X$id.vars[MARGIN]
-    stopifnot(is.data.cube(X), is.character(MARGIN))
+    stopifnot(is.data.cube(X), is.character(MARGIN), MARGIN %chin% X$id.vars)
     eval(as.call(c(
         list(
             as.name("["),
@@ -248,6 +247,9 @@ apply.data.cube = function(X, MARGIN, FUN, ...) {
         ),
         lapply(unname(X$id.vars), function(x) {
             if (x %chin% MARGIN) substitute() else as.symbol(".")
-        })
+        }),
+        list( # required for consistency of <= 1 element dims
+            drop = FALSE
+        )
     )))
 }

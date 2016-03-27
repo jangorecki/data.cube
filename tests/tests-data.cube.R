@@ -288,6 +288,12 @@ ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
            ar.dimnames)
 dc = as.data.cube(ar)
 stopifnot( # apply using `[.data.cube`
+    # MARGIN=1L
+    all.equal(
+        r <- apply.data.cube(dc, 1L),
+        dc[, ., .]
+    ),
+    all.equal(as.array(r, na.fill = 0), apply(ar, 1L, sum, na.rm=TRUE)),
     # MARGIN=2:3
     all.equal(
         r <- apply.data.cube(dc, -1L),
@@ -299,32 +305,82 @@ stopifnot( # apply using `[.data.cube`
     # MARGIN=c(1L, 3L)
     all.equal(
         r <- apply.data.cube(dc, -2L),
-        dc[,.]
+        dc[, .]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, c(1L,3L), sum, na.rm=TRUE)),
-    all.equal(r, dc[,.,]),
+    all.equal(r, dc[, .,]),
     # MARGIN=3L
     all.equal(
         r <- apply.data.cube(dc, 3L),
-        dc[.,.]
+        dc[., .]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, 3L, sum, na.rm=TRUE)),
-    all.equal(r, dc[.,.,])
+    all.equal(r, dc[., .,]),
+    # MARGIN=integer()
+    all.equal(
+        r <- apply.data.cube(dc, integer()),
+        dc[., ., .]
+    ),
+    length(r) == 1L, # grand total
+    all.equal(as.array(r, na.fill = 0), sum(ar, na.rm=TRUE)),
+    # MARGIN=1:3
+    all.equal(
+        r <- apply.data.cube(dc, 1:3),
+        dc[]
+    ),
+    all.equal(as.array(r, na.fill = 0), apply(ar, 1:3, sum, na.rm=TRUE))
 )
+stopifnot( # apply with new FUN
+    # sum na.rm=FALSE
+    TRUE,
+    # sum na.rm=TRUE - na.fill = 0
+    TRUE,
+    # mean na.rm=FALSE
+    TRUE,
+    # mean na.rm=TRUE - na.fill = NaN
+    TRUE
+)
+
+# subset with apply ----
+
+set.seed(1L)
+ar.dimnames = list(color = sort(c("green","yellow","red")),
+                   year = as.character(2011:2015),
+                   status = sort(c("active","inactive","archived","removed")))
+ar.dim = sapply(ar.dimnames, length)
+ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
+           unname(ar.dim),
+           ar.dimnames)
+dc = as.data.cube(ar)
 stopifnot( # apply while filter
     # i=1L - MARGIN=3L
     all.equal(
         r <- apply.data.cube(dc["green", drop=FALSE], 3L),
-        dc["green",.]
+        dc["green", .]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar["green",,, drop=FALSE], 3L, sum, na.rm=TRUE)),
-    all.equal(r, dc["green",.,])#,
-    # i=3L - MARGIN=1L
-    # all.equal(
-    #     r <- apply.data.cube(dc[,, c("active","inactive"), drop=FALSE], 1L), # bug, lost status dim!
-    #     dc[,., c("active","inactive")] # OK
-    # ),
-    # all.equal(as.array(r, na.fill = 0), apply(ar[,.,c("active","inactive"), drop=FALSE], 1L, sum, na.rm=TRUE))
+    all.equal(r, dc["green", .,]),
+    # i=3L - MARGIN=c(1L,3L)
+    all.equal(
+        r <- apply.data.cube(dc[,, c("active","inactive"), drop=FALSE], c(1L,3L)),
+        dc[, ., c("active","inactive")]
+    ),
+    all.equal(as.array(r, na.fill = 0), apply(ar[,, c("active","inactive"), drop=FALSE], c(1L,3L), sum, na.rm=TRUE))
+)
+stopifnot( # drop=T/F
+    all.equal( # grand total after filter drop=TRUE
+        r <- dc["green", ., .],
+        apply.data.cube(dc["green"], character())
+    ),
+    length(r) == 1L, # grand total
+    identical(dim(r), integer(0)),
+    all.equal(as.array(r), sum(ar["green",,], na.rm=TRUE)),
+    all.equal( # drop=FALSE
+        r <- dc["green", ., ., drop=FALSE],
+        apply.data.cube(dc["green", drop=FALSE], 1L)
+    ),
+    identical(dim(r), 1L),
+    all.equal(as.array(r), apply(ar["green",,, drop=FALSE], 1L, sum, na.rm=TRUE))
 )
 
 # format measures ----

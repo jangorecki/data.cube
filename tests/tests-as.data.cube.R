@@ -124,7 +124,7 @@ dc1 = as.data.cube(ff, list())
 dc2 = as.data.cube(ff, lapply(1:3, function(i) as.dimension(NULL)))
 stopifnot(
     # dc1
-    all.equal(dim(dc1), list()),
+    all.equal(dim(dc1), integer()),
     identical(dim(dc1$fact$data), c(0L,0L)),
     all.equal(sapply(dc1$dimensions, dim), list()),
     # dc2
@@ -141,7 +141,7 @@ dc1 = as.data.cube(ff, list())
 dc2 = as.data.cube(ff, lapply(1:3, function(i) as.dimension(NULL)))
 stopifnot(
     # dc1
-    all.equal(dim(dc1), list()),
+    all.equal(dim(dc1), integer()),
     identical(dim(dc1$fact$data), c(1L,1L)),
     all.equal(sapply(dc1$dimensions, dim), list()),
     # dc2
@@ -149,7 +149,3 @@ stopifnot(
     identical(dim(dc2$fact$data), c(1L,1L)),
     all.equal(sapply(dc2$dimensions, dim), rep(0L, 3))
 )
-
-# tests status ------------------------------------------------------------
-
-invisible(TRUE)

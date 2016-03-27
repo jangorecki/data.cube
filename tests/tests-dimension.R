@@ -56,7 +56,3 @@ stopifnot(
     sapply(ld, is.data.table),
     all.equal(sapply(ld, ncol), structure(c(5L, 4L, 2L, 4L, 8L), .Names = c("product", "customer", "currency", "geography", "time")))
 )
-
-# tests status ------------------------------------------------------------
-
-invisible(FALSE)

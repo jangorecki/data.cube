@@ -110,7 +110,7 @@ fact = R6Class(
         head = function(n = 6L) {
             head(self$data, n)
         },
-        subset = function(x, by = character(), drop = TRUE) {
+        subset = function(x, by = NULL, drop = TRUE) {
             stopifnot(by %chin% names(self))
             # must return fact, not a data.table
             r = new.env()
@@ -121,9 +121,19 @@ fact = R6Class(
             r$data = NULL
             dimk = names(x)
             if (self$local) {
-                if (length(by)) {
-                    r$data = self$data[, eval(self$build.j()), by=c(union(by, dimk))]
-                    r$id.vars = r$id.vars[r$id.vars %chin% names(r$data)]
+                if (!is.null(by)) {
+                    if (length(by)) {
+                        r$data = self$data[, eval(self$build.j()), by=c(union(by, dimk))]
+                        r$id.vars = r$id.vars[r$id.vars %chin% names(r$data)]
+                    } else if (length(dimk)) {
+                        # retain dimk fields
+                        r$data = self$data[, eval(self$build.j()), by=c(dimk)]
+                        r$id.vars = r$id.vars[r$id.vars %chin% names(r$data)]
+                    } else {
+                        # grand total
+                        r$data = self$data[, eval(self$build.j())]
+                        r$id.vars = r$id.vars[r$id.vars %chin% names(r$data)]
+                    }
                 }
                 if (length(dimk)) {
                     i = 0L
@@ -147,7 +157,7 @@ fact = R6Class(
                     })
                     r$id.vars = r$id.vars[!r$id.vars %chin% drop.cols]
                 }
-                setkeyv(r$data, r$id.vars)
+                if (length(r$id.vars)) setkeyv(r$data, r$id.vars)
             } else {
                 stop("not yet implemented")
             }

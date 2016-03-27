@@ -14,7 +14,7 @@ add.surrogate.key = function(x, idcol){
 #' @param seed integer used for `set.seed` when producing fact table from dimensions. Default fixed to `1L`.
 #' @description Populates example sales data based on *mtcars*, *state*, *HairEyeColor* datasets.
 #' @return List of two list named *fact* and *dims*. The *fact* list keeps single fact data.table sub-aggregated to all dimensions. The *dims* list keeps five dimension data.tables.
-populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, hierarchies = FALSE, seed = 1L){
+populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, hierarchies = TRUE, seed = 1L){
     stopifnot(length(Y) %in% 1:2)
     `.` = prod_name = cyl = vs = am = gear = Hair = Eye = Sex = time_date = time_month = time_quarter = NULL
     # produce dimension based on mtcars dataset

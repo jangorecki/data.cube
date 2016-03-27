@@ -41,7 +41,7 @@ stopifnot(
 
 # data.cube: 5 dimensions, hierarchies from `populate_star` ----
 
-X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
+X = populate_star(N = 1e3, surrogate.keys = FALSE)
 dims = lapply(setNames(seq_along(X$dims), names(X$dims)),
               function(i) as.dimension(X$dims[[i]], hierarchies = X$hierarchies[[i]]))
 ff = as.fact(x = X$fact$sales,

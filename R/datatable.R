@@ -5,12 +5,12 @@
 #' @note Array should not have a dimension named *value* because this name will be used for a measure in data.table.
 #' @return A data.table object with (by default) non-NA values of a measure for each dimension cross.
 #' @method as.data.table array
-as.data.table.array = function(x, na.rm=TRUE, ...){
+as.data.table.array = function(x, na.rm=TRUE, ...) {
     `.` = value = NULL # visible binding
     dims = names(dimnames(x))
-    if("value" %in% dims) stop("Array to convert must not already have `value` character as dimension name. `value` name is reserved to converted measure, rename dimname of input array.")
+    if ("value" %in% dims) stop("Array to convert must not already have `value` character as dimension name. `value` name is reserved to converted measure, rename dimname of input array.")
     r = do.call(CJ, dimnames(x))[, .(value = eval(as.call(lapply(c("[","x", dims), as.symbol)))),, keyby = c(dims)]
-    if(na.rm) r[!is.na(value)] else r
+    if (na.rm) r[!is.na(value)] else r
 }
 
 #' @title Convert data.table to array
@@ -23,36 +23,36 @@ as.data.table.array = function(x, na.rm=TRUE, ...){
 #' @note When using *dimcols* arg the function will extract dimension key values from *x* data.table. If you have unique values for each dimension on hand, you can use *dimnames* argument to skip potentially heavy task of extract dimensions, also combine with *dimcols* if you need remap column name to custom dimension name.
 #' @return An array, when using *dimnames* the length will be `prod(sapply(dimnames, length))`, when using *dimcols* only the length will be `x[, prod(sapply(.SD, uniqueN)), .SDcols = dimcols]`.
 #' @method as.array data.table
-as.array.data.table = function(x, dimcols, measure, dimnames, ...){
+as.array.data.table = function(x, dimcols, measure, dimnames, ...) {
     stopifnot(!missing(dimcols) | !missing(dimnames))
     # zero dims fast escape
-    if(!missing(dimcols) && !length(dimcols) && !missing(dimnames) && !length(dimnames)){
-        if(length(x) > 1L) stopifnot(is.character(measure), length(measure)==1L, measure %in% names(x))
+    if (!missing(dimcols) && !length(dimcols) && !missing(dimnames) && !length(dimnames)) {
+        if (length(x) > 1L) stopifnot(is.character(measure), length(measure)==1L, measure %in% names(x))
         return(x[[measure]])
     }
-    if(!missing(dimcols)) stopifnot(is.character(dimcols), !anyDuplicated(names(dimcols)), !anyDuplicated(dimcols), dimcols %in% names(x))
-    if(!missing(dimnames)) stopifnot(is.list(dimnames), !is.null(names(dimnames)), !anyDuplicated(names(dimnames)))
-    if(!missing(dimcols) && !missing(dimnames)){
-        if(length(dimcols) && is.null(names(dimcols))) dimcols = setNames(dimcols, names(dimnames))
+    if (!missing(dimcols)) stopifnot(is.character(dimcols), !anyDuplicated(names(dimcols)), !anyDuplicated(dimcols), dimcols %in% names(x))
+    if (!missing(dimnames)) stopifnot(is.list(dimnames), !is.null(names(dimnames)), !anyDuplicated(names(dimnames)))
+    if (!missing(dimcols) && !missing(dimnames)) {
+        if (length(dimcols) && is.null(names(dimcols))) dimcols = setNames(dimcols, names(dimnames))
     }
-    if(missing(dimcols) && !missing(dimnames)){
+    if (missing(dimcols) && !missing(dimnames)) {
         stopifnot(names(dimnames) %in% names(x))
         dimcols = setNames(nm = names(dimnames))
     }
-    if(missing(measure)){
-        if(length(x)==length(dimcols)+1L) measure = names(x)[length(x)] # if only one measure then use it as default for `measure` arg
+    if (missing(measure)) {
+        if (length(x)==length(dimcols)+1L) measure = names(x)[length(x)] # if only one measure then use it as default for `measure` arg
     }
     stopifnot(is.character(measure), length(measure)==1L)
-    if(!length(dimcols)) return(x[, eval(as.name(measure))])
-    if(!missing(dimcols) && missing(dimnames)){
-        if(is.null(names(dimcols))) names(dimcols) = dimcols
+    if (!length(dimcols)) return(x[, eval(as.name(measure))])
+    if (!missing(dimcols) && missing(dimnames)) {
+        if (is.null(names(dimcols))) names(dimcols) = dimcols
         dimnames = lapply(dimcols, function(dimcol) fsort(unique(x, by = dimcol)[[dimcol]])) # optimized sort
     }
     revkey = rev(unname(dimcols))
-    if(nrow(x)){
+    if (nrow(x)) {
         crossdims = quote(setkeyv(setnames(do.call(CJ, c(dimnames, list(sorted=FALSE, unique=TRUE))), unname(dimcols)), revkey))
         # check if `on` cols exists to avoid 1.9.6 Error in forderv - fixed in 1.9.7 already - data.table#1376
-        if(!all(revkey %in% names(x))) stop(sprintf("Columns to join on does not exists in data.table '%s'.", paste(revkey[!revkey %in% names(x)], collapse=", ")))
+        if (!all(revkey %in% names(x))) stop(sprintf("Columns to join on does not exists in data.table '%s'.", paste(revkey[!revkey %in% names(x)], collapse=", ")))
         r = array(data = x[eval(crossdims), eval(as.name(measure)), on = c(revkey)],
                   dim = unname(sapply(dimnames, length)),
                   dimnames = dimnames)
@@ -61,7 +61,7 @@ as.array.data.table = function(x, dimcols, measure, dimnames, ...){
                   dim = unname(sapply(dimnames, length)),
                   dimnames = dimnames)
     }
-    if(length(dimnames)==1L) c(r) else r
+    if (length(dimnames)==1L) c(r) else r
 }
 
 # not yet exported from data.table
@@ -75,14 +75,14 @@ swap.on = function(x){
 
 # join and lookup chosen columns
 lookup = function(fact, dim, cols){
-    if(missing(cols)){
+    if (missing(cols)){
         stopifnot(haskey(dim))
         cols = copy(setdiff(names(dim), key(dim)))
     }
-    if(!length(cols)) return(TRUE)
-    if(any(cols %in% names(fact))) stop(sprintf("Column name collision on lookup for '%s' columns.", paste(cols[cols %in% names(fact)], collapse=", ")))
+    if (!length(cols)) return(TRUE)
+    if (any(cols %in% names(fact))) stop(sprintf("Column name collision on lookup for '%s' columns.", paste(cols[cols %in% names(fact)], collapse=", ")))
     fact[dim, (cols) := mget(paste0("i.", cols)), on = c(key(dim))]
     # workaround for data.table#1166 - lookup NAs manually
-    if(all(!cols %in% names(fact))) fact[, (cols) := as.list(dim[0L, cols, with=FALSE][1L])]
+    if (all(!cols %in% names(fact))) fact[, (cols) := as.list(dim[0L, cols, with=FALSE][1L])]
     TRUE
 }

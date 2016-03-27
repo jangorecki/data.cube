@@ -42,7 +42,7 @@ stopifnot(
 )
 
 # time dimension
-X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
+X = populate_star(N = 1e3, surrogate.keys = FALSE)
 time = as.dimension(X$dims$time,
                     id.vars = "time_date",
                     hierarchies = X$hierarchies$time)
@@ -74,7 +74,7 @@ stopifnot(
 
 # data.cube ----
 
-X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
+X = populate_star(N = 1e3, surrogate.keys = FALSE)
 
 dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
     as.dimension(X$dims[[i]],

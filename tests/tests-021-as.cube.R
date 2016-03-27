@@ -42,7 +42,7 @@ stopifnot(
 
 ## cube in-out --------------------------------------------------------------
 
-l = populate_star(1e3)
+l = populate_star(1e3, hierarchies = FALSE)
 
 # in
 cb.l = as.cube(l)

@@ -3,7 +3,7 @@ library(data.cube)
 
 # initialize ----
 
-X = populate_star(N = 1e3, surrogate.keys = FALSE, hierarchies = TRUE)
+X = populate_star(N = 1e3, surrogate.keys = FALSE)
 dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
     as.dimension(X$dims[[i]],
                  key = key(X$dims[[i]]),
@@ -132,7 +132,7 @@ stopifnot( # NULL subset
 
 # - [x] subset hierarchy consistency to old `cube`
 
-X = populate_star(1e3, hierarchies = TRUE)
+X = populate_star(1e3)
 cb = as.cube(X)
 dc = as.data.cube(X)
 stopifnot( # slice single values
@@ -201,8 +201,7 @@ stopifnot( # NULL subset
     , nrow(as.data.table(dc[,,.(NULL),,.(NULL)]))==0L
     , nrow(as.data.table(dc[,,,,.(time_year = 2014L, time_quarter_name = NULL)]))==0L
 )
-# drop arg
-stopifnot(
+stopifnot( # drop arg
     length(dim(dc[]))==5L
     , length(dim(dc["Mazda RX4"]))==4L
     , length(dim(dc["Mazda RX4", drop=FALSE]))==5L
@@ -277,8 +276,62 @@ stopifnot(
     )
 )
 
-# set.seed(1L)
-# dc = as.data.cube(populate_star(1e5, Y = 2015L, hierarchies = TRUE, seed=123))
+# apply.data.cube ----
+
+set.seed(1L)
+ar.dimnames = list(color = sort(c("green","yellow","red")),
+                   year = as.character(2011:2015),
+                   status = sort(c("active","inactive","archived","removed")))
+ar.dim = sapply(ar.dimnames, length)
+ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
+           unname(ar.dim),
+           ar.dimnames)
+dc = as.data.cube(ar)
+stopifnot( # apply using `[.data.cube`
+    # MARGIN=2:3
+    all.equal(
+        r <- apply.data.cube(dc, -1L),
+        dc[.]
+    ),
+    all.equal(as.array(r, na.fill = 0), apply(ar, 2:3, sum, na.rm=TRUE)),
+    all.equal(r, dc[.,]),
+    all.equal(r, dc[.,,]),
+    # MARGIN=c(1L, 3L)
+    all.equal(
+        r <- apply.data.cube(dc, -2L),
+        dc[,.]
+    ),
+    all.equal(as.array(r, na.fill = 0), apply(ar, c(1L,3L), sum, na.rm=TRUE)),
+    all.equal(r, dc[,.,]),
+    # MARGIN=3L
+    all.equal(
+        r <- apply.data.cube(dc, 3L),
+        dc[.,.]
+    ),
+    all.equal(as.array(r, na.fill = 0), apply(ar, 3L, sum, na.rm=TRUE)),
+    all.equal(r, dc[.,.,])
+)
+stopifnot( # apply while filter
+    # i=1L - MARGIN=3L
+    all.equal(
+        r <- apply.data.cube(dc["green", drop=FALSE], 3L),
+        dc["green",.]
+    ),
+    all.equal(as.array(r, na.fill = 0), apply(ar["green",,, drop=FALSE], 3L, sum, na.rm=TRUE)),
+    all.equal(r, dc["green",.,])#,
+    # i=3L - MARGIN=1L
+    # all.equal(
+    #     r <- apply.data.cube(dc[,, c("active","inactive"), drop=FALSE], 1L), # bug, lost status dim!
+    #     dc[,., c("active","inactive")] # OK
+    # ),
+    # all.equal(as.array(r, na.fill = 0), apply(ar[,.,c("active","inactive"), drop=FALSE], 1L, sum, na.rm=TRUE))
+)
+
+# format measures ----
+
+# TODO
+# format(dc["green",.,], na.fill=TRUE)
+# format(dc["green",,])[, .(value=sum(value)), status]
 # format function
 # dc$fact$measures$value$fun.format = currency.format
 # format(dc[,, "BGN", c("MT","SD"), as.Date("2015-08-18")], 

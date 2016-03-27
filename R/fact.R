@@ -110,25 +110,36 @@ fact = R6Class(
         head = function(n = 6L) {
             head(self$data, n)
         },
-        subset = function(x, drop = TRUE) {
+        subset = function(x, by = character(), drop = TRUE) {
+            stopifnot(by %chin% names(self))
             # must return fact, not a data.table
             r = new.env()
             r$local = self$local
             r$id.vars = self$id.vars
             r$measure.vars = self$measure.vars
             r$measures = self$measures
+            r$data = NULL
+            dimk = names(x)
             if (self$local) {
-                i = 0L
-                for (dimk in names(x)) {
-                    i = i + 1L
-                    if (i == 1L) {
-                        r$data = self$data[x[dimk], nomatch=0L, on=dimk]
-                    } else {
-                        r$data = r$data[x[dimk], nomatch=0L, on=dimk]
+                if (length(by)) {
+                    r$data = self$data[, eval(self$build.j()), by=c(union(by, dimk))]
+                    r$id.vars = r$id.vars[r$id.vars %chin% names(r$data)]
+                }
+                if (length(dimk)) {
+                    i = 0L
+                    for (dk in dimk) {
+                        i = i + 1L
+                        if (i == 1L && is.null(r$data)) {
+                            r$data = self$data[x[dk], nomatch=0L, on=dk]
+                        } else {
+                            r$data = r$data[x[dk], nomatch=0L, on=dk]
+                        }
                     }
+                } else {
+                    if (is.null(r$data)) r$data = self$data
                 }
                 if (drop) {
-                    drop.dims = sapply(x, length) == 1L
+                    drop.dims = sapply(x, length) <= 1L
                     drop.cols = names(drop.dims)[drop.dims]
                     sapply(drop.cols, function(col) {
                         set(r$data, j = col, value = NULL)

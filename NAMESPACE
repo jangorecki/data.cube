@@ -72,6 +72,7 @@ S3method(as.data.cube, cube)
 
 # [.data.cube
 S3method("[", data.cube)
+export(apply.data.cube)
 
 # as.*.data.cube
 S3method(as.array, data.cube)

@@ -3,7 +3,7 @@
 \alias{as.measure}
 \title{Form measure}
 \usage{
-as.measure(x, label = character(), fun.aggregate = "sum", ...,
+as.measure(x, label = character(), fun.aggregate = sum, ...,
   fun.format = NULL)
 }
 \arguments{
@@ -11,7 +11,7 @@ as.measure(x, label = character(), fun.aggregate = "sum", ...,
 
 \item{label}{character scalar, a label for a measure.}
 
-\item{fun.aggregate}{character scalar function name.}
+\item{fun.aggregate}{function, default \code{sum}.}
 
 \item{fun.format}{function to be used for formatting of a measure, such as \code{\link{currency.format}}.}
 

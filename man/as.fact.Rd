@@ -9,14 +9,14 @@
 as.fact(x, ...)
 
 \method{as.fact}{default}(x, id.vars = character(),
-  measure.vars = character(), fun.aggregate = "sum", ..., measures)
+  measure.vars = character(), fun.aggregate = sum, ..., measures)
 
 \method{as.fact}{data.table}(x, id.vars = as.character(key(x)),
-  measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ...,
+  measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ...,
   measures)
 
 \method{as.fact}{list}(x, id.vars = as.character(key(x)),
-  measure.vars = setdiff(names(x), id.vars), fun.aggregate = "sum", ...,
+  measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ...,
   measures)
 }
 \arguments{
@@ -26,7 +26,7 @@ as.fact(x, ...)
 
 \item{measure.vars}{character vector, column names of measures.}
 
-\item{fun.aggregate}{default "sum".}
+\item{fun.aggregate}{function default \code{sum}.}
 
 \item{measures}{list of measures class objects, useful if various measures needs to have different `fun.aggregate`.}
 

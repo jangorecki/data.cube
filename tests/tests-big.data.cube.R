@@ -34,7 +34,7 @@ bdt = as.big.data.table(X$fact$sales, rscl)
 ff = as.fact(x = rscl,
              id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
              measure.vars = c("amount","value"),
-             fun.aggregate = "sum",
+             fun.aggregate = sum,
              na.rm = TRUE)
 stopifnot(
     is.big.data.table(ff$data),

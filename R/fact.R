@@ -10,7 +10,7 @@ fact = R6Class(
         measure.vars = character(),
         measures = list(),
         data = NULL,
-        initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = "sum", ..., measures, .env) {
+        initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = sum, ..., measures, .env) {
             if(!missing(.env)){
                 # skip heavy processing for env argument
                 self$local = .env$local
@@ -20,7 +20,8 @@ fact = R6Class(
                 self$data = .env$data
                 return(invisible(self))
             }
-            stopifnot(is.character(id.vars), is.character(measure.vars), is.character(fun.aggregate))
+            sub.fun = substitute(fun.aggregate)
+            stopifnot(is.character(id.vars), is.character(measure.vars))
             self$id.vars = unname(id.vars)
             # - [x] `fact$new` creates measures, or use provided in `measures` argument
             if(!missing(measures)){
@@ -29,7 +30,8 @@ fact = R6Class(
             } else {
                 if(!length(measure.vars)) stop("You need to provide at least one measure column name")#measure.vars = setdiff(names(x), self$id.vars)
                 self$measure.vars = measure.vars
-                self$measures = lapply(setNames(nm = self$measure.vars), function(var) as.measure(var, fun.aggregate = fun.aggregate, ... = ...))
+                self$measures = lapply(setNames(nm = self$measure.vars), function(var) eval(substitute(as.measure(var, fun.aggregate = .fun.aggregate, ... = ...),
+                                                                                                       list(.fun.aggregate = sub.fun))))
             }
             stopifnot(
                 sapply(self$measures, inherits, "measure"),

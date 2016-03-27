@@ -12,7 +12,7 @@ dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
 ff = as.fact(x = X$fact$sales,
              id.vars = key(X$fact$sales),
              measure.vars = c("amount","value"),
-             fun.aggregate = "sum",
+             fun.aggregate = sum,
              na.rm = TRUE)
 dc = as.data.cube(ff, dims)
 
@@ -287,7 +287,7 @@ ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
            unname(ar.dim),
            ar.dimnames)
 dc = as.data.cube(ar)
-stopifnot( # apply using `[.data.cube`
+stopifnot( # apply using `[.data.cube` with integers
     # MARGIN=1L
     all.equal(
         r <- apply.data.cube(dc, 1L),
@@ -328,18 +328,30 @@ stopifnot( # apply using `[.data.cube`
         r <- apply.data.cube(dc, 1:3),
         dc[]
     ),
-    all.equal(as.array(r, na.fill = 0), apply(ar, 1:3, sum, na.rm=TRUE))
+    all.equal(as.array(r, na.fill = 0), apply(ar, 1:3, sum, na.rm=TRUE)),
+    # MARGIN=c("year", "status")
+    all.equal(
+        as.array(apply.data.cube(dc, c("year","status")), na.fill = 0),
+        apply(ar, c("year","status"), sum, na.rm=TRUE)
+    ),
+    # MARGIN=c("color") # dim 1L, could be dropped
+    all.equal(
+        as.array(apply.data.cube(dc["green", drop=FALSE], "color"), na.fill = 0),
+        apply(ar["green",,, drop=FALSE], "color", sum, na.rm=TRUE)
+    )
 )
-stopifnot( # apply with new FUN
-    # sum na.rm=FALSE
-    TRUE,
-    # sum na.rm=TRUE - na.fill = 0
-    TRUE,
-    # mean na.rm=FALSE
-    TRUE,
-    # mean na.rm=TRUE - na.fill = NaN
-    TRUE
-)
+
+# stopifnot( # apply with new FUN
+#     # sum na.rm=FALSE
+#     apply.data.cube(dc["green", drop=FALSE], "color", sum, na.rm=FALSE),
+#     TRUE,
+#     # sum na.rm=TRUE - na.fill = 0
+#     TRUE,
+#     # mean na.rm=FALSE
+#     TRUE,
+#     # mean na.rm=TRUE - na.fill = NaN
+#     TRUE
+# )
 
 # subset with apply ----
 

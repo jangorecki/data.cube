@@ -6,11 +6,12 @@ measure = R6Class(
     classname = "measure",
     public = list(
         var = character(),
-        fun.aggregate = character(),
+        fun.aggregate = NULL,
         fun.format = NULL,
         dots = list(),
         label = character(),
-        initialize = function(x, label = character(), fun.aggregate = "sum", ..., fun.format = NULL) {
+        initialize = function(x, label = character(), fun.aggregate = sum, ..., fun.format = NULL) {
+            fun.aggregate = substitute(fun.aggregate)
             self$dots = match.call(expand.dots = FALSE)$`...`
             self$var = x
             self$label = label
@@ -20,7 +21,7 @@ measure = R6Class(
         },
         expr = function() {
             as.call(c(
-                list(as.name(self$fun.aggregate), as.name(self$var)),
+                list(self$fun.aggregate, as.name(self$var)),
                 self$dots
             ))
         },

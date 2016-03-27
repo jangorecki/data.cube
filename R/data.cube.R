@@ -236,10 +236,36 @@ length.data.cube = function(x) {
 #' @param ... arguments passed to *FUN*
 #' @description Wraps to \code{[.data.cube}.
 apply.data.cube = function(X, MARGIN, FUN, ...) {
-    if (!missing(FUN)) warning("`FUN` not yet supported, fun.aggregate defined for each measure will be used.")
     if (!is.integer(MARGIN) && is.numeric(MARGIN)) MARGIN = as.integer(MARGIN) # 1 -> 1L
     if (is.integer(MARGIN)) MARGIN = X$id.vars[MARGIN]
     stopifnot(is.data.cube(X), is.character(MARGIN), MARGIN %chin% X$id.vars)
+    if (!missing(FUN)) {
+        X2 = dc$clone()
+        cl = match.call(expand.dots = FALSE)
+        .fun = cl$FUN
+        .dots = cl$`...`
+        browser()
+        X2$fact$measures = lapply(setNames(nm = X$fact$measure.vars), function(.var) {
+            eval.parent(as.call(c(
+                list(
+                    as.name("as.measure"),
+                    x = .var,
+                    label = character(0),
+                    fun.aggregate = .fun
+                ),
+                .dots
+            )))
+        })
+        # lapply(new.measures, eval)
+        # mm = substitute(as.measure(.m, label=character(),  = .FUN, ... = .dots), list(.m = "value", .FUN = cl$FUN, .dots = dots))
+        # mm
+        # sapply(names(X2$fact$measures), function(m) {
+        #     X2$fact$measures[[m]]$fun.aggregate = FUN
+        #     X2$fact$measures[[m]]$dots = dots
+        #     TRUE
+        # })
+        warning("`FUN` not yet supported, fun.aggregate defined for each measure will be used.")
+    }
     eval(as.call(c(
         list(
             as.name("["),

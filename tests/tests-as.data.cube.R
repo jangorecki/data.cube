@@ -31,7 +31,7 @@ dimensions = list(
 facts = as.fact(X$fact$sales,
                 id.vars = c("geog_abb","time_date"),
                 measure.vars = c("amount","value"),
-                fun.aggregate = "sum",
+                fun.aggregate = sum,
                 na.rm = TRUE)
 dc = as.data.cube(facts, dimensions)
 
@@ -47,7 +47,7 @@ dims = lapply(setNames(seq_along(X$dims), names(X$dims)),
 ff = as.fact(x = X$fact$sales,
              id.vars = key(X$fact$sales),
              measure.vars = c("amount","value"),
-             fun.aggregate = "sum",
+             fun.aggregate = sum,
              na.rm = TRUE)
 dc.f = as.data.cube(ff, dims)
 dc.x = as.data.cube(X)
@@ -65,7 +65,7 @@ dc.d = as.data.cube(
     x = dt,
     id.vars = c("prod_name","cust_profile","curr_name","geog_abb","time_date"),
     measure.vars = c("amount","value"),
-    fun.aggregate = "sum",
+    fun.aggregate = sum,
     na.rm = TRUE,
     dims = c("product","customer","currency","geography","time"), 
     hierarchies = X$hierarchies

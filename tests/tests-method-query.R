@@ -53,7 +53,7 @@ dims = lapply(setNames(seq_along(X$dims), names(X$dims)), function(i){
 ff = as.fact(x = X$fact$sales,
              id.vars = sapply(dims, `[[`, "id.vars"),
              measure.vars = c("amount","value"),
-             fun.aggregate = "sum",
+             fun.aggregate = sum,
              na.rm = TRUE)
 dc = as.data.cube(ff, dims)
 

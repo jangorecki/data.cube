@@ -23,7 +23,7 @@ as.data.cube(x, ...)
 \method{as.data.cube}{list}(x, ...)
 
 \method{as.data.cube}{data.table}(x, id.vars = key(x), measure.vars,
-  fun.aggregate = "sum", dims = id.vars, hierarchies = NULL, ...,
+  fun.aggregate = sum, dims = id.vars, hierarchies = NULL, ...,
   dimensions, measures)
 
 \method{as.data.cube}{cube}(x, hierarchies = NULL, ...)
@@ -39,7 +39,7 @@ as.data.cube(x, ...)
 
 \item{measure.vars}{characater vector of column names of metrics.}
 
-\item{fun.aggregate}{character function name, default to \emph{sum}.}
+\item{fun.aggregate}{function, default to \emph{sum}.}
 
 \item{dims}{character vector of dimension names}
 

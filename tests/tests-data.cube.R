@@ -341,17 +341,46 @@ stopifnot( # apply using `[.data.cube` with integers
     )
 )
 
-# stopifnot( # apply with new FUN
-#     # sum na.rm=FALSE
-#     apply.data.cube(dc["green", drop=FALSE], "color", sum, na.rm=FALSE),
-#     TRUE,
-#     # sum na.rm=TRUE - na.fill = 0
-#     TRUE,
-#     # mean na.rm=FALSE
-#     TRUE,
-#     # mean na.rm=TRUE - na.fill = NaN
-#     TRUE
-# )
+dc = as.data.cube(ar, na.rm = FALSE) # keep NA's for below na.rm=T/F tests
+stopifnot( # apply with new FUN
+    # sum na.rm=FALSE
+    all.equal(
+        as.array(apply.data.cube(dc, "color", sum, na.rm=FALSE)),
+        apply(ar, "color", sum, na.rm=FALSE)
+    ),
+    all.equal(
+        as.array(apply.data.cube(dc, c("year","status"), sum, na.rm=FALSE)),
+        apply(ar, c("year","status"), sum, na.rm=FALSE)
+    ),
+    # sum na.rm=TRUE - na.fill = 0
+    all.equal(
+        as.array(apply.data.cube(dc, "color", sum, na.rm=TRUE)),
+        apply(ar, "color", sum, na.rm=TRUE)
+    ),
+    all.equal(
+        as.array(apply.data.cube(dc, c("year","status"), sum, na.rm=TRUE)),
+        apply(ar, c("year","status"), sum, na.rm=TRUE)
+    ),
+    # mean na.rm=FALSE
+    all.equal(
+        as.array(apply.data.cube(dc, "color", mean, na.rm=FALSE)),
+        apply(ar, "color", mean, na.rm=FALSE)
+    ),
+    all.equal(
+        as.array(apply.data.cube(dc, c("year","status"), mean, na.rm=FALSE)),
+        apply(ar, c("year","status"), mean, na.rm=FALSE)
+    ),
+    # mean na.rm=TRUE - na.fill = NaN
+    all.equal(
+        as.array(apply.data.cube(dc, "color", mean, na.rm=TRUE)),
+        apply(ar, "color", mean, na.rm=TRUE)
+    ),
+    all.equal(
+        as.array(apply.data.cube(dc, c("year","status"), mean, na.rm=TRUE)),
+        apply(ar, c("year","status"), mean, na.rm=TRUE)
+    )
+    # rev order in MARGIN TODO
+)
 
 # subset with apply ----
 

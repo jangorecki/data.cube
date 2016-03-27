@@ -97,6 +97,7 @@ data.cube = R6Class(
             }
             keys = setNames(self$fact$id.vars, names(self$dimensions))
             drop_dim_aggr = sapply(setNames(seq_along(keys), names(keys))[seq_along(i)], function(ii) identical(i[[ii]], as.symbol(".")))
+            if (!length(drop_dim_aggr)) drop_dim_aggr = logical(0)
             drop_aggr = setNames(names(keys) %chin% names(drop_dim_aggr)[drop_dim_aggr], names(keys))
             i[drop_aggr[seq_along(i)]] = lapply(seq.int(sum(drop_aggr)), function(x) substitute()) # remove `.` and replace with ``
             i = lapply(setNames(seq_along(keys), names(keys)), parse.each.i, as.pairlist(i), keys)
@@ -109,6 +110,7 @@ data.cube = R6Class(
         subset = function(..., .dots, drop = TRUE) {
             # - [x] catch dots, preprocess, evaluate
             if (missing(.dots)) .dots = match.call(expand.dots = FALSE)$`...`
+            if (identical(names(.dots)[1L], "drop")) .dots = c(list(i = substitute()), .dots, rec) # x[drop=.] into x[,drop=.]
             i.meta = self$parse.i(.dots)
             drop_aggr = i.meta$drop_aggr
             i.meta = i.meta$i
@@ -239,32 +241,21 @@ apply.data.cube = function(X, MARGIN, FUN, ...) {
     if (!is.integer(MARGIN) && is.numeric(MARGIN)) MARGIN = as.integer(MARGIN) # 1 -> 1L
     if (is.integer(MARGIN)) MARGIN = X$id.vars[MARGIN]
     stopifnot(is.data.cube(X), is.character(MARGIN), MARGIN %chin% X$id.vars)
+    sub.fun = substitute(FUN)
     if (!missing(FUN)) {
-        X2 = dc$clone()
-        cl = match.call(expand.dots = FALSE)
-        .fun = cl$FUN
-        .dots = cl$`...`
-        browser()
-        X2$fact$measures = lapply(setNames(nm = X$fact$measure.vars), function(.var) {
-            eval.parent(as.call(c(
+        X = X$clone()
+        .dots = match.call(expand.dots = FALSE)$`...`
+        X$fact$measures = lapply(setNames(nm = X$fact$measure.vars), function(.var) {
+            eval(as.call(c(
                 list(
                     as.name("as.measure"),
                     x = .var,
                     label = character(0),
-                    fun.aggregate = .fun
+                    fun.aggregate = sub.fun
                 ),
                 .dots
-            )))
+            ))) # new measures with new fun.aggregate
         })
-        # lapply(new.measures, eval)
-        # mm = substitute(as.measure(.m, label=character(),  = .FUN, ... = .dots), list(.m = "value", .FUN = cl$FUN, .dots = dots))
-        # mm
-        # sapply(names(X2$fact$measures), function(m) {
-        #     X2$fact$measures[[m]]$fun.aggregate = FUN
-        #     X2$fact$measures[[m]]$dots = dots
-        #     TRUE
-        # })
-        warning("`FUN` not yet supported, fun.aggregate defined for each measure will be used.")
     }
     eval(as.call(c(
         list(

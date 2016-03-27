@@ -25,7 +25,7 @@ measure = R6Class(
             ))
         },
         print = function() {
-            cat(deparse(self$expr(), width.cutoff = 500L), sep="\n")
+            cat("<measure>", deparse(self$expr(), width.cutoff = 500L), sep="\n")
             invisible(self)
         }
     )

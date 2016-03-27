@@ -8,7 +8,7 @@ stopifnot(
     # expr
     is.language(m$expr()),
     # print
-    identical(capture.output(m$print()), "sum(z, na.rm = TRUE)")
+    identical(capture.output(m$print()), c("<measure>","sum(z, na.rm = TRUE)"))
 )
 # fun.format
 m = as.measure(x = "z", label = "score etc.", fun.aggregate = "sum", na.rm = TRUE, fun.format = function(x) sprintf("$%s", x))
@@ -21,12 +21,3 @@ stopifnot(
     is.function(m$fun.format),
     m$fun.format(1002.5) == "$1,002.50"
 )
-
-# measure in action ----
-
-# dc
-# m = as.measure(x = "z", fun.aggregate = "sum", na.rm = TRUE)
-# stopifnot(
-#     is.function(m$fun.format),
-#     m$fun.format(1002.5) == "$1002.5"
-# )

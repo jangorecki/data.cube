@@ -134,7 +134,7 @@ data.cube = R6Class(
             }
             # - [x] drop 1L element dimensions
             if (drop) {
-                drop.dims = sapply(r$dimensions, function(d) dim(d)[1L]==1L) # take only PK of dimension
+                drop.dims = sapply(r$dimensions, function(d) dim(d)[1L]<=1L) # take only PK of dimension, also the `<=` instead of `==` rationale in: http://stackoverflow.com/q/36242181/2490497
                 r$dimensions[drop.dims] = NULL
                 r$id.vars = r$id.vars[!drop.dims]
             }
@@ -150,6 +150,11 @@ data.cube = R6Class(
                 dimensions = lapply(self$dimensions, function(x) optional.logR(x$setindex(drop=drop)))
             ) # r - not used further but evaluated on lower classes
             invisible(self)
+        },
+        # multidim features
+        adrop = function(x) {
+            stop("adrop not yet implemented")
+            x
         }
     )
 )
@@ -176,7 +181,7 @@ is.data.cube = function(x) inherits(x, "data.cube")
 # @param j expression to evaluate on fact
 # @param by expression/character vector to aggregate measures accroding to *j* argument.
 # @return data.cube?? class object
-# "[[.data.cube" = function(x, i, j, by){
+# "[[.data.cube" = function(x, i, j, by) {
 #     r = x$extract(by = by, .call = match.call())
 #     r
 # }
@@ -196,20 +201,34 @@ format.data.cube = function(x, na.fill = FALSE, measure.format = list(), dots.fo
     stopifnot(is.list(measure.format))
     id.vars = x$id.vars
     measure.vars = x$fact$measure.vars
-    if(length(measure.format)) stopifnot(
+    if (length(measure.format)) stopifnot(
         sapply(measure.format, is.function),
         length(names(measure.format))==length(measure.format),
         names(measure.format) %in% measure.vars
     )
     r = x$denormalize(dims = character(0), na.fill = na.fill)
-    if(length(id.vars)) r = setorderv(r, cols = id.vars, order=1L, na.last=TRUE) 
-    if(length(measure.format)){
-        for(mf in names(measure.format)){
-            FUN = measure.format[[mf]]
-            DOTS = dots.format[[mf]]
-            set(r, i = NULL, j = mf, value = FUN(r[[mf]], ... = DOTS))
+    if (length(id.vars)) r = setorderv(r, cols = id.vars, order=1L, na.last=TRUE) 
+    if (!is.null(measure.format)) { # measure.format=NULL will stop any formatting
+        for (mv in measure.vars) {
+            if (mv %chin% names(measure.format)) {
+                FUN = measure.format[[mv]]
+                set(r, i = NULL, j = mv, value = FUN(r[[mv]], ... = dots.format[[mv]]))
+            } else {
+                if (!is.null(FUN <- x$fact$measures[[mv]]$fun.format)) {
+                    set(r, i = NULL, j = mv, value = FUN(r[[mv]], ... = dots.format[[mv]]))
+                }
+            }
         }
     }
-    if(isTRUE(dcast)) r = dcast.data.table(r, ...)
+    if (isTRUE(dcast)) r = dcast.data.table(r, ...)
     r[]
 }
+
+length.data.cube = function(x) {
+    x$fact$schema()$nrow
+}
+
+# adrop.data.cube = function(x, dims) {
+#     stopifnot(is.data.cube(x), is.character(dims))
+#     x$adrop(dims = dims)
+# }

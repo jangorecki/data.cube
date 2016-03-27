@@ -8,7 +8,7 @@ schema.big.data.table = function(x, empty) {
         ky = big.data.table::rscl.eval(rscl[1L], if(haskey(x)) paste(key(x), collapse=", ") else NA_character_, simplify = TRUE)
         dt = data.table(nrow = dm[1L], ncol = dm[2L], mb = mb, address = adr, sorted = ky)
         nn = copy(names(dt))
-        if (!missing(empty)) setcolorder(dt[, c(empty) := NA], unique(c(empty, nn)))
+        if (!missing(empty)) setcolorder(dt[, c(empty) := NA][], unique(c(empty, nn)))
         dt
     } else stop("schema.big.data.table can be only used with `big.data.table` package which is not installed.")
 }
@@ -19,7 +19,7 @@ schema.data.table = function(x, empty) {
     ky = if(haskey(x)) paste(key(x), collapse=", ") else NA_character_
     dt = data.table(nrow = dm[1L], ncol = dm[2L], mb = mb, address = adr, sorted = ky)
     nn = copy(names(dt))
-    if (!missing(empty)) setcolorder(dt[, c(empty) := NA], unique(c(empty, nn)))
+    if (!missing(empty)) setcolorder(dt[, c(empty) := NA][], unique(c(empty, nn)))
     dt
 }
 

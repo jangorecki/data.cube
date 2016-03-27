@@ -122,6 +122,13 @@ stopifnot(
     all.equal(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE], as.data.cube(ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])),
     all.equal(as.array(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE]), ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])
 )
+stopifnot( # NULL subset
+    nrow(as.data.table(dc[NULL]))==0L
+    , nrow(as.data.table(dc[.(NULL)]))==0L
+    , nrow(as.data.table(dc[NULL,,NULL]))==0L
+    , nrow(as.data.table(dc[,NULL,.(NULL)]))==0L
+    , identical(dimnames(dc[,NULL,.(NULL)]), list(color = c("green","red","yellow"))) # inconsistency to base::array see: http://stackoverflow.com/q/36242181/2490497
+)
 
 # - [x] subset hierarchy consistency to old `cube`
 
@@ -270,6 +277,30 @@ stopifnot(
     )
 )
 
-# tests status ------------------------------------------------------------
+# set.seed(1L)
+# dc = as.data.cube(populate_star(1e5, Y = 2015L, hierarchies = TRUE, seed=123))
+# format function
+# dc$fact$measures$value$fun.format = currency.format
+# format(dc[,, "BGN", c("MT","SD"), as.Date("2015-08-18")], 
+#        na.fill=T, 
+#        dcast=T, formula = year ~ status, 
+#        measure.format = list(value = currency.format),
+#        dots.format = list(value = list(currency.sym = " PLN", sym.align="right")))
+# 
+# format(dc["green",c("2014","2015")], measure.format = list(value = currency.format))
 
-invisible(TRUE)
+# names and length ----
+
+set.seed(1L)
+ar.dimnames = list(color = sort(c("green","yellow","red")),
+                   year = as.character(2011:2015),
+                   status = sort(c("active","inactive","archived","removed")))
+ar.dim = sapply(ar.dimnames, length)
+ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
+           unname(ar.dim),
+           ar.dimnames)
+dc = as.data.cube(ar)
+stopifnot(
+    identical(names(dc), c("color","year","status","value")),
+    length(dc) == 30L
+)

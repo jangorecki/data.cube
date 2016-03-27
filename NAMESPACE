@@ -92,6 +92,7 @@ S3method(dim, data.cube)
 
 # str, dimnames and format
 S3method(names, data.cube)
+S3method(length, data.cube)
 S3method(str, data.cube)
 S3method(dimnames, data.cube)
 S3method(format, data.cube)

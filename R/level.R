@@ -1,6 +1,3 @@
-
-# level ----
-
 #' @title Level class
 #' @docType class
 #' @format An R6 class object.
@@ -15,13 +12,17 @@ level = R6Class(
             stopifnot(is.data.table(x), is.character(id.vars), id.vars %in% names(x), is.character(properties), properties %in% names(x))
             self$id.vars = id.vars
             self$properties = unique(properties)
-            self$data = setkeyv(unique(x, by = self$id.vars)[, j = .SD, .SDcols = unique(c(self$id.vars, self$properties))], self$id.vars)[]
+            r = unique(x, by = self$id.vars)[, j = .SD, .SDcols = unique(c(self$id.vars, self$properties))]
+            self$data = setkeyv(r, self$id.vars)[]
             invisible(self)
         },
         print = function() {
             lvl.data.str = capture.output(str(self$data, give.attr = FALSE))
             cat(c("<level>", lvl.data.str), sep="\n")
             invisible(self)
+        },
+        dim = function() {
+            as.integer(nrow(self$data))
         },
         schema = function() {
             schema.data.table(self$data)
@@ -48,25 +49,13 @@ level = R6Class(
     )
 )
 
-# hierarchy ----
+#' @title Test if level class
+#' @param x object to tests.
+is.level = function(x) inherits(x, "level")
 
-#' @title Hierarchy class
-#' @docType class
-#' @format An R6 class object.
-#' @details Class stores set of dimension levels into hierarchy. Currently just keeps a list.
-hierarchy = R6Class(
-    classname = "hierarchy",
-    public = list(
-        levels = list(),
-        initialize = function(levels) {
-            stopifnot(is.list(levels), as.logical(length(levels)))
-            self$levels = levels
-            invisible(self)
-        },
-        print = function() {
-            hierarchy.str = capture.output(str(self$levels, give.attr = FALSE))
-            cat(c("<hierarchy>", hierarchy.str), sep="\n")
-            invisible(self)
-        }
-    )
-)
+names.level = function(x) names(x$data)
+length.level = function(x) nrow(x$data)
+dim.level = function(x) {
+    stopifnot(is.level(x))
+    x$dim()
+}

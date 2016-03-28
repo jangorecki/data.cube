@@ -6,7 +6,7 @@ Date: 2016-02-16
 Author: Jan Gorecki
 Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
 Description: Extends multidimensional array for OLAP operations backed by data.table. Optionally auto sharding over multiple R nodes and detailed process logging to database.
-Imports: data.table (>= 1.9.7), R6, stats
+Imports: data.table (>= 1.9.7), R6
 Suggests: big.data.table (>= 0.3.3), RSclient, Rserve, logR (>= 2.1.4), knitr, rmarkdown
 License: GPL-3
 Additional_repositories: https://jangorecki.gitlab.io/big.data.table, https://jangorecki.gitlab.io/logR, https://Rdatatable.github.io/data.table

@@ -49,3 +49,10 @@ null.fact = function(...){
     env$data = data.table(NULL)
     as.fact.environment(env)
 }
+
+# export
+
+as.data.table.fact = function(x, ...) {
+    stopifnot(is.fact(x))
+    copy(x$data)
+}

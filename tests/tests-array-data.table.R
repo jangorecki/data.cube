@@ -2,9 +2,9 @@ library(data.table)
 library(data.cube)
 
 set.seed(1L)
-ar.dimnames = list(color = sort(c("green","yellow","red")), 
-                   year = as.character(2011:2015), 
-                   status = sort(c("active","inactive","archived","removed")))
+ar.dimnames = list(color = c("green","red","yellow"), # sorted dimnames
+                   year = as.character(2011:2015),
+                   status = c("active","archived","inactive","removed"))
 ar.dim = sapply(ar.dimnames, length)
 ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE), 
            unname(ar.dim),
@@ -12,14 +12,12 @@ ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
 
 dc = as.data.cube(ar)
 dt = as.data.table(dc, na.fill = TRUE)
-ar = as.array(dc)
 dimcols = setNames(nm = names(ar.dimnames))
 measure = "value"
-
 stopifnot(
     prod(sapply(ar.dimnames, length)) == 60L,
     dt[, prod(sapply(.SD, uniqueN)), .SDcols = dimcols] == 60L,
-    all.equal(ar, as.array(dt, dimcols = dimcols, measure = measure)),
+    all.equal(ar, as.array(dt, dimnames = ar.dimnames, measure = measure)),
     all.equal(dt, as.data.table(ar, na.rm = FALSE))
 )
 

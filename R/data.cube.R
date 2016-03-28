@@ -58,13 +58,13 @@ data.cube = R6Class(
                    simplify = simplify, USE.NAMES = USE.NAMES)
         },
         denormalize = function(na.fill = FALSE, dims = names(self$dimensions)) {
-            r = if (!na.fill) {
-                copy(self$fact$data)
-            } else {
+            r = as.data.table(self$fact)
+            if (isTRUE(na.fill)) {
                 # `nomatch` to be extended to raise error if fact has values not in dims, after data.table#857 resolved
-                self$fact$data[i=do.call(CJ, c(self$dims.apply(function(x) x$data[[1L]]), list(sorted=TRUE, unique=TRUE))),
-                               nomatch=NA,
-                               on=setNames(nm=self$fact$id.vars)]
+                dn = dimnames(self)
+                r = r[i=do.call(CJ, c(dn, list(sorted=TRUE, unique=TRUE))),
+                      nomatch=NA,
+                      on=setNames(names(dn), nm=self$fact$id.vars)]
             }
             # lookup
             lookupv(dims = lapply(self$dimensions[dims], as.data.table.dimension), r)
@@ -190,7 +190,7 @@ is.data.cube = function(x) inherits(x, "data.cube")
 # }
 
 dimnames.data.cube = function(x) {
-    r = x$dims.apply(function(x) x$data[[1L]])
+    r = x$dims.apply(dimnames)
     if (!length(r)) return(NULL)
     r
 }
@@ -201,7 +201,7 @@ str.data.cube = function(object, ...) {
 }
 
 format.data.cube = function(x, na.fill = FALSE, measure.format = list(), dots.format = list(), dcast = FALSE, ...) {
-    stopifnot(is.list(measure.format))
+    stopifnot(is.data.cube(x), is.list(measure.format), is.logical(dcast))
     id.vars = x$id.vars
     measure.vars = x$fact$measure.vars
     if (length(measure.format)) stopifnot(
@@ -230,6 +230,16 @@ format.data.cube = function(x, na.fill = FALSE, measure.format = list(), dots.fo
 length.data.cube = function(x) {
     x$fact$schema()$nrow
 }
+names.data.cube = function(x) names(x$fact)
+dim.data.cube = function(x) {
+    stopifnot(is.data.cube(x))
+    x$dim()
+}
+
+head.data.cube = function(x, n, ...) {
+    stopifnot(is.data.cube(x))
+    x$head(n)
+}
 
 #' @title Apply function over data.cube 
 #' @param X data.cube object
@@ -239,7 +249,7 @@ length.data.cube = function(x) {
 #' @description Wraps to \code{[.data.cube}.
 apply.data.cube = function(X, MARGIN, FUN, ...) {
     if (!is.integer(MARGIN) && is.numeric(MARGIN)) MARGIN = as.integer(MARGIN) # 1 -> 1L
-    if (is.integer(MARGIN)) MARGIN = X$id.vars[MARGIN]
+    if (is.integer(MARGIN)) MARGIN = X$id.vars[MARGIN] # 1L -> colnames[1L]
     stopifnot(is.data.cube(X), is.character(MARGIN), MARGIN %chin% X$id.vars)
     sub.fun = substitute(FUN)
     if (!missing(FUN)) {
@@ -269,4 +279,9 @@ apply.data.cube = function(X, MARGIN, FUN, ...) {
             drop = FALSE
         )
     )))
+}
+
+aperm.data.cube = function(a, perm, ...) {
+    stopifnot(is.array(a), length(perm) == length(dim(a)))
+    stop("TODO")
 }

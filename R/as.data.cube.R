@@ -120,3 +120,23 @@ as.data.cube.cube = function(x, hierarchies = NULL, ...){
     dd = lapply(di, function(i) as.dimension.data.table(x$env$dims[[i]], id.vars = id.vars[i], hierarchies = hierarchies[[i]]))
     as.data.cube.fact(ff, dd)
 }
+
+# export
+
+as.data.table.data.cube = function(x, na.fill = FALSE, dcast = FALSE, ...) {
+    stopifnot(is.data.cube(x), is.logical(na.fill), is.logical(dcast))
+    r = x$denormalize(na.fill = na.fill)
+    if (isTRUE(dcast)) dcast.data.table(r, ...) else r
+}
+
+as.array.data.cube = function(x, measure, na.fill = NA, ...) {
+    if (!x$fact$local) stop("Only local data.cube, not distributed ones, can be converted to array")
+    if (missing(measure)) measure = x$fact$measure.vars[1L]
+    if (length(measure) > 1L) stop("Your cube seems to have multiple measures, you must provide scalar column name as 'measure' argument to as.array.")
+    dimcols = lapply(x$dimensions, function(x) x$id.vars)
+    stopifnot(sapply(dimcols, length) == 1L) # every key should be a single column key
+    r = as.array.data.table(x = x$fact$data, dimcols = unlist(dimcols), measure = measure, dimnames = dimnames(x))
+    # below will be removed after data.table#857 resolved, logic will goes into cb$denormalize method
+    if (!is.na(na.fill) || is.nan(na.fill)) r[is.na(r)] = na.fill # cannot use is.na to track NaN also
+    r
+}

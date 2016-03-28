@@ -3,10 +3,12 @@
 \alias{as.data.table.array}
 \title{Convert array to data.table}
 \usage{
-\method{as.data.table}{array}(x, na.rm = TRUE, ...)
+\method{as.data.table}{array}(x, keep.rownames = FALSE, na.rm = TRUE, ...)
 }
 \arguments{
 \item{x}{array}
+
+\item{keep.rownames}{ignored}
 
 \item{na.rm}{logical default TRUE, `NA` value of a measure is not included into resulting data.table}
 

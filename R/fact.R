@@ -179,3 +179,10 @@ fact = R6Class(
 #' @title Test if fact class
 #' @param x object to tests.
 is.fact = function(x) inherits(x, "fact")
+
+names.fact = function(x) names(x$data)
+length.fact = function(x) nrow(x$data)
+dim.fact = function(x) {
+    stopifnot(is.fact(x))
+    x$dim()
+}

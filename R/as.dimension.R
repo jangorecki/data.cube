@@ -36,3 +36,12 @@ null.dimension = function(...){
     env$fields = character()
     as.dimension.environment(env)
 }
+
+# export
+
+as.data.table.dimension = function(x, lvls = names(x$levels), ...) {
+    stopifnot(is.dimension(x))
+    r = copy(x$data)
+    lookupv(dims = lapply(x$levels[lvls], as.data.table.level), r)
+    r[]
+}

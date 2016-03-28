@@ -34,19 +34,20 @@ dimension = R6Class(
                 lapply(setNames(nm = unique(c(names(x), names(y)))),
                        function(nm) c(x[[nm]], y[[nm]]))
             }, hierarchies)
-            self$levels =  lapply(setNames(nm = names(common.levels)), function(lvlk) {
+            self$levels = lapply(setNames(nm = names(common.levels)), function(lvlk) {
                 as.level(x, id.vars = lvlk, properties = common.levels[[lvlk]])
             })
             dt = rbindlist(lapply(names(self$levels), function(lvlk) data.table(properties = c(lvlk, self$levels[[lvlk]]$properties))[, level := lvlk]))[, tail(.SD, 1L), properties]
             self$fields = dt$properties # TEST on error use: setNames(dt$properties, dt$level)
             # all.hierarchies.level.mappings
             granularity = unique(c(self$id.vars, all.hierarchies.level.keys))
-            self$data = setkeyv(unique(x, by = granularity)[, .SD, .SDcols = granularity], self$id.vars)[]
+            r = unique(x, by = granularity)[, j = .SD, .SDcols = granularity]
+            self$data = setkeyv(r, self$id.vars)[]
             invisible(self)
         },
         dim = function() {
             if(!ncol(self$data)) return(0L)
-            unname(unlist(self$data[, lapply(.SD, uniqueN), .SDcols = self$id.vars]))
+            as.integer(unname(unlist(self$data[, lapply(.SD, uniqueN), .SDcols = self$id.vars])))
         },
         print = function() {
             dimension.data.str = capture.output(str(self$data, give.attr = FALSE))
@@ -76,8 +77,6 @@ dimension = R6Class(
             filter.lvls = names(filter.lvls)[filter.lvls]
             level.fields = lapply(self$levels, function(x) c(x$id.vars, x$properties))
             filter.lvls.cols = lapply(level.fields, function(fields) filter.cols[filter.cols %in% fields])
-            # if(!identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls))) browser()
-            # stopifnot(identical(sort(unique(unlist(filter.lvls.cols))), sort(filter.lvls)))
             r = new.env()
             # subset levels
             null.sub = unlist(lapply(setNames(nm = names(self$levels)), function(lvl) {
@@ -128,7 +127,8 @@ dimension = R6Class(
             level.keys = unique(unlist(lapply(self$hierarchies, names)))
             base.grain = unique(c(self$id.vars, level.keys))
             if(!length(x)) x = setDT(as.list(setNames(seq_along(base.grain), base.grain)))[0L]
-            self$data = setkeyv(unique(x, by = base.grain)[, .SD, .SDcols = base.grain], self$id.vars)[]
+            r = unique(x, by = base.grain)[, .SD, .SDcols = base.grain]
+            self$data = setkeyv(r, self$id.vars)[]
             invisible(self)
         },
         setindex = function(drop = FALSE) {
@@ -142,3 +142,17 @@ dimension = R6Class(
 #' @title Test if dimension class
 #' @param x object to tests.
 is.dimension = function(x) inherits(x, "dimension")
+
+dimnames.dimension = function(x) {
+    jj = as.name(x$id.vars)
+    r = x$levels[[x$id.vars]]$data[[1L]]
+    if (!length(r)) return(NULL)
+    r
+}
+
+names.dimension = function(x) names(x$data)
+length.dimension = function(x) nrow(x$data)
+dim.dimension = function(x) {
+    stopifnot(is.dimension(x))
+    x$dim()
+}

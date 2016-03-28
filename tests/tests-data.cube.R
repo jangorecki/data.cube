@@ -16,14 +16,18 @@ ff = as.fact(x = X$fact$sales,
              na.rm = TRUE)
 dc = as.data.cube(ff, dims)
 
-stopifnot(
-    is.data.table(dc$fact$data),
-    # Normalization
-    identical(dim(dc$dimensions$geography$levels$geog_abb$data), c(50L, 4L)),
-    identical(dim(dc$dimensions$geography$levels$geog_region_name$data), c(4L, 1L)),
-    identical(dim(dc$dimensions$time$levels$time_month$data), c(12L, 2L)),
-    identical(dim(dc$dimensions$time$levels$time_year$data), c(5L, 1L)),
-    identical(dim(dc$dimensions$time$levels$time_date$data), c(1826L, 6L))
+stopifnot( # expected dimensionality from as.data.table
+    # .fact
+    identical(dim(as.data.table(dc$fact)), c(1000L, 7L)),
+    # .dimension
+    identical(dim(as.data.table(dc$dimensions$geography)), c(50L, 4L)),
+    identical(dim(as.data.table(dc$dimensions$time)), c(1826L, 8L)),
+    # .levels
+    identical(dim(as.data.table(dc$dimensions$geography$levels$geog_abb)), c(50L, 4L)),
+    identical(dim(as.data.table(dc$dimensions$geography$levels$geog_region_name)), c(4L, 1L)),
+    identical(dim(as.data.table(dc$dimensions$time$levels$time_month)), c(12L, 2L)),
+    identical(dim(as.data.table(dc$dimensions$time$levels$time_year)), c(5L, 1L)),
+    identical(dim(as.data.table(dc$dimensions$time$levels$time_date)), c(1826L, 6L))
 )
 
 # print ----
@@ -122,26 +126,31 @@ stopifnot(
     all.equal(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE], as.data.cube(ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])),
     all.equal(as.array(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE]), ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])
 )
-# # DEV
-# set.seed(1L)
-# ar.dimnames = list(color = sort(c("green","yellow","red")), 
-#                    year = as.character(2011:2015), 
-#                    status = sort(c("active","inactive","archived","removed")))
-# ar.dim = sapply(ar.dimnames, length)
-# ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE), 
-#            unname(ar.dim),
-#            ar.dimnames)
-# dc = as.data.cube(ar)
-# dc
-# stopifnot( # retain order according to filter
-#     TRUE # TODO
-# )
+
 stopifnot( # NULL subset
     nrow(as.data.table(dc[NULL]))==0L
     , nrow(as.data.table(dc[.(NULL)]))==0L
     , nrow(as.data.table(dc[NULL,,NULL]))==0L
     , nrow(as.data.table(dc[,NULL,.(NULL)]))==0L
     , identical(dimnames(dc[,NULL,.(NULL)]), list(color = c("green","red","yellow"))) # inconsistency to base::array see: http://stackoverflow.com/q/36242181/2490497
+)
+
+# [x] order of dimnames is not retained
+
+set.seed(1L)
+ar.dimnames = list(color = c("green","yellow","red"), # unordered
+                   year = sample(as.character(2011:2015)),
+                   status = c("active","inactive","archived","removed"))
+ar.dim = sapply(ar.dimnames, length)
+ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
+           unname(ar.dim),
+           ar.dimnames)
+dc = as.data.cube(ar)
+stopifnot(
+    # no match
+    !identical(dimnames(ar), dimnames(dc)),
+    # validate match when sorted
+    identical(lapply(dimnames(ar), sort), dimnames(dc))
 )
 
 # - [x] subset hierarchy consistency to old `cube`

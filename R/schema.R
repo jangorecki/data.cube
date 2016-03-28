@@ -22,23 +22,3 @@ schema.data.table = function(x, empty) {
     if (!missing(empty)) setcolorder(dt[, c(empty) := NA][], unique(c(empty, nn)))
     dt
 }
-
-names.level = function(x) names(x$data)
-names.dimension = function(x) names(x$data)
-names.fact = function(x) names(x$data)
-names.data.cube = function(x) names(x$fact)
-
-dim.dimension = function(x) {
-    stopifnot(is.dimension(x))
-    x$dim()
-}
-
-dim.fact = function(x) {
-    stopifnot(is.fact(x))
-    x$dim()
-}
-
-dim.data.cube = function(x) {
-    stopifnot(is.data.cube(x))
-    x$dim()
-}

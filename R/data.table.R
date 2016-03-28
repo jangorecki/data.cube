@@ -1,16 +1,28 @@
 #' @title Convert array to data.table
 #' @param x array
+#' @param keep.rownames ignored
 #' @param na.rm logical default TRUE, `NA` value of a measure is not included into resulting data.table
 #' @param \dots ignored
 #' @note Array should not have a dimension named *value* because this name will be used for a measure in data.table.
 #' @return A data.table object with (by default) non-NA values of a measure for each dimension cross.
 #' @method as.data.table array
-as.data.table.array = function(x, na.rm=TRUE, ...) {
-    `.` = value = NULL # visible binding
-    dims = names(dimnames(x))
-    if ("value" %in% dims) stop("Array to convert must not already have `value` character as dimension name. `value` name is reserved to converted measure, rename dimname of input array.")
-    r = do.call(CJ, dimnames(x))[, .(value = eval(as.call(lapply(c("[","x", dims), as.symbol)))),, keyby = c(dims)]
-    if (na.rm) r[!is.na(value)] else r
+as.data.table.array = function(x, keep.rownames = FALSE, na.rm=TRUE, ...) {
+    stopifnot(is.array(x), is.logical(na.rm)) # keep.rownames ignored here
+    d = dim(x)
+    if (!length(d) >= 1L) stop("as.data.table.array should be called only for array object, not matrix, so expects to have 3+ dimensions")
+    dn = dimnames(x)
+    if (is.null(dn)) dn = lapply(d, seq.int)
+    r = do.call(CJ, c(dn, list(sorted=TRUE, unique=TRUE)))
+    dim.cols = copy(names(r))
+    if ("value" %in% dim.cols) stop("Array to convert must not already have `value` character as dimension name. `value` name is reserved for a measure, rename dimname of input array.")
+    value = NULL # check NOTE
+    jj = as.call(list(
+        as.name(":="),
+        "value",
+        as.call(lapply(c("[","x", dim.cols), as.symbol)) # lookup to 'x' array for each row
+    )) # `:=`("value", x[V1, V2, V3])
+    r[, eval(jj), by=c(dim.cols)]
+    if (na.rm) r[!is.na(value)] else r[]
 }
 
 #' @title Convert data.table to array
@@ -46,16 +58,16 @@ as.array.data.table = function(x, dimcols, measure, dimnames, ...) {
     if (!length(dimcols)) return(x[, eval(as.name(measure))])
     if (!missing(dimcols) && missing(dimnames)) {
         if (is.null(names(dimcols))) names(dimcols) = dimcols
-        dimnames = lapply(dimcols, function(dimcol) fsort(unique(x, by = dimcol)[[dimcol]])) # optimized sort
+        dimnames = lapply(dimcols, function(dimcol) unique(x[[dimcol]]))
     }
     revkey = rev(unname(dimcols))
     if (nrow(x)) {
-        crossdims = quote(setkeyv(setnames(do.call(CJ, c(dimnames, list(sorted=FALSE, unique=TRUE))), unname(dimcols)), revkey))
+        crossdims = quote(setkeyv(setnames(do.call(CJ, c(dimnames, list(sorted=TRUE, unique=TRUE))), unname(dimcols)), revkey)[])
         # check if `on` cols exists to avoid 1.9.6 Error in forderv - fixed in 1.9.7 already - data.table#1376
         if (!all(revkey %in% names(x))) stop(sprintf("Columns to join on does not exists in data.table '%s'.", paste(revkey[!revkey %in% names(x)], collapse=", ")))
-        r = array(data = x[eval(crossdims), eval(as.name(measure)), on = c(revkey)],
+        r = array(data = x[eval(crossdims), eval(as.name(measure)), on = unname(revkey)],
                   dim = unname(sapply(dimnames, length)),
-                  dimnames = dimnames)
+                  dimnames = lapply(dimnames, sort)) # dim keys order is lost
     } else {
         r = array(data = x[, eval(as.name(measure))],
                   dim = unname(sapply(dimnames, length)),
@@ -64,25 +76,29 @@ as.array.data.table = function(x, dimcols, measure, dimnames, ...) {
     if (length(dimnames)==1L) c(r) else r
 }
 
-# not yet exported from data.table
-fsort = data.table:::fsort
-
-# used with data.table join `on` argument
-swap.on = function(x){
+# used with data.table join `on` argument - used in `cube$denormalize`
+swap.on = function(x) {
     stopifnot(is.character(x), length(names(x))==length(x))
     structure(names(x), names = x)
 }
 
 # join and lookup chosen columns
-lookup = function(fact, dim, cols){
+lookup = function(fact, dim, cols) {
+    stopifnot(haskey(dim))
     if (missing(cols)){
-        stopifnot(haskey(dim))
-        cols = copy(setdiff(names(dim), key(dim)))
+        cols = setdiff(names(dim), key(dim))
     }
     if (!length(cols)) return(TRUE)
     if (any(cols %in% names(fact))) stop(sprintf("Column name collision on lookup for '%s' columns.", paste(cols[cols %in% names(fact)], collapse=", ")))
     fact[dim, (cols) := mget(paste0("i.", cols)), on = c(key(dim))]
-    # workaround for data.table#1166 - lookup NAs manually
-    if (all(!cols %in% names(fact))) fact[, (cols) := as.list(dim[0L, cols, with=FALSE][1L])]
     TRUE
+}
+
+lookupv = function(dims, fact) {
+    if (!length(dims)) return(logical(0))
+    sapply(dims, function(dim) {
+        nd = copy(names(dim))
+        nf = copy(names(fact))
+        lookup(fact, dim, setdiff(nd, nf))
+    })
 }

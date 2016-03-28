@@ -1,32 +1,19 @@
-# engine
-importFrom(stats, aggregate)
+# imports ----
+
+importFrom(stats, aggregate) # to be removed when aggregate.cube deprecated
+importFrom(utils, head)
 import(data.table)
 import(R6)
 
-# to cube
-export(as.cube)
-S3method(as.cube, default)
-S3method(as.cube, matrix)
-S3method(as.cube, array)
-S3method(as.cube, list)
-S3method(as.cube, data.table)
+# others ----
 
-# cube
-export(cube)
-S3method("[", cube)
-S3method(dim, cube)
-S3method(dimnames, cube)
-S3method(str, cube)
-S3method(aggregate, cube)
-S3method(rollup, cube)
-S3method(format, cube)
-export(capply)
-export(rollup)
-
-# from cube
-S3method(as.data.table, cube)
-S3method(as.list, cube)
-S3method(as.array, cube)
+# is.*
+export(is.measure)
+export(is.level)
+export(is.dimension)
+export(is.fact)
+export(is.data.cube)
+export(is.cube)
 
 # others
 S3method(as.data.table, array)
@@ -35,30 +22,94 @@ S3method(rollup, data.table)
 export(populate_star)
 export(process.dim)
 
-# measure
-export(as.measure)
+# cube ----
+
+export(cube)
+export(capply)
+export(rollup)
+
+# as.cube.*
+export(as.cube)
+S3method(as.cube, default)
+S3method(as.cube, matrix)
+S3method(as.cube, array)
+S3method(as.cube, list)
+S3method(as.cube, data.table)
+
+# *.cube
+S3method("[", cube)
+S3method(dim, cube)
+S3method(dimnames, cube)
+S3method(str, cube)
+S3method(aggregate, cube) # to be deprecated
+S3method(rollup, cube)
+S3method(format, cube)
+
+# as.*.cube
+S3method(as.data.table, cube)
+S3method(as.list, cube)
+S3method(as.array, cube)
+
+# measure ----
+
+export(as.measure) # non generic
 export(currency.format)
 
-# level
+# level ----
+
+# as.level.*
 export(as.level)
 S3method(as.level, default)
 S3method(as.level, data.table)
 
-# hierarchy
+# *.level
+S3method(length, level)
+S3method(names, level)
+S3method(dim, level)
+
+# as.*.level
+S3method(as.data.table, level)
+
+# hierarchy ----
+
+# as.hierarchy.*
 export(as.hierarchy)
 S3method(as.hierarchy, default)
 S3method(as.hierarchy, list)
 
-# dimension
+# dimension ----
+
+# as.dimension.*
 export(as.dimension)
 S3method(as.dimension, default)
 S3method(as.dimension, data.table)
 
-# fact
+# *.dimension
+S3method(length, dimension)
+S3method(names, dimension)
+S3method(dim, dimension)
+S3method(dimnames, dimension)
+
+# as.*.dimension
+S3method(as.data.table, dimension)
+
+# fact ----
+
+# as.fact.*
 export(as.fact)
 S3method(as.fact, default)
 S3method(as.fact, data.table)
 S3method(as.fact, list)
+
+# *.fact
+S3method(length, fact)
+S3method(names, fact)
+S3method(dim, fact)
+
+# as.*.fact
+S3method(as.data.table, fact)
+
+# data.cube ----
 
 # as.data.cube
 export(as.data.cube)
@@ -70,30 +121,19 @@ S3method(as.data.cube, list)
 S3method(as.data.cube, data.table)
 S3method(as.data.cube, cube)
 
-# [.data.cube
+# `[.data.cube`
 S3method("[", data.cube)
 export(apply.data.cube)
+
+# *.data.cube
+S3method(length, data.cube)
+S3method(names, data.cube)
+S3method(dim, data.cube)
+S3method(head, data.cube)
+S3method(str, data.cube)
+S3method(dimnames, data.cube)
+S3method(format, data.cube)
 
 # as.*.data.cube
 S3method(as.array, data.cube)
 S3method(as.data.table, data.cube)
-S3method(as.data.table, dimension)
-
-# is.*
-export(is.measure)
-export(is.dimension)
-export(is.fact)
-export(is.data.cube)
-export(is.cube)
-
-# dim.*
-S3method(dim, dimension)
-S3method(dim, fact)
-S3method(dim, data.cube)
-
-# str, dimnames and format
-S3method(names, data.cube)
-S3method(length, data.cube)
-S3method(str, data.cube)
-S3method(dimnames, data.cube)
-S3method(format, data.cube)

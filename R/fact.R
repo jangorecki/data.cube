@@ -169,7 +169,7 @@ fact = R6Class(
             if (self$local) {
                 setindexv(self$data, if (!drop) self$id.vars)
             } else {
-                stop("TO DO DEV")
+                stop("TODO")
             }
             invisible(self)
         }

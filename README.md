@@ -3,51 +3,110 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
 
 # Features and examples
 
-- [x] scalable multidimensional `array` alternative, data modeled in *star schema*
+- [x] scalable multidimensional `array` alternative
 - [x] uses [data.table](https://github.com/Rdatatable/data.table) under the hood
 - [x] use base R `array` query API
-  - [x] `[.cube` uses base R `[.array` method API for *slice* and *dice*, see [tests/tests-sub-.cube.R](tests/tests-sub-.cube.R)
-  - [x] `capply`/`aggregate.cube`/`rollup` uses base R `apply` function like API for *rollup*, *drilldown*, see [tests/tests-capply.R](tests/tests-capply.R) and [tests/tests-rollup.R](tests/tests-rollup.R)
-- [x] for *pivot* use `format`/`as.data.table` with `dcast.data.table` API, see [tests/tests-format.R](tests/tests-format.R)
+  - [x] `[.data.cube` uses base R `[.array` method API for *slice* and *dice*
+  - [x] extended for aggregation subsetting with `[.array`
+  - [x] `apply.data.cube` uses base R `apply` function like API
+  - [ ] `rollup` for `data.cube`
+- [x] for *pivot* use `format`/`as.data.table` with `dcast.data.table` API
 - [x] base R `array` API is extended by accepting multiple attributes from dimensions and hierarchies
-- [ ] new `[[.cube` method combine and optimize `[.cube` and `capply` into single call with *data.table*-like API, see [tests/tests-sub-sub-.cube.R](tests/tests-sub-sub-.cube.R)
-  - [ ] *i* accept same input as `...` argument of `[.cube` wrapped into `.(...)`
-  - [ ] *j* accept input like data.table *j* or a function to apply on all measures
-  - [ ] *by* acts like a `MARGIN` arg of `apply`, accept input like data.table *by*
-- [x] direct access to *cube* class methods and attributes, see `ls.str(x)` on *cube* object
-- [ ] logging of queries against the cube
+- [x] direct access to *data.cube* class methods and attributes, see `ls.str(x)` on *data.cube* object
+- [ ] logging of queries against data.cube
 - [x] query optimization
-  - [x] uses blazingly fast data.table's *binary search* where possible
-- [ ] share dimensions between cubes
-- [ ] new `data.cube` available to work on top of [big.data.table](https://gitlab.com/jangorecki/big.data.table)
+  - [x] can uses blazingly fast data.table *indexes*
+- [ ] works on sharded engine using [big.data.table](https://gitlab.com/jangorecki/big.data.table)
 
 Contribution welcome!  
 
 # Installation
 
 ```r
-install.packages("data.cube", repos = paste0("https://",
-    c("jangorecki.github.io/data.cube","cran.rstudio.com")
-))
+install.packages("data.cube", repos = paste0("https://", c("jangorecki.gitlab.io/data.cube","Rdatatable.github.io/data.table","cran.rstudio.com"))
+)
 ```
 
 # Usage
 
 Check following vignettes:  
 
-- `data.cube` class (not yet in readme, api in dev)  
-  - [Basics TO DO](https://jangorecki.gitlab.io/data.cube/).  
-  - [Distributed backend for data.cube](https://jangorecki.gitlab.io/data.cube/doc/big.data.cube.html) covers *cube* and *array* subset methods.  
+- `data.cube` class
+  - [Subset and aggregate multidimensional data with data.cube](https://jangorecki.gitlab.io/data.cube/library/data.cube/doc/sub-.data.cube.html)
 
 - old basic `cube` class
-  - [Subset multidimensional data vignette](https://jangorecki.gitlab.io/data.cube/doc/sub-.cube.html) covers *cube* and *array* subset methods.  
+  - [Subset multidimensional data](https://jangorecki.gitlab.io/data.cube/library/data.cube/doc/sub-.cube.html)
 
 ## Basics
+
+```r
+set.seed(1)
+# array
+ar = array(rnorm(8,10,5), rep(2,3), 
+           dimnames = list(color = c("green","red"), 
+                           year = c("2014","2015"), 
+                           country = c("IN","UK"))) # sorted
+# cube normalized to star schema just on natural keys
+dc = as.data.cube(ar)
+
+# slice
+ar["green","2015",]
+dc["green","2015"]
+format(dc["green","2015"])
+
+# dice
+ar[c("green","red"),c("2014","2015"),]
+dc[c("green","red"),c("2014","2015")]
+format(dc[c("green","red"),c("2014","2015")])
+
+# exact tabular representation of array is just a formatting on the cube
+ar["green",c("2014","2015"),]
+format(dc["green",c("2014","2015")], 
+       dcast = TRUE, 
+       formula = year ~ country)
+ar[,"2015",c("UK","IN")]
+format(dc[,"2015",c("UK","IN")], 
+       dcast = TRUE, 
+       formula = color ~ country) # sorted dimensions levels
+```
+
+## Dimension hierarchies and attributes, aggregation
+
+Build data.cube from set of tables defined with star schema, single fact table and multiple dimensions.
 
 ```r
 library(data.table)
 library(data.cube)
 
+X = populate_star(1e5)
+lapply(X, sapply, ncol)
+lapply(X, sapply, nrow)
+dc = as.data.cube(X)
+str(dc) # model live description
+
+# slice and dice on dimension hierarchy
+dc["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+# same as above but more verbose
+names(dc$dimensions)
+dc[product = "Mazda RX4",
+   customer = .(),
+   currency = .(curr_type = "crypto"),
+   geography = .(),
+   time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+
+# aggregate by droppping dimension with just `.` symbol, group by customer and currency
+dc[product = .,
+   customer = .(),
+   currency = .(curr_type="crypto"),
+   geography = .,
+   time = .]
+```
+
+### old `cube` class with more methods
+
+```r
+library(data.table)
+library(data.cube)
 # sample array
 set.seed(1L)
 ar.dimnames = list(color = sort(c("green","yellow","red")), 
@@ -60,83 +119,6 @@ ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
 print(ar)
 
 cb = as.cube(ar)
-print(cb)
-str(cb)
-all.equal(ar, as.array(cb))
-all.equal(dim(ar), dim(cb))
-all.equal(dimnames(ar), dimnames(cb))
-
-# slice
-
-arr = ar["green",,]
-print(arr)
-r = cb["green",]
-print(r)
-all.equal(arr, as.array(r))
-
-arr = ar["green",,,drop=FALSE]
-print(arr)
-r = cb["green",,,drop=FALSE]
-print(r)
-all.equal(arr, as.array(r))
-
-arr = ar["green",,"active"]
-r = cb["green",,"active"]
-all.equal(arr, as.array(r))
-
-# dice
-
-arr = ar["green",, c("active","archived","inactive")]
-r = cb["green",, c("active","archived","inactive")]
-all.equal(arr, as.array(r))
-as.data.table(r)
-as.data.table(r, na.fill = TRUE)
-# array-like print using data.table, useful cause as.array doesn't scale
-as.data.table(r, na.fill = TRUE, dcast = TRUE, formula = year ~ status)
-print(arr)
-
-# apply
-
-format(aggregate(cb, c("year","status"), sum))
-format(capply(cb, c("year","status"), sum))
-
-# rollup and drilldown
-
-# granular data with all totals
-r = rollup(cb, MARGIN = c("color","year"), FUN = sum)
-format(r)
-
-# chose subtotals - drilldown to required levels of aggregates
-r = rollup(cb, MARGIN = c("color","year"), INDEX = 1:2, FUN = sum)
-format(r)
-
-# pivot
-r = capply(cb, c("year","status"), sum)
-format(r, dcast = TRUE, formula = year ~ status)
-```
-
-## Extension to array
-
-```r
-library(data.table)
-library(data.cube)
-
-X = populate_star(1e5)
-lapply(X, sapply, ncol)
-lapply(X, sapply, nrow)
-cb = as.cube(X)
-str(cb)
-
-# slice and dice on dimension hierarchy
-cb["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
-# same as above but more verbose
-cb$dims
-cb[product = "Mazda RX4",
-   customer = .(),
-   currency = .(curr_type = "crypto"),
-   geography = .(),
-   time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
-
 # apply on dimension hierarchy
 format(aggregate(cb, c("time_year","geog_region_name"), sum))
 format(capply(cb, c("time_year","geog_region_name"), sum))
@@ -166,25 +148,9 @@ as.data.table(r, dcast = TRUE, formula = geog_division_name ~ time_year)
 
 # denormalize
 cb$denormalize()
-
-# out
-X = as.list(cb)
-dt = as.data.table(cb) # wraps to cb$denormalize
-#ar = as.array(cb) # arrays scales badly, prepare task manager to kill R
-
-# in
-#as.cube(ar)
-as.cube(X)
-dimcolnames = cb$dapply(names)
-print(dimcolnames)
-as.cube(dt, fact = "sales", dims = dimcolnames)
 ```
 
 ## Advanced
-
-### Normalization
-
-Data in *cube* are normalized into star schema. In case of rollup on attributes from the same hierarchy, the dimension will be wrapped with new surrogate key. Use `normalize=FALSE` to return data.table with subtotals.  
 
 ### data.table indexes
 
@@ -222,21 +188,10 @@ cb["Mazda RX4",, .(curr_type = c("fiat","crypto")),, .(time_year = 2011:2012)] #
 options(op)
 ```
 
-### Architecture
+### client-server
 
-Design concept is very simple.  
-Cube is [R6](https://github.com/wch/R6) class object, which is enhanced R environment object.  
-A cube class keeps another plain R environment container to store all tables.  
-Tables are stored as [data.table](https://github.com/Rdatatable/data.table) class object, which is enhanced R data.frame object.  
-All of the cube attributes are dynamic, static part is only *star schema* modeled multidimensional data.  
-Logic of cubes can be isolated from the data, they can also run as a service.  
-
-#### client-server
-
-Another package development is planned to wrap services upon data.cube.  
-It would allow to use `[.cube` and `[[.cube` methods via [Rserve: TCP/IP or local sockets](https://github.com/s-u/Rserve) or [httpuv: HTTP and WebSocket server](https://github.com/rstudio/httpuv).  
-Basic parsers of [MDX](https://en.wikipedia.org/wiki/MultiDimensional_eXpressions) queries and [XMLA](https://en.wikipedia.org/wiki/XML_for_Analysis) requests.  
-It could potentially utilize `Rserve` for parallel processing on distributed data partitions, see [this gist](https://gist.github.com/jangorecki/ecccfa5471a633acad17).  
+Running as a services with data.cube could be run [Rserve: TCP/IP or local sockets](https://github.com/s-u/Rserve), [httpuv: HTTP and WebSocket server](https://github.com/rstudio/httpuv) or [svSocket](https://github.com/SciViews/svSocket).  
+[MDX](https://en.wikipedia.org/wiki/MultiDimensional_eXpressions) queries parser skills welcome, could be wrapped into simple [XMLA](https://en.wikipedia.org/wiki/XML_for_Analysis) requests.  
 
 # Interesting reading
 

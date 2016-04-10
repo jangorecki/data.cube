@@ -1,0 +1,150 @@
+---
+vignette: >
+  %\VignetteIndexEntry{Subset and aggregate multidimensional data with data.cube}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Subset and aggregate multidimensional data with data.cube
+*Jan Gorecki, 2016-04-10*
+
+R *data.cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cube) package.  
+
+## characteristic of `[.data.cube`
+
+### what's the same in `[.array`
+
+- subsetting dimensions by keys
+- handling *drop* argument
+- returns same class object, so it is *chain-able*
+
+### what's more than `[.array`
+
+- can subset on hierarchy of dimensions
+- scale with dimensions and their cardinalities
+- store multiple measures, predefined formatting
+- high performance thanks to data.table
+- can aggregate measures by dropping chosen dimensions
+
+### what's different to `[.array`
+
+- array can be subsetted by dimension keys but also by integer position
+- in data.cube subset directly by integer position is not possible, but you can have integer surrogate keys which can refer to any custom integer positions
+- when `drop=TRUE` the 0L length dims will also be dropped, not just length 1L
+- dimension levels are always ordered
+
+## start session
+
+```{r run}
+if (!"data.cube" %in% rownames(installed.packages())) utils::install.packages(
+    "data.cube", repos = paste0("https://", c("jangorecki.gitlab.io/data.cube","Rdatatable.github.io/data.table","cran.rstudio.com"))
+)
+library(data.table)
+library(data.cube)
+```
+
+## Tiny example
+
+```{r tiny}
+set.seed(1)
+# array
+ar = array(rnorm(8,10,5), rep(2,3), 
+           dimnames = list(color = c("green","red"), 
+                           year = c("2014","2015"), 
+                           country = c("IN","UK"))) # sorted
+# cube normalized to star schema just on natural keys
+dc = as.data.cube(ar)
+# slice
+ar["green","2015",]
+dc["green","2015"]
+format(dc["green","2015"])
+# dice
+ar[c("green","red"),c("2014","2015"),]
+dc[c("green","red"),c("2014","2015")]
+format(dc[c("green","red"),c("2014","2015")])
+
+# exact tabular representation of array is just a formatting on the cube
+ar["green",c("2014","2015"),]
+format(dc["green",c("2014","2015")], 
+       dcast = TRUE, 
+       formula = year ~ country)
+
+ar[,"2015",c("UK","IN")]
+format(dc[,"2015",c("UK","IN")], 
+       dcast = TRUE, 
+       formula = color ~ country) # sorted dimensions levels
+```
+
+## Hierarchies example
+
+```{r hierarchies}
+# as.data.cube.list - investigate X to see structure
+X = populate_star(N=1e5)
+lapply(X[1:2], sapply, ncol)
+lapply(X[1:2], sapply, nrow)
+str(X[3L]) # hierarchy defined as list of levels and attributes on each level
+dc = as.data.cube(X)
+print(dc)
+
+# slice
+dc["Mazda RX4"]
+dc["Mazda RX4",,"BTC"]
+# dice
+dc[,, c("CNY","BTC"), c("GA","IA","AD")]
+
+# check dimensions
+names(dc$dimensions)
+# foreign keys and measures
+names(dc)
+
+# use dimensions hierarchy attributes for slice and dice, mix filters from various levels in hierarchy
+dc["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+# same as above but more verbose
+dc[product = "Mazda RX4",
+   customer = .(),
+   currency = .(curr_type = "crypto"),
+   geography = .(),
+   time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
+
+# data.cube `[` operator returns another cube so queries can be chained
+dc[,,, .(geog_region_name = "North Central")
+   ][,,, .(geog_abb = c("IA","NV","MO")), .(time_year = 2014L)
+     ]
+```
+
+## Aggregates while subsetting
+
+```{r aggregate}
+# aggregate by droppping dimension with `.` symbol, group by customer and currency
+dc[product = .,
+   customer = .(),
+   currency = .(curr_type="crypto"),
+   geography = .,
+   time = .]
+```
+
+## scalability
+
+```{r scalability}
+# ~1e5 facts for 5 dims of cardinalities: 32, 32, 49, 50, 1826
+dc = as.data.cube(populate_star(N=1e5))
+## estimated size of memory required to store an base R `array` for single numeric measure
+sprintf("array: %.2f GB", (prod(dim(dc)) * 8)/(1024^3))
+## fact table of *cube* object having multiple measures
+sprintf("cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
+
+# ~1e6 facts for 5 dims of cardinalities: 32, 32, 49, 50, 1826
+dc = as.data.cube(populate_star(N=1e6))
+## estimated size of memory required to store an base R `array` for single numeric measure
+sprintf("array: %.2f GB", (prod(dim(dc)) * 8)/(1024^3))
+## fact table of *cube* object having multiple measures
+sprintf("cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
+
+# ~1e6 facts for 5 dims of cardinalities: 32, 32, 49, 50, 3652
+# twice bigger time dimension
+dc = as.data.cube(populate_star(N=1e6, Y = c(2005L,2014L)))
+## estimated size of memory required to store an base R `array` for single numeric measure
+sprintf("array: %.2f GB", (prod(dim(dc)) * 8)/(1024^3))
+## fact table of *cube* object having multiple measures
+sprintf("cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
+```

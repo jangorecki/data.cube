@@ -148,7 +148,7 @@ if(apkg){
                      measure.vars = c("amount","value"),
                      na.rm = TRUE)
         r = bdt[1L]
-        # TO DO: add data.cube `[` queries when ready
+        # TODO: add data.cube `[` queries when ready
         options(on)
         lr = logR::logR_dump()
         stopifnot(
@@ -161,7 +161,7 @@ if(apkg){
             lr[7:10, expr] == "x[1L]"
         )
         rm(bdt)
-        # data.cube queries # TO DO
+        # data.cube queries # TODO
         
         on = options("datatable.prettyprint.char" = 80L)
         print(lr[])

@@ -419,7 +419,8 @@ stopifnot( # apply with new FUN
         as.array(apply.data.cube(dc, 1:3, mean, na.rm=TRUE), na.fill = NaN),
         apply(ar, 1:3, mean, na.rm=TRUE)
     )
-    # rev order of MARGIN - TODO - waiting for rev order dimension subsetting
+    # TODO: rev order of MARGIN: waiting for rev order dimension subsetting
+
 )
 
 # subset with apply ----

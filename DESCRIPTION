@@ -1,11 +1,11 @@
 Package: data.cube
 Type: Package
 Title: OLAP cube data type
-Version: 0.2.1
-Date: 2016-02-16
+Version: 0.3.0
+Date: 2016-04-10
 Author: Jan Gorecki
 Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
-Description: Extends multidimensional array for OLAP operations backed by data.table. Optionally auto sharding over multiple R nodes and detailed process logging to database.
+Description: Extends array for OLAP operations on multidimensional data powered by data.table.
 Imports: data.table (>= 1.9.7), R6
 Suggests: big.data.table (>= 0.3.3), RSclient, Rserve, logR (>= 2.1.4), knitr, rmarkdown
 License: GPL-3

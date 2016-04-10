@@ -1,9 +1,12 @@
+# data.cube 0.3
+
+* new `data.cube` class
+* aggregate while subset available in `[.data.cube`
+* enhanced hierarchy metadata storage in `data.cube`
+* designed to work in sharded mode across distributed set of R nodes
+
 # data.cube 0.2.1
 
-* `format.data.cube`
-* `[.data.cube` passes firsts tests
-* `levels` kept in `dimension` instead `hierarchy`.
-* `fact$query` works for local and remote, `i` / `i.dt`.
 * `schema` methods to produce denormalized metadata.
 * added `logR` to *Suggests*, added to tests, heavy non-R dep for postgres drivers.
 * added `time_week` and `time_weekday` attributes of `time_day` level in time dimension.

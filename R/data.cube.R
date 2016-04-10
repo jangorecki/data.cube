@@ -247,6 +247,7 @@ head.data.cube = function(x, n, ...) {
 #' @param FUN function, by default it will apply \code{fun.aggregate} defined for each measure
 #' @param ... arguments passed to *FUN*
 #' @description Wraps to \code{[.data.cube}.
+#' @note When \code{FUN} argument was used, new data.cube is created with new measures.
 apply.data.cube = function(X, MARGIN, FUN, ...) {
     if (!is.integer(MARGIN) && is.numeric(MARGIN)) MARGIN = as.integer(MARGIN) # 1 -> 1L
     if (is.integer(MARGIN)) MARGIN = X$id.vars[MARGIN] # 1L -> colnames[1L]

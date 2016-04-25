@@ -5,7 +5,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-# Subset and aggregate multidimensional data with data.cube
+# Subset and aggregate multidimensional data with `data.cube`
 *Jan Gorecki, 2016-04-10*
 
 R *data.cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cube) package.  

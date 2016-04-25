@@ -5,12 +5,12 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-# Subset multidimensional data with cube
+# Subset multidimensional data with `cube`
 *Jan Gorecki, 2015-11-19*
 
 R *cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cube) package.  
 
-> Please note there is a new updated oop cube class called `data.cube`. See *Subset and aggregate multidimensional data with data.cube* vignette instead.
+> Please note there is a new updated oop cube class called `data.cube`. See [Subset and aggregate multidimensional data with data.cube](https://jangorecki.gitlab.io/data.cube/library/data.cube/doc/sub-.data.cube.html) vignette instead.
 
 ## characteristic of `[.cube`
 

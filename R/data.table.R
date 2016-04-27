@@ -12,6 +12,9 @@ as.data.table.array = function(x, keep.rownames = FALSE, na.rm=TRUE, ...) {
     if (!length(d) >= 1L) stop("as.data.table.array should be called only for array object, not matrix, so expects to have 3+ dimensions")
     dn = dimnames(x)
     if (is.null(dn)) dn = lapply(d, seq.int)
+    else if (any(dn.nulls <- sapply(dn, is.null))) { # decode NULL in dimnames to character(0) so CJ will handle it properly
+        dn[dn.nulls] = lapply(1:sum(dn.nulls), function(i) character(0))
+    }
     r = do.call(CJ, c(dn, list(sorted=TRUE, unique=TRUE)))
     dim.cols = copy(names(r))
     if ("value" %in% dim.cols) stop("Array to convert must not already have `value` character as dimension name. `value` name is reserved for a measure, rename dimname of input array.")

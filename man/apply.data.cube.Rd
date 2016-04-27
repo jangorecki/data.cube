@@ -17,4 +17,7 @@ apply.data.cube(X, MARGIN, FUN, ...)
 \description{
 Wraps to \code{[.data.cube}.
 }
+\note{
+When \code{FUN} argument was used, new data.cube is created with new measures.
+}
 

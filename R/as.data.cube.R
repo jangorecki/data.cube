@@ -51,12 +51,14 @@ as.data.cube.array = function(x, na.rm = TRUE, ...) {
     }
     dt = as.data.table.array(x, na.rm = na.rm) # added .array explicitly cause .matrix is redirected here
     ff = as.fact(dt, id.vars = key(dt), measure.vars = "value", ...)
-    dd = lapply(setNames(nm = names(ar.dimnames)), function(nm) {
-        as.dimension(as.data.table(setNames(list(ar.dimnames[[nm]]), nm)),
+    if (any(dn.nulls <- sapply(ar.dimnames, is.null))) { # decode NULL in dimnames to character(0) for proper handling in `as.dimension`
+        ar.dimnames[dn.nulls] = lapply(1:sum(dn.nulls), function(i) character(0))
+    }
+    dd = sapply(names(ar.dimnames), function(nm) {
+        as.dimension(as.data.table(ar.dimnames[nm]),
                      id.vars = nm,
                      hierarchies = list(setNames(list(character(0)), nm)))
-        
-    })
+    }, simplify=FALSE)
     as.data.cube.fact(ff, dd)
 }
 

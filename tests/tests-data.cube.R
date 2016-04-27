@@ -77,159 +77,6 @@ stopifnot(
     unlist(lapply(r$dimensions, function(x) sapply(x$levels, is.data.table)))
 )
 
-# subset ----
-
-# [x] subset array consistency 3D with drop: 3x5x4
-set.seed(1L)
-ar.dimnames = list(color = sort(c("green","yellow","red")), 
-                   year = as.character(2011:2015), 
-                   status = sort(c("active","inactive","archived","removed")))
-ar.dim = sapply(ar.dimnames, length)
-ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE), 
-           unname(ar.dim),
-           ar.dimnames)
-dc = as.data.cube(ar)
-stopifnot(
-    ## # 1xNxN
-    # drop=FALSE
-    all.equal(dc["green", drop=FALSE], as.data.cube(ar["green",,, drop=FALSE])),
-    all.equal(as.array(dc["green", drop=FALSE]), ar["green",,, drop=FALSE]),
-    # drop-TRUE
-    all.equal(dc["green", drop=TRUE], as.data.cube(ar["green",,, drop=TRUE])),
-    all.equal(as.array(dc["green", drop=TRUE]), ar["green",,, drop=TRUE]),
-    ## 1x1xN
-    # drop=FALSE
-    all.equal(dc["green","2015", drop=FALSE], as.data.cube(ar["green","2015",, drop=FALSE])),
-    all.equal(as.array(dc["green","2015", drop=FALSE]), ar["green","2015",, drop=FALSE]),
-    # drop-TRUE
-    all.equal(dc["green","2015", drop=TRUE], as.data.cube(ar["green","2015",, drop=TRUE], dims="status")), # undrop dim name because `drop=T` reduces to vector
-    all.equal(as.array(dc["green","2015", drop=TRUE]), ar["green","2015",, drop=TRUE]),
-    ## 1x2xN
-    # drop=FALSE
-    all.equal(dc["green",c("2012","2013"), drop=FALSE], as.data.cube(ar["green",c("2012","2013"),, drop=FALSE])),
-    all.equal(as.array(dc["green",c("2012","2013"), drop=FALSE]), ar["green",c("2012","2013"),, drop=FALSE]),
-    # drop-TRUE
-    all.equal(dc["green",c("2012","2013"), drop=TRUE], as.data.cube(ar["green",c("2012","2013"),, drop=TRUE])),
-    all.equal(as.array(dc["green",c("2012","2013"), drop=TRUE]), ar["green",c("2012","2013"),, drop=TRUE]),
-    ## 2x2xN
-    # drop=FALSE
-    all.equal(dc[c("green","red"),c("2012","2013"), drop=FALSE], as.data.cube(ar[c("green","red"),c("2012","2013"),, drop=FALSE])),
-    all.equal(as.array(dc[c("green","red"),c("2012","2013"), drop=FALSE]), ar[c("green","red"),c("2012","2013"),, drop=FALSE]),
-    # drop-TRUE
-    all.equal(dc[c("green","red"),c("2012","2013"), drop=TRUE], as.data.cube(ar[c("green","red"),c("2012","2013"),, drop=TRUE])),
-    all.equal(as.array(dc[c("green","red"),c("2012","2013"), drop=TRUE]), ar[c("green","red"),c("2012","2013"),, drop=TRUE]),
-    ## # 2x2x3
-    # drop=FALSE
-    all.equal(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=FALSE], as.data.cube(ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=FALSE])),
-    all.equal(as.array(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=FALSE]), ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=FALSE]),
-    # drop-TRUE
-    all.equal(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE], as.data.cube(ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])),
-    all.equal(as.array(dc[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE]), ar[c("green","red"),c("2012","2013"),c("active","archived","inactive"), drop=TRUE])
-)
-
-stopifnot( # NULL subset
-    nrow(as.data.table(dc[NULL]))==0L
-    , nrow(as.data.table(dc[.(NULL)]))==0L
-    , nrow(as.data.table(dc[NULL,,NULL]))==0L
-    , nrow(as.data.table(dc[,NULL,.(NULL)]))==0L
-    , identical(dimnames(dc[,NULL,.(NULL)]), list(color = c("green","red","yellow"))) # inconsistency to base::array see: http://stackoverflow.com/q/36242181/2490497
-)
-
-# [x] order of dimnames is not retained
-
-set.seed(1L)
-ar.dimnames = list(color = c("green","yellow","red"), # unordered
-                   year = sample(as.character(2011:2015)),
-                   status = c("active","inactive","archived","removed"))
-ar.dim = sapply(ar.dimnames, length)
-ar = array(sample(c(rep(NA, 4), 4:7/2), prod(ar.dim), TRUE),
-           unname(ar.dim),
-           ar.dimnames)
-dc = as.data.cube(ar)
-stopifnot(
-    # no match
-    !identical(dimnames(ar), dimnames(dc)),
-    # validate match when sorted
-    identical(lapply(dimnames(ar), sort), dimnames(dc))
-)
-
-# - [x] subset hierarchy consistency to old `cube`
-
-X = populate_star(1e3)
-cb = as.cube(X)
-dc = as.data.cube(X)
-stopifnot( # slice single values
-    ## drop=TRUE
-    # slice keys
-    all.equal(dc["Mazda RX4"], as.data.cube(cb["Mazda RX4"], hierarchies = X$hierarchies[-1L])), # exclude dropped product dim
-    # slice two keys
-    all.equal(r <- dc["Mazda RX4",,,"NY"], as.data.cube(cb["Mazda RX4",,,"NY"], hierarchies = X$hierarchies[-c(1L,4L)])),
-    identical(names(dimnames(r)), c("customer","currency","time")),
-    # slice hierarchy
-    all.equal(r <- dc[,,,.(geog_division_name = "East North Central")], as.data.cube(cb[,,,.(geog_division_name = "East North Central")], hierarchies = X$hierarchies)),
-    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
-    dim(r)[4L]==5L,
-    # slice two hierarchies
-    all.equal(r <- dc[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L)], as.data.cube(cb[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L)], hierarchies = X$hierarchies)),
-    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
-    identical(dim(r)[4:5], c(5L, 365L)),
-    ## drop=FALSE
-    # slice keys, * we need to drop indexes afterward with $serindex(drop=TRUE)
-    all.equal(dc["Mazda RX4", drop=FALSE]$setindex(TRUE), as.data.cube(cb["Mazda RX4", drop=FALSE], hierarchies = X$hierarchies)$setindex(TRUE)), # exclude dropped product dim
-    # slice two keys
-    all.equal(r <- dc["Mazda RX4",,,"NY", drop=FALSE], as.data.cube(cb["Mazda RX4",,,"NY", drop=FALSE], hierarchies = X$hierarchies)),
-    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
-    # slice hierarchy
-    all.equal(r <- dc[,,,.(geog_division_name = "East North Central"), drop=FALSE], as.data.cube(cb[,,,.(geog_division_name = "East North Central"), drop=FALSE], hierarchies = X$hierarchies)),
-    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
-    dim(r)[4L]==5L,
-    # slice two hierarchies
-    all.equal(r <- dc[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L), drop=FALSE], as.data.cube(cb[,,,.(geog_division_name = "East North Central"), .(time_year = 2014L), drop=FALSE], hierarchies = X$hierarchies)),
-    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
-    identical(dim(r)[4:5], c(5L, 365L))
-)
-stopifnot( # multi value
-    # drop=TRUE
-    all.equal(r <- dc[c("Mazda RX4","Honda Civic")]$setindex(TRUE), 
-              as.data.cube(cb[c("Mazda RX4","Honda Civic")], hierarchies = X$hierarchies)$setindex(TRUE)),
-    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
-    dim(r)[1L]==2L,
-    # dice two, one hierarchy
-    all.equal(r <- dc[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific"))], 
-              as.data.cube(cb[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific"))], hierarchies = X$hierarchies)),
-    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
-    identical(dim(r)[c(1L,4L)], c(2L,13L)),
-    # drop=FALSE - would not be dropped anyway
-    all.equal(r <- dc[c("Mazda RX4","Honda Civic"), drop=FALSE]$setindex(TRUE), 
-              as.data.cube(cb[c("Mazda RX4","Honda Civic"), drop=FALSE], hierarchies = X$hierarchies)$setindex(TRUE)),
-    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
-    dim(r)[1L]==2L,
-    all.equal(r <- dc[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific")), drop=FALSE], 
-              as.data.cube(cb[c("Mazda RX4","Honda Civic"),,,.(geog_division_name = c("Mountain","Pacific")), drop=FALSE], hierarchies = X$hierarchies)),
-    identical(names(dimnames(r)), c("product","customer","currency","geography","time")),
-    identical(dim(r)[c(1L,4L)], c(2L, 13L))
-)
-stopifnot(all.equal( # use own names in ...
-    dc["Mazda RX4",, .(curr_type = "crypto"),, .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))],
-    dc[product = "Mazda RX4",
-       customer = .(),
-       currency = .(curr_type = "crypto"),
-       geography = .(),
-       time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
-))
-stopifnot( # NULL subset
-    nrow(as.data.table(dc[NULL]))==0L
-    , nrow(as.data.table(dc[.(NULL)]))==0L
-    , nrow(as.data.table(dc[,,NULL,,NULL]))==0L
-    , nrow(as.data.table(dc[,,.(NULL),,.(NULL)]))==0L
-    , nrow(as.data.table(dc[,,,,.(time_year = 2014L, time_quarter_name = NULL)]))==0L
-)
-stopifnot( # drop arg
-    length(dim(dc[]))==5L
-    , length(dim(dc["Mazda RX4"]))==4L
-    , length(dim(dc["Mazda RX4", drop=FALSE]))==5L
-)
-
 # format ----
 
 set.seed(1L)
@@ -314,35 +161,35 @@ stopifnot( # apply using `[.data.cube` with integers
     # MARGIN=1L
     all.equal(
         r <- apply.data.cube(dc, 1L),
-        dc[, ., .]
+        dc[, +(.), +(.)]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, 1L, sum, na.rm=TRUE)),
     # MARGIN=2:3
     all.equal(
         r <- apply.data.cube(dc, -1L),
-        dc[.]
+        dc[+(.)]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, 2:3, sum, na.rm=TRUE)),
-    all.equal(r, dc[.,]),
-    all.equal(r, dc[.,,]),
+    all.equal(r, dc[+(.),]),
+    all.equal(r, dc[+(.),,]),
     # MARGIN=c(1L, 3L)
     all.equal(
         r <- apply.data.cube(dc, -2L),
-        dc[, .]
+        dc[, +(.)]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, c(1L,3L), sum, na.rm=TRUE)),
-    all.equal(r, dc[, .,]),
+    all.equal(r, dc[, +(.),]),
     # MARGIN=3L
     all.equal(
         r <- apply.data.cube(dc, 3L),
-        dc[., .]
+        dc[+(.), +(.)]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, 3L, sum, na.rm=TRUE)),
-    all.equal(r, dc[., .,]),
+    all.equal(r, dc[+(.), +(.),]),
     # MARGIN=integer()
     all.equal(
         r <- apply.data.cube(dc, integer()),
-        dc[., ., .]
+        dc[+(.), +(.), +(.)]
     ),
     length(r) == 1L, # grand total
     all.equal(as.array(r, na.fill = 0), sum(ar, na.rm=TRUE)),
@@ -419,8 +266,6 @@ stopifnot( # apply with new FUN
         as.array(apply.data.cube(dc, 1:3, mean, na.rm=TRUE), na.fill = NaN),
         apply(ar, 1:3, mean, na.rm=TRUE)
     )
-    # TODO: rev order of MARGIN: waiting for rev order dimension subsetting
-
 )
 
 # format measures ----

@@ -70,66 +70,36 @@ dimension = R6Class(
         head = function(n = 6L) {
             list(base = head(self$data, n), levels = lapply(self$levels, function(x) x$head(n = n)))
         },
-        subset = function(i.meta, drop = TRUE) {
-            stopifnot(is.list(i.meta), is.logical(drop))
-            filter.cols = names(i.meta)
-            filter.lvls = sapply(self$levels, function(x) any(filter.cols %in% c(x$id.vars, x$properties)))
-            filter.lvls = names(filter.lvls)[filter.lvls]
-            level.fields = lapply(self$levels, function(x) c(x$id.vars, x$properties))
-            filter.lvls.cols = lapply(level.fields, function(fields) filter.cols[filter.cols %in% fields])
+        # subset
+        subset = function(i.sub) {
+            stopifnot(is.list(i.sub))
+            if (identical(i.sub, vector("list"))) return(self)
             r = new.env()
-            # subset levels
-            null.sub = unlist(lapply(setNames(nm = names(self$levels)), function(lvl) {
-                identical(if (lvl %in% filter.lvls) {
-                    filter.cols.in.level = filter.lvls.cols[[lvl]]
-                    i.meta.lvl = i.meta[filter.cols.in.level]
-                    build.each.i(i.meta.lvl)
-                }, 0L)
-            }))
-            r$levels = lapply(setNames(nm = names(self$levels)), function(lvl) {
-                if (lvl %in% filter.lvls) {
-                    filter.cols.in.level = filter.lvls.cols[[lvl]]
-                    i.meta.lvl = i.meta[filter.cols.in.level]
-                    i.lvl = build.each.i(i.meta.lvl)
-                    self$levels[[lvl]]$subset(i.lvl)
-                } else {
-                    NULL # build that after subsetting base of dimension
-                }
-            })
+            # - [ ] iterate over levels in a dimension to subset those which are using in filter
+            filter.cols = names(i.sub)
+            filter.lvls = sapply(self$levels, function(x) any(filter.cols %chin% c(x$id.vars, x$properties)))
+            lvls.subs = sapply(self$levels[filter.lvls], function(x) {
+                lvl.filter.cols = filter.cols[filter.cols %chin% c(x$id.vars, x$properties)]
+                if(!length(lvl.filter.cols)) browser() # already excluded in sapply X arg
+                # - [x] list handled in level
+                x$subset(i.sub[lvl.filter.cols])
+            }, simplify=FALSE)
+            # - [ ] subset base dimension update
+            ii = sapply(lvls.subs, function(level) {
+                self$data[level$data, on=level$id.vars, which=TRUE, nomatch=0L]
+            }, simplify=FALSE)
+            ii = Reduce(intersect, ii) # intersection of `which=TRUE`, change if OR `|` operator supported
+            r$data = self$data[ii]
+            stopifnot(is.data.table(r$data), ncol(r$data) > 0L)
+            # now fetch all levels having dimension base filtered
+            r$levels = sapply(self$levels, function(x) {
+                x$subset(unique(r$data, by=x$id.vars))
+            }, simplify=FALSE)
             r$id.vars = self$id.vars
             r$hierarchies = self$hierarchies
             r$fields = self$fields
-            # loop over levels
-            if (any(null.sub)) {
-                r$data = self$data[0L]
-            } else {
-                # subset base
-                i = 0L
-                for (lvl in names(self$levels)[names(self$levels) %in% filter.lvls]) {
-                    i = i + 1L
-                    jn.on = key(r$levels[[lvl]]$data)
-                    if (i == 1L) {
-                        r$data = self$data[r$levels[[lvl]]$data, .SD, .SDcols=names(self$data), nomatch=0L, on=jn.on]
-                    } else {
-                        r$data = r$data[r$levels[[lvl]]$data, .SD, .SDcols=names(self$data), nomatch=0L, on=jn.on]
-                    }
-                }
-            }
             setkeyv(r$data, r$id.vars)
-            # subset non-filtered levels to base
-            upd = sapply(r$levels, is.null)
-            r$levels[upd] = lapply(setNames(nm = names(self$levels)[upd]), function(lvl) {
-                self$levels[[lvl]]$subset(r$data)
-            })
-            as.dimension(r)
-        },
-        base = function(x = self$data) {
-            level.keys = unique(unlist(lapply(self$hierarchies, names)))
-            base.grain = unique(c(self$id.vars, level.keys))
-            if(!length(x)) x = setDT(as.list(setNames(seq_along(base.grain), base.grain)))[0L]
-            r = unique(x, by = base.grain)[, .SD, .SDcols = base.grain]
-            self$data = setkeyv(r, self$id.vars)[]
-            invisible(self)
+            as.dimension.environment(r)
         },
         setindex = function(drop = FALSE) {
             setindexv(self$data, if (!drop) names(self$data)) # this is base of a dimensions so all columns!

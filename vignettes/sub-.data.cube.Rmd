@@ -116,11 +116,11 @@ dc[,,, .(geog_region_name = "North Central")
 
 ```{r aggregate}
 # aggregate by droppping dimension with `.` symbol, group by customer and currency
-dc[product = .,
+dc[product = +(.),
    customer = .(),
    currency = .(curr_type="crypto"),
-   geography = .,
-   time = .]
+   geography = +(.),
+   time = +(.)]
 ```
 
 ## scalability

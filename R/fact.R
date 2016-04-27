@@ -112,58 +112,43 @@ fact = R6Class(
         head = function(n = 6L) {
             head(self$data, n)
         },
-        subset = function(x, by = NULL, drop = TRUE) {
-            stopifnot(by %chin% names(self))
+        subset = function(x, collapse=character(), drop=TRUE) {
+            # if (!is.character(drop)) stop("Argument 'drop' to fact$subset must be character type, forein key column names.")
+            #if (length(x) && !all(drop %chin% names(x))) stop("All column names provided in 'drop' to fact$subset must exists as fact$id.vars - foreign keys.")
+            # stopifnot(by %chin% names(self))
+            stopifnot(is.list(x), is.character(collapse), names(x) %chin% self$id.vars, collapse %chin% self$id.vars)
             # must return fact, not a data.table
             r = new.env()
             r$local = self$local
             r$id.vars = self$id.vars
             r$measure.vars = self$measure.vars
             r$measures = self$measures
-            r$data = NULL
-            dimk = names(x)
             if (self$local) {
-                if (!is.null(by)) {
-                    if (length(by)) {
-                        r$data = self$data[, eval(self$build.j()), by=c(union(by, dimk))]
-                        r$id.vars = r$id.vars[r$id.vars %chin% names(r$data)]
-                    } else if (length(dimk)) {
-                        # retain dimk fields
-                        r$data = self$data[, eval(self$build.j()), by=c(dimk)]
-                        r$id.vars = r$id.vars[r$id.vars %chin% names(r$data)]
-                    } else {
-                        # grand total
-                        r$data = self$data[, eval(self$build.j())]
-                        r$id.vars = r$id.vars[r$id.vars %chin% names(r$data)]
+                anynull = any(sapply(x, is.null))
+                dimlens = sapply(x, length)
+                II = integer()
+                if (!anynull) { # for any NULL there is no need to subset
+                    for (dk in names(x)) {
+                        ii = self$data[x[dk], nomatch=0L, on=dk, which=TRUE]
+                        II = if (dk == names(x)[1L]) ii else intersect(II, ii)
+                        if (!length(II)) break # skip further filters when already 0 rows
                     }
                 }
-                if (length(dimk)) {
-                    i = 0L
-                    for (dk in dimk) {
-                        i = i + 1L
-                        if (i == 1L && is.null(r$data)) {
-                            r$data = self$data[x[dk], nomatch=0L, on=dk]
-                        } else {
-                            r$data = r$data[x[dk], nomatch=0L, on=dk]
-                        }
-                    }
-                } else {
-                    if (is.null(r$data)) r$data = self$data
-                }
-                if (drop) {
-                    drop.dims = sapply(x, length) <= 1L
-                    drop.cols = names(drop.dims)[drop.dims]
-                    sapply(drop.cols, function(col) {
-                        set(r$data, j = col, value = NULL)
-                        TRUE
-                    })
-                    r$id.vars = r$id.vars[!r$id.vars %chin% drop.cols]
+                do.drop = (drop && any(dimlens==1L)) || length(collapse)
+                r$id.vars = if (do.drop) {
+                    setdiff(self$id.vars, c(names(dimlens)[dimlens==1L], collapse))
+                } else self$id.vars
+                r$data = if (length(x)) { # `i` arg
+                    if (length(r$id.vars)) self$data[II, eval(self$build.j()), by=c(r$id.vars)] # `by` arg
+                    else self$data[II, eval(self$build.j())] # no `by` arg
+                } else { # no `i` arg
+                    if (length(r$id.vars)) self$data[, eval(self$build.j()), by=c(r$id.vars)] # `by` arg
+                    else self$data[, eval(self$build.j())] # no `by` arg
                 }
                 if (length(r$id.vars)) setkeyv(r$data, r$id.vars)
-            } else {
-                stop("not yet implemented")
             }
-            as.fact(r)
+            if (!self$local) stop("distributed processing for data.cube not yet implemented")
+            as.fact.environment(r)
         },
         setindex = function(drop = FALSE) {
             if (self$local) {

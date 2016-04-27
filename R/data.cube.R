@@ -79,77 +79,157 @@ data.cube = R6Class(
         head = function(n = 6L) {
             list(fact = self$fact$head(n = n), dimensions = lapply(self$dimensions, function(x) x$head(n = n)))
         },
-        parse.i = function(i) {
-            # handling various types of input to [.cube `...` argument and [[.cube `i` argument.
-            parse.each.i = function(int, i, keys) {
-                # preprocessing of `...` arg of `[.cube` and `i` arg of `[[.cube`
-                stopifnot(is.integer(int), is.pairlist(i), is.character(keys))
-                x = if(int > length(i)) list() else i[[int]] # fill missing args: x[,] to x[,,.()] in case of 3 dimensions
-                if (missing(x)) x = list() # empty args: x[,,"asd"] to x[.(),.(),"asd"]
-                else if (is.null(x)) x = setNames(list(NULL), keys[[int]]) # null args: x[NULL,NULL,"asd"] to x[.(keycol=NULL),.(keycol=NULL),"asd"]
-                if (is.call(x) && x[[1L]]==as.symbol(".")) x[[1L]] = quote(list) # decode x[.(y)] to x[list(y)]
-                x = eval.parent(x) # x[,,var] to x[,,.(keycol=c("val1","val2"))], x[,,c("asd","asd2")] to x[,,.(keycol=c("asd","asd2"))]
-                if (is.atomic(x)) x = setNames(list(x), keys[[int]]) # x[,,"asd"] to x[,,.(keycol="asd")]
-                stopifnot(is.list(x))
-                if (length(x)==1L && is.null(x[[1L]]) && is.null(names(x[1L]))) x = setNames(x, keys[[int]]) # x[.(NULL)] to x[.(keycol=NULL)]
-                if (length(x)) stopifnot(!anyDuplicated(names(x))) # unique names
-                x
-            }
-            keys = setNames(self$fact$id.vars, names(self$dimensions))
-            drop_dim_aggr = sapply(setNames(seq_along(keys), names(keys))[seq_along(i)], function(ii) identical(i[[ii]], as.symbol(".")))
-            if (!length(drop_dim_aggr)) drop_dim_aggr = logical(0)
-            drop_aggr = setNames(names(keys) %chin% names(drop_dim_aggr)[drop_dim_aggr], names(keys))
-            i[drop_aggr[seq_along(i)]] = lapply(seq.int(sum(drop_aggr)), function(x) substitute()) # remove `.` and replace with ``
-            i = lapply(setNames(seq_along(keys), names(keys)), parse.each.i, as.pairlist(i), keys)
-            # - [x] check if all cols exists in dims
-            cols_missing = sapply(names(i), function(dim) !all(names(i[[dim]]) %in% self$dimensions[[dim]]$fields))
-            if (any(cols_missing)) stop(sprintf("Field used in query does not exists in dimensions: %s.", paste(names(cols_missing)[cols_missing], collapse=", ")))
-            list(i=i, drop_aggr=drop_aggr)
-        },
         # [.data.cube
+        parse.dots = function(dots) {
+            dims = names(self$dimensions)
+            # - [x] handling empty input `dc[]` to `dc[dima=list(), dimb=list(), dimc=list()]` - this is already handled in "[.data.cube"
+            if (is.null(dots)) return(sapply(dims, function(dim) list(), simplify=FALSE))
+            # - [x] there must be no more slices than dimensions in data.cube
+            if (length(dots) > length(self$dimensions)) stop(sprintf("You provided to many dimensions to data.cube subset. Number of dimensions in data.cube is %s while there were %s dimensions on input.", length(self$dimensions), length(dots)))
+            # - [x] fill empty args `dc[,,"c"]` to `dc[list(), list(), "c"]`
+            empty.args = which(sapply(dots, identical, substitute()))
+            if (length(empty.args)) dots[empty.args] = lapply(empty.args, function(i) list())
+            # - [x] fill in missing trailing dimensions `dc["a"]` to `dc["a", list(), list()]`
+            if (length(dots) < length(self$dimensions)) {
+                ii = (length(dots)+1L):length(self$dimensions)
+                dots[ii] = lapply(ii, function(i) list())
+            }
+            # - [x] slices can be reorderd `dc[dimb = "b", list(), dima = "a"]` to `dc[dima = "a", dimb = "b", dimc=list()]`
+            dots.dims = names(dots)
+            if (is.null(dots.dims)) {
+                # - [x] fill dim names when all dims are unnamed, matching by position
+                dots.dims = dims[seq_along(dots)]
+                setattr(dots, "names", dots.dims)
+            } else {
+                # - [x] fill dim names for partially unnamed dimensions, matching by position, validate non existing dims and unique dim names
+                named.dots.dims = dots.dims!=""
+                if (length(dots.dims[named.dots.dims]) != uniqueN(dots.dims[named.dots.dims])) stop("Dimension names of arguments provided to data.cube subset are not unique")
+                if (length(bad.dims <- setdiff(dots.dims[named.dots.dims], dims))) stop(sprintf("Dimension names of argument provided to data.cube subset does not exists for that data.cube: %s.", paste(bad.dims, collapse=", ")))
+                # skip if all dots.dims names provided
+                if (!all(named.dots.dims)) {
+                    remaining.dims = setdiff(dims, dots.dims[named.dots.dims])
+                    stopifnot(length(remaining.dims) == sum(!named.dots.dims)) # length of dots should already be expanded for empty `list()` for all dimensions
+                    dots.dims[!named.dots.dims] = remaining.dims
+                    setattr(dots, "names", dots.dims)
+                }
+            }
+            stopifnot(identical(sort(dims), sort(dots.dims)))
+            if (!identical(dims, dots.dims)) {
+                # reorder
+                dots = dots[dims]
+                dots.dims = dims
+            }
+            stopifnot(identical(names(dots), names(self$dimensions)))
+            # - [x] decode `.`/`+` to `list`
+            dot.to.list = sapply(dots, function(x) is.call(x) && as.character(x[[1L]]) %chin% ".")
+            plus.to.list = sapply(dots, function(x) is.call(x) && as.character(x[[1L]]) %chin% "+")
+            for (i in which(dot.to.list)) {
+                if (length(dots[[i]])==2L && identical(dots[[i]][[2L]], quote(`(`(`.`)))) {
+                    # - [x] support `dc[.(.)]` for consistency with `+(.)`
+                    dots[[i]] = quote(list())
+                } else {
+                    dots[[i]][[1L]] = quote(list)
+                }
+            }
+            for (i in which(plus.to.list)) {
+                if (length(dots[[i]])==2L && identical(dots[[i]][[2L]], quote(`(`(`.`)))) {
+                    # - [ ] allows to use `dc[+(.)]` - this is really `+`(`(`(`.`))
+                    dots[[i]] = quote(list())
+                } else {
+                    dots[[i]][[1L]] = quote(list)
+                }
+            }
+            # - [x] array like slices: `dc["a", list(), "c"]` to `dc[list(dimakey = "a"), list(), list(dimckey = "c")]`
+            # - [x] `dc[NULL, list(), list()]` to `dc[list(dimakey = NULL), list(), list()]`
+            # - [x] `dc[var.a, list(), var.c]` to `dc[list(dimakey = "a"), list(), list(dimckey = "c")]`
+            dots = sapply(dots.dims, function(dim) {
+                r = eval(dots[[dim]], parent.frame(), parent.frame())
+                if (is.language(r) || is.function(r)) {
+                    r = deparse(r, width.cutoff=500L)
+                    stop(sprintf("Invalid input provided for '%s' dimension: %s", dim, toString(r)), call.=FALSE)
+                }
+                if (!is.atomic(r) && !length(r)) return(r) # list()
+                dimkey = self$dimensions[[dim]]$id.vars
+                dimfields = self$dimensions[[dim]]$fields
+                if (is.atomic(r)) r = setNames(list(r), dimkey)
+                if (!is.list(r) || !identical(class(r), "list")) stop(sprintf("Invalid input provided for '%s' dimension: %s", dim, toString(r)), call.=FALSE)
+                if (is.null(names(r))) {
+                    if (length(r) > 1L) stop(sprintf("When subset data.cube by '%s' dimension you can use only single unnamed field, it will map to dimension key.", dim), call.=FALSE)
+                    names(r) = ""
+                }
+                empty.field.names = names(r)==""
+                if (length(field.names <- names(r)[!empty.field.names]) != uniqueN(field.names)) stop(sprintf("Fields to subset in '%s' dimension are not uniquely named.", dim), call.=FALSE)
+                if (sum(empty.field.names) > 1L) stop(sprintf("There are multiple unnamed fields provided to '%s' dimension on data.cube subset. Only one unnamed field is allowed which maps to dimension key.", dim))
+                if (sum(empty.field.names) == 1L) {
+                    if (dimkey %chin% names(r)) stop(sprintf("When subset data.cube by '%s' dimension there can be only one unnamed field provided that maps to dimension key, so dimension key field must not be provided at the same time.", dim), call.=FALSE)
+                    names(r)[which(empty.field.names)] = dimkey
+                }
+                if (length(fields.not.exists <- setdiff(names(r), dimfields))) stop(sprintf("Fields names provided to '%s' dimension does not exists in that dimension: %s.", dim, paste(fields.not.exists, collapse=", ")), call.=FALSE)
+                r
+            }, simplify=FALSE)
+            
+            # - [x] return operation (filter or dim collapse, potentially rollup?) and values
+            ops = c(".", "+")[plus.to.list + 1L]
+            list(ops = setNames(ops, dots.dims), sub = dots)
+        },
         subset = function(..., .dots, drop = TRUE) {
             # - [x] catch dots, preprocess, evaluate
             if (missing(.dots)) .dots = match.call(expand.dots = FALSE)$`...`
-            if (identical(names(.dots)[1L], "drop")) .dots = c(list(i = substitute()), .dots, rec) # x[drop=.] into x[,drop=.]
-            i.meta = self$parse.i(.dots)
-            drop_aggr = i.meta$drop_aggr
-            i.meta = i.meta$i
-            dims.filter = lapply(i.meta, build.each.i)
-            # - [x]  no filters returns self
-            dim.names = setNames(nm = names(self$dimensions))
-            fact_filter = sapply(dims.filter, function(x) !is.null(x) && !identical(x, as.symbol(".")))
-            null_filter = sapply(dims.filter, identical, 0L)
+            i.meta = self$parse.dots(.dots)
+            i.ops = i.meta$ops
+            i.sub = i.meta$sub
+            # exit on `dc[.(),.(),.()]` considering drop, exit from `dc[]` wont use drop and is handled in "[.data.cube" function
+            if (all(sapply(i.sub, identical, list())) && all(i.ops==".")) return(
+                if (drop) {
+                    drop.dims = sapply(self$dimensions, nrow)==1L
+                    if (sum(drop.dims)) {
+                        local.dc = self$clone(deep = TRUE)
+                        local.dc$dimensions[drop.dims] = NULL
+                        local.dc$id.vars = self$id.vars[!drop.dims]
+                        local.dc
+                    } else self
+                } else self
+            )
             # returned object
             r = new.env()
-            r$id.vars = self$fact$id.vars
-            drop.keys = r$id.vars[which(drop_aggr)]
-            r$id.vars = r$id.vars[which(!drop_aggr)]
-            dim.names = dim.names[which(!drop_aggr)]
             # - [x] filter dimensions and levels while quering them to new environment
-            r$dimensions = lapply(dim.names, function(d) {
-                if (d %chin% names(fact_filter)[fact_filter]) self$dimensions[[d]]$subset(i.meta = i.meta[[d]], drop = drop) else self$dimensions[[d]]
-            })
-            # - [x] produce fact, handle NULL subset to returns empty fact
-            if (any(null_filter)) {
-                r$fact = as.fact(x = self$fact$data[0L], id.vars = self$fact$id.vars, measure.vars = self$fact$measure.vars, measures = self$fact$measures)
-            } else {
-                # - [x] get dimension base key values after dim filtering to subset fact table
-                fact_filter_cols = setNames(names(fact_filter)[fact_filter], nm = self$id.vars[fact_filter])
-                keys = lapply(fact_filter_cols, function(d) r$dimensions[[d]]$data[[1L]])
-                # - [x] allows to aggregate by dims with `.` symbol
-                by = if (length(drop.keys)) setdiff(r$id.vars, c(names(keys), drop.keys))
-                r$fact = self$fact$subset(keys, by = by, drop = drop)
-            }
-            # - [x] drop 1L element dimensions
+            r$dimensions = sapply(names(i.sub), function(dim) {
+                self$dimensions[[dim]]$subset(i.sub = i.sub[[dim]])
+            }, simplify=FALSE)
+            r$id.vars = self$id.vars
+            # - [x] filter fact - prepare index for subset fact
+            filter.dims = sapply(i.sub, function(x) length(x) || is.null(x))
+            filter.dims = names(filter.dims)[as.logical(filter.dims)]
+            # primary keys of dimensions after filtering
+            dimkeys = sapply(names(r$dimensions)[names(r$dimensions) %chin% filter.dims], function(dim) {
+                r$dimensions[[dim]]$data[[r$dimensions[[dim]]$id.vars]]
+            }, simplify=FALSE)
+            stopifnot(names(dimkeys) %chin% names(r$dimensions)) # all names must match, before drop dims
+            # - [x] drop sliced dimensions
             if (drop) {
-                drop.dims = sapply(r$dimensions, function(d) dim(d)[1L]<=1L) # take only PK of dimension, also the `<=` instead of `==` rationale in: http://stackoverflow.com/q/36242181/2490497
-                r$dimensions[drop.dims] = NULL
-                r$id.vars = r$id.vars[!drop.dims]
+                len1.dims = names(dimkeys)[sapply(dimkeys, length)==1L]
+                # if user provides multiple values to dimension filter key, it should not drop that dim even when only 1L was matched, base::array raises error on nomatch
+                filter.multkey = len1.dims[sapply(len1.dims, function(dim) length(i.sub[[dim]][[r$dimensions[[dim]]$id.vars]])) > 1L]
+                if.drop = names(r$dimensions) %chin% setdiff(len1.dims, filter.multkey)
+                r$dimensions[if.drop] = NULL
+                r$id.vars = r$id.vars[!if.drop]
+            }
+            # - [x] subset fact
+            dimcols = self$id.vars[names(self$dimensions) %chin% names(dimkeys)]
+            stopifnot(length(dimcols) == length(dimkeys))
+            setattr(dimkeys, "names", dimcols)
+            collapse.cols = self$id.vars[names(self$dimensions) %chin% names(i.ops)[i.ops=="+"]]
+            r$fact = self$fact$subset(dimkeys, collapse=collapse.cols, drop=drop)
+            stopifnot(ncol(r$fact$data) > 0L)
+            if (length(collapse.cols)) {
+                r$dimensions[collapse.cols] = NULL
+                r$id.vars = setdiff(r$id.vars, collapse.cols)
             }
             # - [x] return cube with all dimensions filtered and fact filtered
-            as.data.cube(r)
+            as.data.cube.environment(r)
         },
         setindex = function(drop = FALSE) {
+            if (is.null(drop)) drop=TRUE
             optional.logR = function(x, .log = getOption("datacube.log")) {
                 if(isTRUE(.log)) eval.parent(substitute(logR(x), list(x = substitute(x)))) else x
             }
@@ -173,7 +253,21 @@ is.data.cube = function(x) inherits(x, "data.cube")
 #' @return data.cube class object
 "[.data.cube" = function(x, ..., drop = TRUE) {
     if (!is.logical(drop)) stop("`drop` argument to data.cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
-    .dots = match.call(expand.dots = FALSE)$`...`
+    # missingness of `drop` in subset call affects `...` catched by match.call, so extra checks below
+    sub.call = match.call(expand.dots = FALSE)
+    .dots = sub.call$`...`
+    # exit when `dc[drop=.]` without handling `drop` arg, as ignored in base array, but here raise warning saying the drop argument was ignored
+    drop.no.dots = "drop" %chin% names(sub.call) && is.null(.dots)
+    if (drop.no.dots) {
+        warning("drop argument is ignored for calls `dc[drop=.]` for consistency to base::array, for `drop` and empty slices use `dc[, drop=.]`.")
+        return(x)
+    }
+    # exit when `dc[]` without handling `drop` arg, as ignored in base array
+    no.drop.no.dots = !"drop" %chin% names(sub.call) && is.pairlist(.dots) && length(.dots)==1L && identical(.dots[[1L]], substitute())
+    if (no.drop.no.dots) {
+        return(x)
+    }
+    # proceed subset, also proceed empty subset `dc[,]` or `dc[, drop=.]`
     r = x$subset(.dots = .dots, drop = drop)
     r
 }
@@ -274,15 +368,10 @@ apply.data.cube = function(X, MARGIN, FUN, ...) {
             as.name("X")
         ),
         lapply(unname(X$id.vars), function(x) {
-            if (x %chin% MARGIN) substitute() else as.symbol(".")
+            if (x %chin% MARGIN) substitute() else call("+")
         }),
         list( # required for consistency of <= 1 element dims
             drop = FALSE
         )
     )))
-}
-
-aperm.data.cube = function(a, perm, ...) {
-    stopifnot(is.array(a), length(perm) == length(dim(a)))
-    stop("TODO")
 }

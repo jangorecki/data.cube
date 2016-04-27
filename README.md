@@ -9,13 +9,14 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
   - [x] `[.data.cube` uses base R `[.array` method API for *slice* and *dice*
   - [x] extended for aggregation subsetting with `[.array`
   - [x] `apply.data.cube` uses base R `apply` function like API
-  - [ ] `rollup` for `data.cube`
+- [x] aggregate in `[.data.cube` using `+(.)`
+- [ ] `rollup` for `data.cube`
 - [x] for *pivot* use `format`/`as.data.table` with `dcast.data.table` API
 - [x] base R `array` API is extended by accepting multiple attributes from dimensions and hierarchies
 - [x] direct access to *data.cube* class methods and attributes, see `ls.str(x)` on *data.cube* object
 - [ ] logging of queries against data.cube
-- [x] query optimization
-  - [x] can uses blazingly fast data.table *indexes*
+- [ ] query optimization
+  - [ ] can uses blazingly fast data.table *indexes*
 - [ ] works on sharded engine using [big.data.table](https://gitlab.com/jangorecki/big.data.table)
 
 Contribution welcome!  
@@ -94,12 +95,12 @@ dc[product = "Mazda RX4",
    geography = .(),
    time = .(time_year = 2014L, time_quarter_name = c("Q1","Q2"))]
 
-# aggregate by droppping dimension with just `.` symbol, group by customer and currency
-dc[product = .,
+# aggregate by droppping dimension with just `+(.)` symbol, group by customer and currency
+dc[product = +(.),
    customer = .(),
    currency = .(curr_type="crypto"),
-   geography = .,
-   time = .]
+   geography = +(.),
+   time = +(.)]
 ```
 
 ### old `cube` class with more methods

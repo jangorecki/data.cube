@@ -175,6 +175,8 @@ stopifnot(
     all.equal(apply(ar, 2:3, sum, na.rm=TRUE), as.array(dc[`+`()], na.fill=0)),
     all.equal(apply(ar, 1:2, sum, na.rm=TRUE), as.array(dc[,,+(.)], na.fill=0)),
     all.equal(apply(ar, 1:2, sum, na.rm=TRUE), as.array(dc[,,`+`()], na.fill=0)),
+    all.equal(apply(ar, 2L, sum, na.rm=TRUE), as.array(dc[+(.),,+(.)], na.fill=0)),
+    all.equal(apply(ar, 2L, sum, na.rm=TRUE), as.array(dc[`+`(),,`+`()], na.fill=0)),
     # collapse dims with filters
     all.equal(apply(ar[c("green","yellow"),,], 2:3, sum, na.rm=TRUE), as.array(dc[+(c("green","yellow"))], na.fill=0)),
     all.equal(apply(ar[c("green","yellow"),,], 2:3, sum, na.rm=TRUE), as.array(dc[`+`(c("green","yellow"))], na.fill=0)),

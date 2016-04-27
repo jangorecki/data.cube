@@ -164,7 +164,7 @@ data.cube = R6Class(
                     if (dimkey %chin% names(r)) stop(sprintf("When subset data.cube by '%s' dimension there can be only one unnamed field provided that maps to dimension key, so dimension key field must not be provided at the same time.", dim), call.=FALSE)
                     names(r)[which(empty.field.names)] = dimkey
                 }
-                if (length(fields.not.exists <- setdiff(names(r), dimfields))) stop(sprintf("Fields names provided to '%s' dimension does not exists in that dimension: %s.", dim, paste(fields.not.exists, collapse=", ")), call.=FALSE)
+                if (length(fields.not.exists <- setdiff(names(r), dimfields))) stop(sprintf("Field name provided to '%s' dimension does not exists in that dimension: %s.", dim, paste(fields.not.exists, collapse=", ")), call.=FALSE)
                 r
             }, simplify=FALSE)
             
@@ -218,11 +218,12 @@ data.cube = R6Class(
             dimcols = self$id.vars[names(self$dimensions) %chin% names(dimkeys)]
             stopifnot(length(dimcols) == length(dimkeys))
             setattr(dimkeys, "names", dimcols)
-            collapse.cols = self$id.vars[names(self$dimensions) %chin% names(i.ops)[i.ops=="+"]]
+            collapse.dims = names(i.ops)[i.ops=="+"]
+            collapse.cols = self$id.vars[names(self$dimensions) %chin% collapse.dims]
             r$fact = self$fact$subset(dimkeys, collapse=collapse.cols, drop=drop)
-            stopifnot(ncol(r$fact$data) > 0L)
-            if (length(collapse.cols)) {
-                r$dimensions[collapse.cols] = NULL
+            stopifnot(ncol(r$fact$data) > 0L, length(collapse.cols)==length(collapse.dims))
+            if (length(collapse.dims)) {
+                r$dimensions[collapse.dims] = NULL
                 r$id.vars = setdiff(r$id.vars, collapse.cols)
             }
             # - [x] return cube with all dimensions filtered and fact filtered

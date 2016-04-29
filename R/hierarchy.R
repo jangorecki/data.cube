@@ -21,3 +21,10 @@ hierarchy = R6Class(
         }
     )
 )
+
+#' @title Test if hierarchy class
+#' @param x object to tests.
+is.hierarchy = function(x) inherits(x, "hierarchy")
+
+names.hierarchy = function(x) as.character(names(x$levels))
+length.hierarchy = function(x) as.integer(length(x$levels))

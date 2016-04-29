@@ -21,9 +21,6 @@ level = R6Class(
             cat(c("<level>", lvl.data.str), sep="\n")
             invisible(self)
         },
-        dim = function() {
-            as.integer(nrow(self$data))
-        },
         schema = function() {
             schema.data.table(self$data)
         },
@@ -56,9 +53,6 @@ level = R6Class(
 #' @param x object to tests.
 is.level = function(x) inherits(x, "level")
 
-names.level = function(x) names(x$data)
-length.level = function(x) nrow(x$data)
-dim.level = function(x) {
-    stopifnot(is.level(x))
-    x$dim()
-}
+names.level = function(x) as.character(names(x$data))
+length.level = function(x) as.integer(ncol(x$data))
+dim.level = function(x) as.integer(nrow(self$data))

@@ -10,6 +10,7 @@ import(R6)
 # is.*
 export(is.measure)
 export(is.level)
+export(is.hierarchy)
 export(is.dimension)
 export(is.fact)
 export(is.data.cube)
@@ -76,6 +77,10 @@ S3method(as.data.table, level)
 export(as.hierarchy)
 S3method(as.hierarchy, default)
 S3method(as.hierarchy, list)
+
+# *.hierarchy
+S3method(length, hierarchy)
+S3method(names, hierarchy)
 
 # dimension ----
 

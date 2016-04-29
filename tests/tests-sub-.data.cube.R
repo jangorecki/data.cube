@@ -167,7 +167,7 @@ stopifnot(
     identical(dimnames(dc[,.(NULL),.(NULL)]), list(color = c("green","red","yellow"), year = NULL, status = NULL))
 )
 
-# - [x] collapse dimensions `+()` ----
+# - [x] collapse dimensions ``+`()` ----
 
 stopifnot(
     # collapse dims
@@ -203,7 +203,7 @@ stopifnot(
     identical(dim(dc[,+(NULL),+(NULL)]), 3L) # double collapse
 )
 
-# - [ ] rollup dimensions `-()`? ----
+# - [ ] rollup dimensions ``-`()`? ----
 
 ## - [ ] multidimensional hierarchical data ----
 

@@ -158,6 +158,7 @@ data.cube = R6Class(
                     names(r) = ""
                 }
                 empty.field.names = names(r)==""
+                # - [ ] TODO change to `anyDuplicated`
                 if (length(field.names <- names(r)[!empty.field.names]) != uniqueN(field.names)) stop(sprintf("Fields to subset in '%s' dimension are not uniquely named.", dim), call.=FALSE)
                 if (sum(empty.field.names) > 1L) stop(sprintf("There are multiple unnamed fields provided to '%s' dimension on data.cube subset. Only one unnamed field is allowed which maps to dimension key.", dim))
                 if (sum(empty.field.names) == 1L) {
@@ -230,7 +231,6 @@ data.cube = R6Class(
             as.data.cube.environment(r)
         },
         setindex = function(drop = FALSE) {
-            if (is.null(drop)) drop=TRUE
             optional.logR = function(x, .log = getOption("datacube.log")) {
                 if(isTRUE(.log)) eval.parent(substitute(logR(x), list(x = substitute(x)))) else x
             }
@@ -239,6 +239,35 @@ data.cube = R6Class(
                 dimensions = lapply(self$dimensions, function(x) optional.logR(x$setindex(drop=drop)))
             ) # r - not used further but evaluated on lower classes
             invisible(self)
+        },
+        rollup = function(by) {
+            # get relevant dims
+            guess.dim = function(x) {
+                stopifnot(is.character(x))
+                if (!length(x)) return(character(0))
+                self$dime
+            }
+            # for each dimension in 'by'
+            ### outsource to dimension$rollup?
+            ## get relevant levels
+            guess.level = function(x) {
+                stopifnot(is.character(x))
+                if (!length(x)) return(character(0))
+            }
+            ## get relevant hierarchies
+            guess.hierarchies = function(x) {
+                stopifnot(is.character(x))
+                if (!length(x)) return(character(0))
+            }
+            ## define level for new dimension base OR create new, if rollup on 2+ hierarchies
+            ## update hierarchies, drop redundant levels
+            
+            ### outsource fact$rollup ?
+            
+            # lookup fact for new dimensions keys
+            # rollup.data.table over dims keys
+            # get `grouping` field in rollup results to create grouping dimension
+            # bind grouping dimension
         }
     )
 )

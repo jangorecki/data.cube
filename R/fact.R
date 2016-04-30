@@ -53,9 +53,6 @@ fact = R6Class(
             }
             invisible(self)
         },
-        dim = function() {
-            unname(unlist(self$data[, lapply(.SD, uniqueN), .SDcols = self$id.vars]))
-        },
         print = function() {
             fact.data.str = capture.output(str(self$data, give.attr = FALSE))
             cat(c("<fact>", fact.data.str), sep="\n")
@@ -70,44 +67,8 @@ fact = R6Class(
             if(isTRUE(getOption("datacube.jj"))) message(paste(deparse(jj, width.cutoff = 500), collapse = "\n"))
             jj
         },
-        query = function(i, i.dt, by, measure.vars = self$measure.vars) {
-            
-            ii = substitute(i)
-            jj = self$build.j(measure.vars)
-            bb = substitute(by)
-            id = substitute(i.dt)
-            
-            l = list(
-                as.symbol("["),
-                x = call("$", as.name("self"), as.name("data")) # this can point to data.table or big.data.table
-            )
-            stopifnot(!(!missing(i) & !missing(i.dt)))
-            if(!missing(i)){
-                l[["i"]] = ii
-            } else if(!missing(i.dt)){
-                l[["i"]] = id
-            }
-            l[["j"]] = jj
-            if(!missing(by)) l[["by"]] = bb
-            if(!missing(i.dt)){
-                jn = copy(names(i.dt))
-                l[["on"]] = setNames(nm = jn)
-                l[["nomatch"]] = 0L
-            }
-            dcq = as.call(l)
-            dt = eval(dcq)
-            if( !self$local ) {
-                # re-aggr
-                dcq["i"] = NULL
-                dcq["on"] = NULL
-                dcq["nomatch"] = 0L
-                dcq[["x"]] = as.name("dt")
-                dt = eval(dcq)
-            }
-            dt
-        },
         schema = function() {
-            if(!self$local) schema.big.data.table(self$data, empty = c("entity")) else schema.data.table(self$data, empty = c("entity"))
+            if (self$local) schema.data.table(self$data, empty = c("entity")) else schema.big.data.table(self$data, empty = c("entity"))
         },
         head = function(n = 6L) {
             head(self$data, n)
@@ -147,7 +108,9 @@ fact = R6Class(
                 }
                 if (length(r$id.vars)) setkeyv(r$data, r$id.vars)
             }
-            if (!self$local) stop("distributed processing for data.cube not yet implemented")
+            if (!self$local) {
+                stop("distributed processing for data.cube not yet implemented")
+            }
             as.fact.environment(r)
         },
         setindex = function(drop = FALSE) {
@@ -157,6 +120,43 @@ fact = R6Class(
                 stop("TODO")
             }
             invisible(self)
+        },
+        # fact$query method to be removed - currently used only in tests-big.data.cube.R and tests-method-query.R - see data.cube#12
+        query = function(i, i.dt, by, measure.vars = self$measure.vars) {
+            
+            ii = substitute(i)
+            jj = self$build.j(measure.vars)
+            bb = substitute(by)
+            id = substitute(i.dt)
+            
+            l = list(
+                as.symbol("["),
+                x = call("$", as.name("self"), as.name("data")) # this can point to data.table or big.data.table
+            )
+            stopifnot(!(!missing(i) & !missing(i.dt)))
+            if(!missing(i)){
+                l[["i"]] = ii
+            } else if(!missing(i.dt)){
+                l[["i"]] = id
+            }
+            l[["j"]] = jj
+            if(!missing(by)) l[["by"]] = bb
+            if(!missing(i.dt)){
+                jn = copy(names(i.dt))
+                l[["on"]] = setNames(nm = jn)
+                l[["nomatch"]] = 0L
+            }
+            dcq = as.call(l)
+            dt = eval(dcq)
+            if( !self$local ) {
+                # re-aggr
+                dcq["i"] = NULL
+                dcq["on"] = NULL
+                dcq["nomatch"] = 0L
+                dcq[["x"]] = as.name("dt")
+                dt = eval(dcq)
+            }
+            dt
         }
     )
 )
@@ -165,9 +165,6 @@ fact = R6Class(
 #' @param x object to tests.
 is.fact = function(x) inherits(x, "fact")
 
-names.fact = function(x) names(x$data)
-length.fact = function(x) nrow(x$data)
-dim.fact = function(x) {
-    stopifnot(is.fact(x))
-    x$dim()
-}
+names.fact = function(x) as.character(names(x$data))
+length.fact = function(x) as.integer(length(x$data))
+dim.fact = function(x) as.integer(dim(x$data))

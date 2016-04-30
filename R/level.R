@@ -55,4 +55,4 @@ is.level = function(x) inherits(x, "level")
 
 names.level = function(x) as.character(names(x$data))
 length.level = function(x) as.integer(ncol(x$data))
-dim.level = function(x) as.integer(nrow(self$data))
+dim.level = function(x) as.integer(nrow(x$data))

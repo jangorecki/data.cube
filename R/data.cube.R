@@ -23,7 +23,7 @@ data.cube = R6Class(
             invisible(self)
         },
         dim = function() {
-            as.integer(unname(sapply(self$dimensions, function(x) nrow(x$data))))
+            unname(sapply(self$dimensions, function(x) nrow(x$data)))
         },
         print = function() {
             dict = self$schema()
@@ -42,20 +42,6 @@ data.cube = R6Class(
             prnt["size"] = sprintf("total size: %.2f MB", dict[,sum(mb)])
             cat(prnt, sep = "\n")
             invisible(self)
-        },
-        # dims.apply
-        dims.apply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE, dims = names(self$dimensions)) {
-            FUN = match.fun(FUN)
-            sapply(X = self$dimensions[dims],#lapply(setNames(nm = dims), function(dd) self$dimensions[[dd]]),
-                   FUN = FUN, ...,
-                   simplify = simplify, USE.NAMES = USE.NAMES)
-        },
-        # fact.apply
-        fact.apply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE) {
-            FUN = match.fun(FUN)
-            sapply(X = list(self$fact),
-                   FUN = FUN, ...,
-                   simplify = simplify, USE.NAMES = USE.NAMES)
         },
         denormalize = function(na.fill = FALSE, dims = names(self$dimensions)) {
             r = as.data.table(self$fact)
@@ -79,7 +65,7 @@ data.cube = R6Class(
         head = function(n = 6L) {
             list(fact = self$fact$head(n = n), dimensions = lapply(self$dimensions, function(x) x$head(n = n)))
         },
-        # [.data.cube
+        # `[.data.cube`
         parse.dots = function(dots) {
             dims = names(self$dimensions)
             # - [x] handling empty input `dc[]` to `dc[dima=list(), dimb=list(), dimc=list()]` - this is already handled in "[.data.cube"
@@ -230,6 +216,7 @@ data.cube = R6Class(
             # - [x] return cube with all dimensions filtered and fact filtered
             as.data.cube.environment(r)
         },
+        # setindex
         setindex = function(drop = FALSE) {
             optional.logR = function(x, .log = getOption("datacube.log")) {
                 if(isTRUE(.log)) eval.parent(substitute(logR(x), list(x = substitute(x)))) else x
@@ -314,7 +301,7 @@ is.data.cube = function(x) inherits(x, "data.cube")
 # }
 
 dimnames.data.cube = function(x) {
-    r = x$dims.apply(dimnames)
+    r = sapply(x$dimensions, dimnames, simplify=FALSE)
     if (!length(r)) return(NULL)
     r
 }
@@ -351,19 +338,11 @@ format.data.cube = function(x, na.fill = FALSE, measure.format = list(), dots.fo
     r[]
 }
 
-length.data.cube = function(x) {
-    x$fact$schema()$nrow
-}
-names.data.cube = function(x) names(x$fact)
-dim.data.cube = function(x) {
-    stopifnot(is.data.cube(x))
-    x$dim()
-}
+head.data.cube = function(x, n = 6L, ...) x$head(n)
 
-head.data.cube = function(x, n, ...) {
-    stopifnot(is.data.cube(x))
-    x$head(n)
-}
+length.data.cube = function(x) as.integer(nrow(x$fact))
+names.data.cube = function(x) as.character(names(x$fact))
+dim.data.cube = function(x) as.integer(x$dim())
 
 #' @title Apply function over data.cube 
 #' @param X data.cube object

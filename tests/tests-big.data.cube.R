@@ -1,8 +1,7 @@
-
 pkgs = c("Rserve","RSclient","big.data.table")
 apkgs = sapply(pkgs, requireNamespace, quietly = TRUE)
 print(apkgs)
-if(!all(apkgs)) quit("no", status = 0)
+if (!all(apkgs)) quit("no", status = 0)
 
 # start nodes ----
 
@@ -12,7 +11,7 @@ port = 33311:33314
 
 # shutdown any running nodes
 rscl = lapply(setNames(port, port), function(port) tryCatch(RSconnect(port = port), error = function(e) e, warning = function(w) w))
-invisible(lapply(rscl, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rsc)))
+invisible(lapply(rscl, function(rsc) if (inherits(rsc, "sockconn")) RSshutdown(rsc)))
 
 # start cluster
 invisible(sapply(port, function(port) Rserve(debug = FALSE, port = port, args = c("--no-save"))))
@@ -126,13 +125,13 @@ rscl.close(rscl)
 
 apkg = requireNamespace("logR", quietly = TRUE)
 print(apkg)
-if(apkg){
+if (apkg){
     
     library(logR)
     
     ## for check on localhost use postgres service
     # docker run --rm -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=postgres --name pg-data.cube postgres:9.5
-    if(logR::logR_connect()){
+    if (logR::logR_connect()){
         stopifnot(logR::logR_schema(drop = TRUE))
         on = options("bigdatatable.log" = TRUE, "logR.nano.debug" = TRUE)
         
@@ -179,6 +178,6 @@ port = 33311:33314
 
 # shutdown any running nodes
 l = lapply(setNames(port, port), function(port) tryCatch(RSconnect(port = port), error = function(e) e, warning = function(w) w))
-invisible(lapply(l, function(rsc) if(inherits(rsc, "sockconn")) RSshutdown(rsc)))
+invisible(lapply(l, function(rsc) if (inherits(rsc, "sockconn")) RSshutdown(rsc)))
 
 invisible(TRUE)

@@ -25,12 +25,12 @@ test:
     # run check
     - R CMD check $(ls -1t *.tar.gz | head -n 1) --no-manual --as-cran
     # produce artifacts
-    - Rscript -e 'drat::insertArtifacts(repodir="public", repo.url="'"$USERNS"'/data.cube", repo.cran=TRUE)'
+    - Rscript -e 'drat::insertArtifacts(repodir="public", repo.url="'"$USERNS"'/data.cube", repo.cran=TRUE, log.files=c("tests/tests-big.data.cube.Rout"))'
   artifacts:
     paths:
       - public
 
-.test-r-3.0.0:
+test-r-3.0.0:
   stage: test
   image: docker.io/jangorecki/r-3.0.0
   script:
@@ -42,7 +42,7 @@ test:
     - R3 CMD check $(ls -1t *.tar.gz | head -n 1) --no-manual --as-cran
     # produce artifacts
     - R3script -e 'install.packages("drat", repos="https://jangorecki.gitlab.io/drat")'
-    - R3script -e 'drat::insertArtifacts(repodir="public/r-3.0.0", repo.url="'"$USERNS"'/data.cube/r-3.0.0", repo.cran=TRUE)'
+    - R3script -e 'drat::insertArtifacts(repodir="public/r-3.0.0", repo.url="'"$USERNS"'/data.cube/r-3.0.0", repo.cran=TRUE, log.files=c("tests/tests-big.data.cube.Rout"))'
   artifacts:
     paths:
       - public

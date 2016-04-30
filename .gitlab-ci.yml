@@ -34,6 +34,8 @@ test-r-3.0.0:
   stage: test
   image: docker.io/jangorecki/r-3.0.0
   script:
+    # install deps
+    - R3script -e 'install.packages(c("R6","data.table"), repos=c("https://cran.rstudio.com","https://Rdatatable.github.io/data.table"))'
     # build package
     - R3 CMD build .
     # run check

@@ -10,7 +10,7 @@ fact = R6Class(
         measure.vars = character(),
         measures = list(),
         data = NULL,
-        initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = sum, ..., measures, .env) {
+        initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = sum, ..., measures = NULL, .env) {
             if (!missing(.env)) {
                 # skip heavy processing for env argument
                 self$local = .env$local
@@ -24,7 +24,7 @@ fact = R6Class(
             stopifnot(is.character(id.vars), is.character(measure.vars))
             self$id.vars = unname(id.vars)
             # - [x] `fact$new` creates measures, or use provided in `measures` argument
-            if (!missing(measures)) {
+            if (!is.null(measures)) {
                 self$measures = measures
                 self$measure.vars = names(self$measures)
             } else {

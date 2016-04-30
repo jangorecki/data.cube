@@ -50,7 +50,7 @@ as.data.cube.array = function(x, na.rm = TRUE, ...) {
         ar.dimnames = dimnames(x)
     }
     dt = as.data.table.array(x, na.rm = na.rm) # added .array explicitly cause .matrix is redirected here
-    ff = as.fact(dt, id.vars = key(dt), measure.vars = "value", ...)
+    ff = as.fact.data.table(dt, id.vars = key(dt), measure.vars = "value", ...)
     if (any(dn.nulls <- sapply(ar.dimnames, is.null))) { # decode NULL in dimnames to character(0) for proper handling in `as.dimension`
         ar.dimnames[dn.nulls] = lapply(1:sum(dn.nulls), function(i) character(0))
     }
@@ -98,7 +98,7 @@ as.data.cube.list = function(x, ...) {
 
 #' @rdname as.data.cube
 #' @method as.data.cube data.table
-as.data.cube.data.table = function(x, id.vars = key(x), measure.vars, fun.aggregate = sum, dims = id.vars, hierarchies = NULL, ..., dimensions, measures) {
+as.data.cube.data.table = function(x, id.vars = key(x), measure.vars, fun.aggregate = sum, dims = id.vars, hierarchies = NULL, ..., dimensions, measures = NULL) {
     sub.fun = substitute(fun.aggregate)
     stopifnot(is.data.table(x), is.character(id.vars), is.character(measure.vars))
     if (!is.null(dims)) stopifnot(is.character(dims), length(dims) == length(id.vars))

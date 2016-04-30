@@ -12,7 +12,7 @@ as.fact = function(x, ...) {
 
 #' @rdname as.fact
 #' @method as.fact default
-as.fact.default = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = sum, ..., measures) {
+as.fact.default = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = sum, ..., measures = NULL) {
     sub.fun = substitute(fun.aggregate)
     if (is.null(x)) return(null.fact())
     eval(substitute(as.fact.data.table(as.data.table(x, ...), id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = .fun.aggregate, ... = ..., measures = measures),
@@ -21,7 +21,7 @@ as.fact.default = function(x, id.vars = character(), measure.vars = character(),
 
 #' @rdname as.fact
 #' @method as.fact data.table
-as.fact.data.table = function(x, id.vars = as.character(key(x)), measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ..., measures) {
+as.fact.data.table = function(x, id.vars = as.character(key(x)), measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ..., measures = NULL) {
     sub.fun = substitute(fun.aggregate)
     eval(substitute(fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = .fun.aggregate, ... = ..., measures = measures),
                     list(.fun.aggregate = sub.fun)))
@@ -29,7 +29,7 @@ as.fact.data.table = function(x, id.vars = as.character(key(x)), measure.vars = 
 
 #' @rdname as.fact
 #' @method as.fact list
-as.fact.list = function(x, id.vars = as.character(key(x)), measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ..., measures) {
+as.fact.list = function(x, id.vars = as.character(key(x)), measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ..., measures = NULL) {
     sub.fun = substitute(fun.aggregate)
     stopifnot(requireNamespace("big.data.table", quietly = TRUE), big.data.table::is.rscl(x))
     eval(substitute(fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = .fun.aggregate, ... = ..., measures = measures),
@@ -38,7 +38,7 @@ as.fact.list = function(x, id.vars = as.character(key(x)), measure.vars = setdif
 
 #' @rdname as.fact
 #' @method as.fact big.data.table
-as.fact.big.data.table = function(x, id.vars, measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ..., measures) {
+as.fact.big.data.table = function(x, id.vars, measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ..., measures = NULL) {
     sub.fun = substitute(fun.aggregate)
     stopifnot(requireNamespace("big.data.table", quietly = TRUE), big.data.table::is.big.data.table(x), is.character(id.vars))
     eval(substitute(fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = .fun.aggregate, ... = ..., measures = measures),

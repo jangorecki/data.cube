@@ -30,9 +30,9 @@ test:
     paths:
       - public
 
-test-r-3.0.3:
+test-r-3.1.0:
   stage: test
-  image: docker.io/jangorecki/r-3.0.3
+  image: docker.io/jangorecki/r-3.1.0
   script:
     # install deps
     - R3script -e 'install.packages(c("R6","data.table"), repos=c("https://cran.rstudio.com","https://Rdatatable.github.io/data.table"), method="curl")'
@@ -44,7 +44,7 @@ test-r-3.0.3:
     - R3 CMD check $(ls -1t *.tar.gz | head -n 1) --no-manual --as-cran
     # produce artifacts
     - R3script -e 'install.packages("drat", repos="https://jangorecki.gitlab.io/drat", method="curl")'
-    - R3script -e 'drat::insertArtifacts(repodir="public/r-3.0.3", repo.url="'"$USERNS"'/data.cube/r-3.0.3", repo.cran=TRUE, log.files=c("tests/tests-big.data.cube.Rout"))'
+    - R3script -e 'drat::insertArtifacts(repodir="public/r-3.1.0", repo.url="'"$USERNS"'/data.cube/r-3.1.0", repo.cran=TRUE, log.files=c("tests/tests-big.data.cube.Rout"))'
   artifacts:
     paths:
       - public

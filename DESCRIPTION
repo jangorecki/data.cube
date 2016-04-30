@@ -6,7 +6,7 @@ Date: 2016-04-27
 Author: Jan Gorecki
 Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
 Description: Extends array for OLAP operations on multidimensional hierarchical data powered by data.table.
-Depends: R (>= 3.0.0)
+Depends: R (>= 3.0.3)
 Imports: data.table (>= 1.9.7), R6
 Suggests: big.data.table (>= 0.3.4), RSclient, Rserve, logR (>= 2.1.4), knitr, rmarkdown
 License: GPL-3

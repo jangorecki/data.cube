@@ -93,19 +93,12 @@ lookup = function(fact, dim, cols) {
     }
     if (!length(cols)) return(TRUE)
     if (any(cols %in% names(fact))) stop(sprintf("Column name collision on lookup for '%s' columns.", paste(cols[cols %in% names(fact)], collapse=", ")))
-    if (base::getRversion()<="3.0.2") {
-        # R<=v3.0.2 force shallow copy here, so cannot be done by reference, required to pass tests on R 3.0.0
-        message(address(fact))
-        fact[dim, (cols) := mget(paste0("i.", cols)), on = c(key(dim))]
-    } else {
-        fact[dim, (cols) := mget(paste0("i.", cols)), on = c(key(dim))]
-    }
+    fact[dim, (cols) := mget(paste0("i.", cols)), on = c(key(dim))]
     TRUE
 }
 
 lookupv = function(dims, fact) {
     if (!length(dims)) return(logical(0))
-    if (base::getRversion()<="3.0.2") alloc.col(fact)
     sapply(dims, function(dim) {
         nd = copy(names(dim))
         nf = copy(names(fact))

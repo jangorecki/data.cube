@@ -1,3 +1,4 @@
+# data.cube [![Build Status](https://gitlab.com/jangorecki/data.cube/badges/master/build.svg)](https://gitlab.com/jangorecki/data.cube/builds)
 
 In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.table](https://github.com/Rdatatable/data.table) R package.  
 

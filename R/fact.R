@@ -11,7 +11,7 @@ fact = R6Class(
         measures = list(),
         data = NULL,
         initialize = function(x, id.vars = character(), measure.vars = character(), fun.aggregate = sum, ..., measures, .env) {
-            if(!missing(.env)){
+            if (!missing(.env)) {
                 # skip heavy processing for env argument
                 self$local = .env$local
                 self$id.vars = .env$id.vars
@@ -24,7 +24,7 @@ fact = R6Class(
             stopifnot(is.character(id.vars), is.character(measure.vars))
             self$id.vars = unname(id.vars)
             # - [x] `fact$new` creates measures, or use provided in `measures` argument
-            if(!missing(measures)){
+            if (!missing(measures)) {
                 self$measures = measures
                 self$measure.vars = names(self$measures)
             } else {
@@ -43,13 +43,13 @@ fact = R6Class(
             # aggregate
             dtq = substitute(x <- x[, j = .jj,, keyby = .id.vars], list(.jj = jj, .id.vars = self$id.vars))
             self$local = is.data.table(x)
-            if(self$local){
+            if (self$local) {
                 self$data = eval(dtq)
             } else {
-                stopifnot(requireNamespace("big.data.table", quietly = TRUE), big.data.table::is.rscl(x))
-                bdt = big.data.table::as.big.data.table(x)
-                bdt[[expr = dtq, lazy = FALSE, send = TRUE]]
-                self$data = bdt
+                stopifnot(requireNamespace("big.data.table", quietly = TRUE), big.data.table::is.rscl(x) || big.data.table::is.big.data.table(x))
+                if (big.data.table::is.rscl(x)) x = big.data.table::as.big.data.table(x)
+                x[[expr = dtq, lazy = FALSE, send = TRUE]]
+                self$data = x
             }
             invisible(self)
         },
@@ -64,7 +64,7 @@ fact = R6Class(
                 list(as.name("list")),
                 lapply(self$measures[measure.which], function(x) x$expr())
             ))
-            if(isTRUE(getOption("datacube.jj"))) message(paste(deparse(jj, width.cutoff = 500), collapse = "\n"))
+            if (isTRUE(getOption("datacube.jj"))) message(paste(deparse(jj, width.cutoff = 500), collapse = "\n"))
             jj
         },
         schema = function() {

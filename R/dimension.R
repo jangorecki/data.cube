@@ -45,21 +45,10 @@ dimension = R6Class(
             self$data = setkeyv(r, self$id.vars)[]
             invisible(self)
         },
-        dim = function() {
-            if(!ncol(self$data)) return(0L)
-            as.integer(unname(unlist(self$data[, lapply(.SD, uniqueN), .SDcols = self$id.vars])))
-        },
         print = function() {
             dimension.data.str = capture.output(str(self$data, give.attr = FALSE))
             cat(c("<dimension>", dimension.data.str), sep="\n")
             invisible(self)
-        },
-        # lvls.apply
-        lvls.apply = function(FUN, ..., simplify = FALSE, USE.NAMES = TRUE, lvls = names(self$levels)) {
-            FUN = match.fun(FUN)
-            sapply(X = self$levels[lvls],
-                   FUN = FUN, ...,
-                   simplify = simplify, USE.NAMES = USE.NAMES)
         },
         schema = function() { # for each dimensions
             i = setNames(seq_along(self$levels), names(self$levels))
@@ -114,15 +103,11 @@ dimension = R6Class(
 is.dimension = function(x) inherits(x, "dimension")
 
 dimnames.dimension = function(x) {
-    jj = as.name(x$id.vars)
     r = x$levels[[x$id.vars]]$data[[1L]]
     if (!length(r)) return(NULL)
     r
 }
 
-names.dimension = function(x) names(x$data)
-length.dimension = function(x) nrow(x$data)
-dim.dimension = function(x) {
-    stopifnot(is.dimension(x))
-    x$dim()
-}
+names.dimension = function(x) as.character(names(x$data))
+length.dimension = function(x) as.integer(length(x$data))
+dim.dimension = function(x) as.integer(dim(x$data))

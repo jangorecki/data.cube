@@ -4,7 +4,7 @@ library(data.cube)
 # data.cube: 2 dimensions, produce hierarchies ----
 
 X = populate_star(N = 1e3, surrogate.keys = FALSE)
-time.hierarchies = list(
+time.hierarchies = list( # 2 hierarchies in time dimension
     "monthly" = list(
         "time_year" = character(),
         "time_quarter" = c("time_quarter_name"),
@@ -17,15 +17,21 @@ time.hierarchies = list(
         "time_date" = c("time_week","time_year")
     )
 )
-geog.hierarchies = list(list(
-    "geog_region_name" = character(),
-    "geog_division_name" = c("geog_region_name"),
-    "geog_abb" = c("geog_name","geog_division_name","geog_region_name")
-))
+geog.hierarchies = list( # 1 hierarchy in geography dimension
+    list(
+        "geog_region_name" = character(),
+        "geog_division_name" = c("geog_region_name"),
+        "geog_abb" = c("geog_name","geog_division_name","geog_region_name")
+    )
+)
 
 dimensions = list(
-    time = as.dimension(X$dims$time, key = "time_date", hierarchies = time.hierarchies),
-    geography = as.dimension(X$dims$geography, key = "geog_abb", hierarchies = geog.hierarchies)
+    time = as.dimension(X$dims$time, 
+                        id.vars = "time_date", 
+                        hierarchies = time.hierarchies),
+    geography = as.dimension(X$dims$geography, 
+                             id.vars = "geog_abb", 
+                             hierarchies = geog.hierarchies)
 )
 
 facts = as.fact(X$fact$sales,
@@ -36,7 +42,8 @@ facts = as.fact(X$fact$sales,
 dc = as.data.cube(facts, dimensions)
 
 stopifnot(
-    is.data.cube(dc)
+    is.data.cube(dc),
+    identical(names(dc), c("geog_abb","time_date","amount","value")) # order of dimensions aligned to facts
 )
 
 # data.cube: 5 dimensions, hierarchies from `populate_star` ----
@@ -119,18 +126,20 @@ stopifnot(
 # null fact
 ff = as.fact(NULL)
 # null.ff no dimensions, zero fact, zero dim
-dc1 = as.data.cube(ff, list())
+dc1 = suppressWarnings(as.data.cube(ff, list())) # warn that dimensions dropped
 # null.ff 3 null.dd, zero fact, 3 null dim
-dc2 = as.data.cube(ff, lapply(1:3, function(i) as.dimension(NULL)))
+dc2 = suppressWarnings(as.data.cube(ff, lapply(1:3, function(i) as.dimension(NULL)))) # warn that dimensions dropped
 stopifnot(
     # dc1
+    length(dc1$dimensions) == 0L,
     all.equal(dim(dc1), integer()),
     identical(dim(dc1$fact$data), c(0L,0L)),
-    all.equal(sapply(dc1$dimensions, dim), list()),
+    all.equal(unname(sapply(dc1$dimensions, dim)), list()),
     # dc2
-    all.equal(dim(dc2), rep(0L, 3)),
+    length(dc2$dimensions) == 0L,
+    all.equal(dim(dc2), integer()),
     identical(dim(dc2$fact$data), c(0L,0L)),
-    all.equal(sapply(dc2$dimensions, dim), rep(0L, 3))
+    all.equal(unname(sapply(dc2$dimensions, dim)), list())
 )
 
 # 1row.ff no dimensions, 1 row fact, zero dim, fact as grand total
@@ -138,14 +147,16 @@ ff = as.fact(data.table(value = 10:11))
 # null.ff no dimensions, 1 row fact, zero dim, fact as grand total
 dc1 = as.data.cube(ff, list())
 # null.ff 3 null.dd, 1 row fact, 3 null dim, fact as grand total
-dc2 = as.data.cube(ff, lapply(1:3, function(i) as.dimension(NULL)))
+dc2 = suppressWarnings(as.data.cube(ff, lapply(1:3, function(i) as.dimension(NULL)))) # warn that dimensions dropped
 stopifnot(
     # dc1
+    length(dc1$dimensions) == 0L,
     all.equal(dim(dc1), integer()),
     identical(dim(dc1$fact$data), c(1L,1L)),
-    all.equal(sapply(dc1$dimensions, dim), list()),
+    all.equal(unname(sapply(dc1$dimensions, dim)), list()),
     # dc2
-    all.equal(dim(dc2), rep(0L, 3)),
+    length(dc2$dimensions) == 0L,
+    all.equal(dim(dc2), integer()),
     identical(dim(dc2$fact$data), c(1L,1L)),
-    all.equal(sapply(dc2$dimensions, dim), rep(0L, 3))
+    all.equal(unname(sapply(dc2$dimensions, dim)), list())
 )

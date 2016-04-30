@@ -9,7 +9,7 @@ data.cube = R6Class(
         id.vars = character(),
         dimensions = list(),
         initialize = function(fact, dimensions, .env) {
-            if (!missing(.env)){
+            if (!missing(.env)) {
                 # skip heavy processing for env argument
                 self$dimensions = .env$dimensions
                 self$id.vars = .env$id.vars
@@ -17,8 +17,47 @@ data.cube = R6Class(
                 return(invisible(self))
             }
             stopifnot(is.fact(fact), all(sapply(dimensions, is.dimension)))
-            self$dimensions = dimensions
-            self$id.vars = unname(unlist(lapply(self$dimensions, `[[`, "id.vars"))) # first col must be primary key
+            # - [ ] dimless input: only grand total value would be valid
+            if (!length(fact$id.vars)) {
+                if (length(dimensions)) warning("Provided fact has no key columns, all dimensions are being dropped.", call.=FALSE)
+                self$dimensions = structure(list(), .Names = character(0))
+                self$id.vars = fact$id.vars
+                self$fact = fact
+                return(invisible(self))
+            }
+            # - [ ] dimensions metadata validation
+            uniquely.named = function(x) !is.null(names(x)) && !anyDuplicated(names(x)) && !any(names(x)=="")
+            if (!uniquely.named(dimensions)) stop("Dimensions must be uniquely named.")
+            if ("grouping" %chin% names(dimensions)) stop("Dimension should not be named 'grouping' as this name is reserved for dimension binded during `rollup` processing.")
+            dims.id.vars = sapply(dimensions, `[[`, "id.vars", simplify=FALSE)
+            if (any((dims.id.vars.len <- sapply(dims.id.vars, length)) > 1L)) stop(sprintf("Dimensions must have non-composite keys defined `length(d$id.vars)==1L`: %s. That may change after 'add time variant support ' data.cube#11 solved.", paste(names(dims.id.vars.len)[dims.id.vars.len > 1L], collapse=", ")))
+            dims.id.vars = unlist(dims.id.vars)
+            extra.dims = setdiff(dims.id.vars, fact$id.vars)
+            missing.dims = setdiff(fact$id.vars, dims.id.vars)
+            # - [ ] drop extra dimensions vs fact
+            if (length(missing.dims)) {
+                message(sprintf(
+                    "%s/%s of provided dimensions does not have corresponding key in provided fact, they will be dropped: %s",
+                    length(missing.dims), length(dims.id.vars),
+                    paste(missing.dims, collapse = ", ")
+                ))
+                dimensions[missing.dims] = NULL
+                dims.id.vars = setdiff(dims.id.vars, missing.dims)
+            }
+            # - [ ] drop extra fact keys vs dimensions
+            if (length(extra.dims)) {
+                message(sprintf(
+                    "%s/%s of the keys in provided fact does not have corresponding dimension(s) provided, they will be dropped (%s) and fact will get aggregated to remaining dimenions.",
+                    length(extra.dims), length(fact$id.vars),
+                    paste(extra.dims, collapse = ", ")
+                ))
+                fact = as.fact(x=fact$data, id.vars=setdiff(fact$id.vars, extra.dims), measure.vars=fact$measure.vars, measures=fact$measures)
+            }
+            # - [ ] reorder dimensions to match id.vars order in fact
+            dims.order = chmatch(dims.id.vars, fact$id.vars)
+            stopifnot(identical(fact$id.vars, unname(dims.id.vars)[dims.order]))
+            self$dimensions = dimensions[dims.order]
+            self$id.vars = unname(dims.id.vars)[dims.order]
             self$fact = fact
             invisible(self)
         },

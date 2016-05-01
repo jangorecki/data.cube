@@ -6,6 +6,14 @@
 #' @param \dots arguments to fun.aggregate.
 #' @param measures list of measures class objects, useful if various measures needs to have different `fun.aggregate`.
 #' @return fact class object.
+#' @seealso \code{\link{fact}}, \code{\link{measure}}, \code{\link{dimension}}, \code{\link{data.cube}}
+#' @examples 
+#' library(data.table)
+#' dt = data.table(a=rep(1:6,2), b=letters[1:3], d=letters[1:2], z=1:12*sin(1:12))
+#' ff = as.fact(x = dt,
+#'              id.vars = c("a","b","d"),
+#'              measure.vars = "z")
+#' str(ff)
 as.fact = function(x, ...) {
     UseMethod("as.fact")
 }

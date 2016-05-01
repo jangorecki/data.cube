@@ -10,6 +10,64 @@
 #' @param hierarchies list of hierarchies nested in list of dimensions passed to \link{as.dimension}.
 #' @param measures list of \link{measure} class objects passed to \link{as.fact}.
 #' @return data.cube class object.
+#' @seealso \code{\link{data.cube}}, \code{\link{fact}}, \code{\link{dimension}}
+#' @examples 
+#' library(data.table)
+#' set.seed(1L)
+#' dt = CJ(color = c("green","yellow","red"),
+#'         year = 2011:2015, 
+#'         status = c("active","inactive","archived","removed"))[sample(30)]
+#' dt[, "value" := sample(4:7/2, nrow(dt), TRUE)]
+#' 
+#' # from data.table
+#' dc = as.data.cube(
+#'     x = dt, id.vars = c("color","year","status"),
+#'     measure.vars = "value",
+#'     hierarchies = sapply(c("color","year","status"),
+#'                          function(x) list(setNames(list(character()), x)),
+#'                          simplify=FALSE)
+#' )
+#' str(dc)
+#' 
+#' # multidimensional hierarchical data from fact and dimensions
+#' X = populate_star(N = 1e3)
+#' time.hierarchies = list( # 2 hierarchies in time dimension
+#'     "monthly" = list(
+#'         "time_year" = character(),
+#'         "time_quarter" = c("time_quarter_name"),
+#'         "time_month" = c("time_month_name"),
+#'         "time_date" = c("time_month","time_quarter","time_year")
+#'     ),
+#'     "weekly" = list(
+#'         "time_year" = character(),
+#'         "time_week" = character(),
+#'         "time_date" = c("time_week","time_year")
+#'     )
+#' )
+#' geog.hierarchies = list( # 1 hierarchy in geography dimension
+#'     list(
+#'         "geog_region_name" = character(),
+#'         "geog_division_name" = c("geog_region_name"),
+#'         "geog_abb" = c("geog_name","geog_division_name","geog_region_name")
+#'     )
+#' )
+#' dims = list(
+#'     time = as.dimension(X$dims$time, 
+#'                         id.vars = "time_date", 
+#'                         hierarchies = time.hierarchies),
+#'     geography = as.dimension(X$dims$geography, 
+#'                              id.vars = "geog_abb", 
+#'                              hierarchies = geog.hierarchies)
+#' )
+#' ff = as.fact(
+#'     X$fact$sales,
+#'     id.vars = c("geog_abb","time_date"),
+#'     measure.vars = c("amount","value"),
+#'     fun.aggregate = sum,
+#'     na.rm = TRUE
+#' )
+#' dc = as.data.cube(ff, dims)
+#' str(dc)
 as.data.cube = function(x, ...) {
     UseMethod("as.data.cube")
 }

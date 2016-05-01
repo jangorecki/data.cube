@@ -2,6 +2,7 @@
 #' @docType class
 #' @format An R6 class object.
 #' @details Class stores variable name from fact table, the function to use against variable. Initialized with character scalar variable name, optional label, function to use on aggregates and it's custom arguments. Method `format` is provided to produce clean expressions.
+#' @seealso \code{\link{as.measure}}, \code{\link{fact}}, \code{\link{data.cube}}
 measure = R6Class(
     classname = "measure",
     public = list(

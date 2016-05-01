@@ -1,7 +1,8 @@
 #' @title Data.cube class
 #' @docType class
 #' @format An R6 class object.
-#' @details Class stores fact class and dimension classes.
+#' @details Class stores fact class and dimension classes. R6 class preview with \code{ls.str()}`. For model of the data cube use \code{str}.  
+#' @seealso \code{\link{as.data.cube}}, \code{\link{[.data.cube}}, \code{\link{fact}}, \code{\link{dimension}}
 data.cube = R6Class(
     classname = "data.cube",
     public = list(

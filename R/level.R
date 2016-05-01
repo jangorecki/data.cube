@@ -1,7 +1,8 @@
 #' @title Level class
 #' @docType class
 #' @format An R6 class object.
-#' @details Class stores lower grain of dimension attributes. Initialized with key column and propoerties columns - all depndent on the key.
+#' @details Class stores lower grain of dimension attributes. Initialized with key column and properties columns - all depndent on the key.
+#' @seealso \code{\link{as.level}}, \code{\link{hierarchy}}, \code{\link{dimension}}, \code{\link{data.cube}}
 level = R6Class(
     classname = "level",
     public = list(
@@ -52,6 +53,11 @@ level = R6Class(
 #' @title Test if level class
 #' @param x object to tests.
 is.level = function(x) inherits(x, "level")
+
+str.level = function(object, ...) {
+    print(object$schema())
+    invisible()
+}
 
 names.level = function(x) as.character(names(x$data))
 length.level = function(x) as.integer(ncol(x$data))

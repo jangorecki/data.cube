@@ -13,5 +13,8 @@ Hierarchy class
 \details{
 Class stores set of dimension levels into hierarchy. Currently just keeps a list.
 }
+\seealso{
+\code{\link{as.hierarchy}}, \code{\link{level}}, \code{\link{dimension}}, \code{\link{data.cube}}
+}
 \keyword{datasets}
 

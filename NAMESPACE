@@ -67,6 +67,7 @@ S3method(as.level, data.table)
 S3method(length, level)
 S3method(names, level)
 S3method(dim, level)
+S3method(str, level)
 
 # as.*.level
 S3method(as.data.table, level)
@@ -81,6 +82,10 @@ S3method(as.hierarchy, list)
 # *.hierarchy
 S3method(length, hierarchy)
 S3method(names, hierarchy)
+S3method(str, hierarchy)
+
+# as.*.hierarchy
+S3method(as.list, hierarchy)
 
 # dimension ----
 
@@ -94,6 +99,7 @@ S3method(length, dimension)
 S3method(names, dimension)
 S3method(dim, dimension)
 S3method(dimnames, dimension)
+S3method(str, dimension)
 
 # as.*.dimension
 S3method(as.data.table, dimension)
@@ -111,6 +117,7 @@ S3method(as.fact, big.data.table)
 S3method(length, fact)
 S3method(names, fact)
 S3method(dim, fact)
+S3method(str, fact)
 
 # as.*.fact
 S3method(as.data.table, fact)

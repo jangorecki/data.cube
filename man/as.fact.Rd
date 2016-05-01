@@ -10,18 +10,18 @@
 as.fact(x, ...)
 
 \method{as.fact}{default}(x, id.vars = character(),
-  measure.vars = character(), fun.aggregate = sum, ..., measures)
+  measure.vars = character(), fun.aggregate = sum, ..., measures = NULL)
 
 \method{as.fact}{data.table}(x, id.vars = as.character(key(x)),
   measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ...,
-  measures)
+  measures = NULL)
 
 \method{as.fact}{list}(x, id.vars = as.character(key(x)),
   measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ...,
-  measures)
+  measures = NULL)
 
 \method{as.fact}{big.data.table}(x, id.vars, measure.vars = setdiff(names(x),
-  id.vars), fun.aggregate = sum, ..., measures)
+  id.vars), fun.aggregate = sum, ..., measures = NULL)
 }
 \arguments{
 \item{x}{data.table build dimension based on that dataset.}
@@ -41,5 +41,16 @@ fact class object.
 }
 \description{
 Build fact
+}
+\examples{
+library(data.table)
+dt = data.table(a=rep(1:6,2), b=letters[1:3], d=letters[1:2], z=1:12*sin(1:12))
+ff = as.fact(x = dt,
+             id.vars = c("a","b","d"),
+             measure.vars = "z")
+str(ff)
+}
+\seealso{
+\code{\link{fact}}, \code{\link{measure}}, \code{\link{dimension}}, \code{\link{data.cube}}
 }
 

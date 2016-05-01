@@ -11,7 +11,10 @@ level
 Level class
 }
 \details{
-Class stores lower grain of dimension attributes. Initialized with key column and propoerties columns - all depndent on the key.
+Class stores lower grain of dimension attributes. Initialized with key column and properties columns - all depndent on the key.
+}
+\seealso{
+\code{\link{as.level}}, \code{\link{hierarchy}}, \code{\link{dimension}}, \code{\link{data.cube}}
 }
 \keyword{datasets}
 

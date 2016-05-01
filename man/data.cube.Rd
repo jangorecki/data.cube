@@ -11,7 +11,10 @@ data.cube
 Data.cube class
 }
 \details{
-Class stores fact class and dimension classes.
+Class stores fact class and dimension classes. R6 class preview with \code{ls.str()}`. For model of the data cube use \code{str}.
+}
+\seealso{
+\code{\link{as.data.cube}}, \code{\link{[.data.cube}}, \code{\link{fact}}, \code{\link{dimension}}
 }
 \keyword{datasets}
 

@@ -12,7 +12,7 @@ as.hierarchy(x, ...)
 \method{as.hierarchy}{list}(x, ...)
 }
 \arguments{
-\item{x}{list or object with a \emph{as.list} method.}
+\item{x}{list which keeps named character vectors (often length 0L) of level key and dependent attributes not listed yet on lower level key.}
 
 \item{\dots}{arguments passed to methods.}
 }
@@ -21,5 +21,20 @@ hierarchy class object.
 }
 \description{
 Create hierarchy
+}
+\details{
+You generally won't need to use that function directly, but use \code{\link{as.dimension}} that takes a list of (possibly named) hierarchies inputs.
+}
+\examples{
+time.calendar = as.hierarchy(list(
+  year = character(),
+  quarter = character(),
+  month = character(),
+  date = c("year","quarter","month")
+))
+str(time.calendar)
+}
+\seealso{
+\code{\link{hierarchy}}, \code{\link{level}}, \code{\link{dimension}}, \code{\link{data.cube}}
 }
 

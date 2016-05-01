@@ -13,5 +13,8 @@ Dimension class
 \details{
 Class stores set of hierarchies. Initialized with hierarchies list definition. Also stores mapping from primary key to any level, to use snowflake
 }
+\seealso{
+\code{\link{as.dimension}}, \code{\link{hierarchy}}, \code{\link{level}}, \code{\link{fact}}, \code{\link{data.cube}}
+}
 \keyword{datasets}
 

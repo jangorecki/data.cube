@@ -2,8 +2,34 @@
 #' @param x data.table or object with a \emph{as.data.table} method, build dimension based on that dataset.
 #' @param \dots arguments passed to methods.
 #' @param id.vars character scalar of dimension primary key.
-#' @param hierarchies list of hierarchies of levels and its attributes.
+#' @param hierarchies list of hierarchies of levels and their attributes.
 #' @return dimension class object.
+#' @seealso \code{\link{dimension}}, \code{\link{hierarchy}}, \code{\link{level}}, \code{\link{data.cube}}
+#' @examples 
+#' library(data.table)
+#' time.dt = data.table(date = seq(as.Date("2015-01-01"), as.Date("2015-12-31"), by=1)
+#'                      )[, c("month","quarter","year") := list(month(date), year(date), quarter(date))
+#'                        ][, c("weekday","week") := list(weekdays(date), week(date))][]
+#' hierarchies = list(
+#'     "monthly" = list(
+#'         "year" = character(),
+#'         "quarter" = character(),
+#'         "month" = character(),
+#'         "date" = c("year","month")
+#'     ),
+#'     "weekly" = list(
+#'         "year" = character(), 
+#'         "week" = character(), 
+#'         "weekday" = character(), 
+#'         "date" = c("year","week","weekday")
+#'     )
+#' )
+#' time = as.dimension(
+#'     x = time.dt,
+#'     id.vars = "date",
+#'     hierarchies = hierarchies
+#' )
+#' str(time)
 as.dimension = function(x, ...){
     UseMethod("as.dimension")
 }

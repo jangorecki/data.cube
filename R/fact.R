@@ -1,7 +1,8 @@
 #' @title Fact class
 #' @docType class
 #' @format An R6 class object.
-#' @details Class stores fact table as local data.table or remote big.data.table. Initialized with data.table or list of R nodes connections. Measures can be provided manually to `measures` argument, useful for custom aggregate function per measure.
+#' @details Class stores fact table as local \code{data.table} or remote \code{big.data.table}. Measures can be provided manually to \code{measures} argument, useful for custom aggregate function per measure.
+#' @seealso \code{\link{as.fact}}, \code{\link{measure}}, \code{\link{dimension}}, \code{\link{data.cube}}
 fact = R6Class(
     classname = "fact",
     public = list(
@@ -164,6 +165,11 @@ fact = R6Class(
 #' @title Test if fact class
 #' @param x object to tests.
 is.fact = function(x) inherits(x, "fact")
+
+str.fact = function(object, ...) {
+    print(object$schema())
+    invisible()
+}
 
 names.fact = function(x) as.character(names(x$data))
 length.fact = function(x) as.integer(length(x$data))

@@ -16,7 +16,7 @@ as.level(x, ...)
 
 \item{id.vars}{character scalar of level primary key.}
 
-\item{properties}{character vector of column names from dataset to include on that levell.}
+\item{properties}{character vector of column names from dataset to include on that level.}
 
 \item{\dots}{arguments passed to methods.}
 }
@@ -25,5 +25,19 @@ level class object.
 }
 \description{
 Create level
+}
+\details{
+You generally won't need to use that function directly, but use \code{\link{as.dimension}} that based on hierarchies will produce all levels.
+}
+\examples{
+library(data.table)
+time.dt = data.table(d = seq(as.Date("2015-01-01"), as.Date("2015-12-31"), by=1)
+                     )[, c("m","y") := list(month(d), year(d))
+                       ][]
+date.level = as.level(time.dt, id.vars="d", properties=c("m","y"))
+str(date.level)
+}
+\seealso{
+\code{\link{level}}, \code{\link{hierarchy}}, \code{\link{dimension}}, \code{\link{data.cube}}
 }
 

@@ -11,7 +11,10 @@ fact
 Fact class
 }
 \details{
-Class stores fact table as local data.table or remote big.data.table. Initialized with data.table or list of R nodes connections. Measures can be provided manually to `measures` argument, useful for custom aggregate function per measure.
+Class stores fact table as local \code{data.table} or remote \code{big.data.table}. Measures can be provided manually to \code{measures} argument, useful for custom aggregate function per measure.
+}
+\seealso{
+\code{\link{as.fact}}, \code{\link{measure}}, \code{\link{dimension}}, \code{\link{data.cube}}
 }
 \keyword{datasets}
 

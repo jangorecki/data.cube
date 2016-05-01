@@ -2,6 +2,7 @@
 #' @docType class
 #' @format An R6 class object.
 #' @details Class stores set of hierarchies. Initialized with hierarchies list definition. Also stores mapping from primary key to any level, to use snowflake
+#' @seealso \code{\link{as.dimension}}, \code{\link{hierarchy}}, \code{\link{level}}, \code{\link{fact}}, \code{\link{data.cube}}
 dimension = R6Class(
     classname = "dimension",
     public = list(
@@ -106,6 +107,11 @@ dimnames.dimension = function(x) {
     r = x$levels[[x$id.vars]]$data[[1L]]
     if (!length(r)) return(NULL)
     r
+}
+
+str.dimension = function(object, ...) {
+    print(object$schema())
+    invisible()
 }
 
 names.dimension = function(x) as.character(names(x$data))

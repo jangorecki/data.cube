@@ -14,7 +14,7 @@ NULL
 #' @docType class
 #' @format An R6 class object.
 #' @details Class stores fact class and dimension classes. R6 class preview with \code{ls.str()}. For all tables in the model of cube use \code{str()}.  
-#' @seealso \code{\link{as.data.cube}}, \code{\link{[.data.cube}}, \code{\link{fact}}, \code{\link{dimension}}
+#' @seealso \code{\link{data.cube-package}}, \code{\link{as.data.cube}}, \code{\link{[.data.cube}}, \code{\link{fact}}, \code{\link{dimension}}
 data.cube = R6Class(
     classname = "data.cube",
     public = list(

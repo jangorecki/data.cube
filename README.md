@@ -2,13 +2,13 @@
 
 In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.table](https://github.com/Rdatatable/data.table) R package.  
 
-# Features and examples
+# Features
 
 - [x] scalable multidimensional hierarchical `array` alternative
-- [x] uses [data.table](https://github.com/Rdatatable/data.table) under the hood
+- [x] uses [data.table](https://github.com/Rdatatable/data.table/wiki) under the hood
 - [x] use base R `array` query API
   - [x] `[.data.cube` uses base R `[.array` method API for *slice* and *dice* of dimension keys
-- [ ] extends base R `array` query API
+- [x] extends base R `array` query API
   - [x] *slice* and *dice* on dimension attributes of various levels in hierarchy with `.(time_year = 2011:2013)`
   - [x] aggregate by collapse dimensions with ```+``()`, also with pre-filtering
 - [x] `apply.data.cube` uses base R `apply` like API

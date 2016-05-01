@@ -11,9 +11,9 @@ rollup(x, ...)
 \item{\dots}{arguments passed to methods}
 }
 \value{
-*cube* class object. Use `format` on results to print table and format measures.
+Same class object after \emph{rollup} aggregation applied.
 }
 \description{
-Converts arguments to *cube* class by reducing dimensions, sub aggregates are provided as additional NA dimension value..
+Calculate rollup aggregations on provided attributes.
 }
 

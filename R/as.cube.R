@@ -3,9 +3,9 @@
 #' @title Cast to OLAP cube
 #' @param x R object
 #' @param \dots arguments passed to methods
-#' @description Converts arguments to *cube* class. Supports *list*, *array* (no hierarchies), *data.table*.
-#' @note Consider to use \code{\link{data.cube}} class objects instead. \code{data.cube} is a set of R6 classes for cube/fact/dimension/etc and will be more actively developed than \code{cube} class.
-#' @return *cube* class object.
+#' @description Converts arguments to \emph{cube} class. Supports \emph{list}, \emph{array} (no hierarchies), \emph{data.table}.
+#' @note This class will be deprecated, use \code{\link{data.cube}} class instead.
+#' @return \emph{cube} class object.
 as.cube = function(x, ...){
     UseMethod("as.cube")
 }
@@ -26,8 +26,8 @@ as.cube.matrix = function(x, ...){
 
 #' @title Process dimension
 #' @param dim character scalar name of dimension
-#' @param x list value for element *dim*
-#' @description Helps in processing dimension data for results of *dimnames.array* function. It also check *key* and it's uniqueness.
+#' @param x list value for element \emph{dim}
+#' @description Helps in processing dimension data for results of \emph{dimnames.array} function. It also check \emph{key} and it's uniqueness.
 process.dim = function(dim, x){
     if(!is.data.table(x)){
         if(is.atomic(x)) x = setDT(setNames(list(unique(x)), dim))

@@ -12,7 +12,7 @@ apply.data.cube(X, MARGIN, FUN, ...)
 
 \item{FUN}{function, by default it will apply \code{fun.aggregate} defined for each measure}
 
-\item{...}{arguments passed to *FUN*}
+\item{...}{arguments passed to \emph{FUN}}
 }
 \description{
 Wraps to \code{[.data.cube}.

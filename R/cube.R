@@ -51,7 +51,7 @@ build.each.i = function(dim.i){
 #' @format An R6 class object.
 #' @name cube
 #' @details Generates cube class objects.
-#' @note Consider to use \code{\link{data.cube}} class objects instead. \code{data.cube} is a set of R6 classes for cube/fact/dimension/etc and will be more actively developed than \code{cube} class.
+#' @note This class will be deprecated, use \code{\link{data.cube}} class instead.
 cube = R6Class(
     classname = "cube",
     public = list(

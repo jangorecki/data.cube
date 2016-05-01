@@ -11,12 +11,12 @@ as.cube(x, ...)
 \item{\dots}{arguments passed to methods}
 }
 \value{
-*cube* class object.
+\emph{cube} class object.
 }
 \description{
-Converts arguments to *cube* class. Supports *list*, *array* (no hierarchies), *data.table*.
+Converts arguments to \emph{cube} class. Supports \emph{list}, \emph{array} (no hierarchies), \emph{data.table}.
 }
 \note{
-Consider to use \code{\link{data.cube}} class objects instead. \code{data.cube} is a set of R6 classes for cube/fact/dimension/etc and will be more actively developed than \code{cube} class.
+This class will be deprecated, use \code{\link{data.cube}} class instead.
 }
 

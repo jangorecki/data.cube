@@ -8,21 +8,21 @@
 \arguments{
 \item{x}{data.table}
 
-\item{dimcols}{character vector of key column for all dimensions, if named then names will be used as dimension names, example `c(product = "prod_id", x = "x_id")`.}
+\item{dimcols}{character vector of key column for all dimensions, if named then names will be used as dimension names, example \code{c(product = "prod_id", x = "x_id")}.}
 
-\item{measure}{character scalar column name of a measure, is automatically detected if it is the only data.table columns not in *dimcols* or names of *dimnames*.}
+\item{measure}{character scalar column name of a measure, is automatically detected if it is the only data.table columns not in \emph{dimcols} or names of \emph{dimnames}.}
 
-\item{dimnames}{list of named dimension key values, the same as \link{array} *dimnames* argument. If missing then dimension key values will be computed from *x* data.table.}
+\item{dimnames}{list of named dimension key values, the same as \link{array} \emph{dimnames} argument. If missing then dimension key values will be computed from \emph{x} data.table.}
 
 \item{\dots}{ignored}
 }
 \value{
-An array, when using *dimnames* the length will be `prod(sapply(dimnames, length))`, when using *dimcols* only the length will be `x[, prod(sapply(.SD, uniqueN)), .SDcols = dimcols]`.
+An array, when using \emph{dimnames} the length will be \code{prod(sapply(dimnames, length))}, when using \emph{dimcols} only the length will be \code{x[, prod(sapply(.SD, uniqueN)), .SDcols = dimcols]}.
 }
 \description{
 Converts single measure of data.table into array dimensioned by columns provided as argument.
 }
 \note{
-When using *dimcols* arg the function will extract dimension key values from *x* data.table. If you have unique values for each dimension on hand, you can use *dimnames* argument to skip potentially heavy task of extract dimensions, also combine with *dimcols* if you need remap column name to custom dimension name.
+When using \emph{dimcols} arg the function will extract dimension key values from \emph{x} data.table. If you have unique values for each dimension on hand, you can use \emph{dimnames} argument to skip potentially heavy task of extract dimensions, also combine with \emph{dimcols} if you need remap column name to custom dimension name.
 }
 

@@ -4,7 +4,7 @@
 #' @param measure.vars character vector, column names of measures.
 #' @param fun.aggregate function default \code{sum}.
 #' @param \dots arguments to fun.aggregate.
-#' @param measures list of measures class objects, useful if various measures needs to have different `fun.aggregate`.
+#' @param measures list of measures class objects, useful if various measures needs to have different \code{fun.aggregate}.
 #' @return fact class object.
 #' @seealso \code{\link{fact}}, \code{\link{measure}}, \code{\link{dimension}}, \code{\link{data.cube}}
 #' @examples 

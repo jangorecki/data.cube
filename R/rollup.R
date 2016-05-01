@@ -1,8 +1,8 @@
 #' @title Rollup generic method
 #' @param x R object
 #' @param \dots arguments passed to methods
-#' @description Converts arguments to *cube* class by reducing dimensions, sub aggregates are provided as additional NA dimension value..
-#' @return *cube* class object. Use `format` on results to print table and format measures.
+#' @description Calculate rollup aggregations on provided attributes.
+#' @return Same class object after \emph{rollup} aggregation applied.
 rollup = function(x, ...){
     UseMethod("rollup")
 }

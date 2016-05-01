@@ -32,7 +32,7 @@ as.fact(x, ...)
 
 \item{fun.aggregate}{function default \code{sum}.}
 
-\item{measures}{list of measures class objects, useful if various measures needs to have different `fun.aggregate`.}
+\item{measures}{list of measures class objects, useful if various measures needs to have different \code{fun.aggregate}.}
 
 \item{\dots}{arguments to fun.aggregate.}
 }

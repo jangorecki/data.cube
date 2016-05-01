@@ -1,9 +1,9 @@
 #' @title Convert array to data.table
 #' @param x array
 #' @param keep.rownames ignored
-#' @param na.rm logical default TRUE, `NA` value of a measure is not included into resulting data.table
+#' @param na.rm logical default TRUE, NA value of a measure is not included into resulting data.table
 #' @param \dots ignored
-#' @note Array should not have a dimension named *value* because this name will be used for a measure in data.table.
+#' @note Array should not have a dimension named \emph{value} because this name will be used for a measure in data.table.
 #' @return A data.table object with (by default) non-NA values of a measure for each dimension cross.
 #' @method as.data.table array
 as.data.table.array = function(x, keep.rownames = FALSE, na.rm=TRUE, ...) {
@@ -31,12 +31,12 @@ as.data.table.array = function(x, keep.rownames = FALSE, na.rm=TRUE, ...) {
 #' @title Convert data.table to array
 #' @description Converts single measure of data.table into array dimensioned by columns provided as argument.
 #' @param x data.table
-#' @param dimcols character vector of key column for all dimensions, if named then names will be used as dimension names, example `c(product = "prod_id", x = "x_id")`.
-#' @param measure character scalar column name of a measure, is automatically detected if it is the only data.table columns not in *dimcols* or names of *dimnames*.
-#' @param dimnames list of named dimension key values, the same as \link{array} *dimnames* argument. If missing then dimension key values will be computed from *x* data.table.
+#' @param dimcols character vector of key column for all dimensions, if named then names will be used as dimension names, example \code{c(product = "prod_id", x = "x_id")}.
+#' @param measure character scalar column name of a measure, is automatically detected if it is the only data.table columns not in \emph{dimcols} or names of \emph{dimnames}.
+#' @param dimnames list of named dimension key values, the same as \link{array} \emph{dimnames} argument. If missing then dimension key values will be computed from \emph{x} data.table.
 #' @param \dots ignored
-#' @note When using *dimcols* arg the function will extract dimension key values from *x* data.table. If you have unique values for each dimension on hand, you can use *dimnames* argument to skip potentially heavy task of extract dimensions, also combine with *dimcols* if you need remap column name to custom dimension name.
-#' @return An array, when using *dimnames* the length will be `prod(sapply(dimnames, length))`, when using *dimcols* only the length will be `x[, prod(sapply(.SD, uniqueN)), .SDcols = dimcols]`.
+#' @note When using \emph{dimcols} arg the function will extract dimension key values from \emph{x} data.table. If you have unique values for each dimension on hand, you can use \emph{dimnames} argument to skip potentially heavy task of extract dimensions, also combine with \emph{dimcols} if you need remap column name to custom dimension name.
+#' @return An array, when using \emph{dimnames} the length will be \code{prod(sapply(dimnames, length))}, when using \emph{dimcols} only the length will be \code{x[, prod(sapply(.SD, uniqueN)), .SDcols = dimcols]}.
 #' @method as.array data.table
 as.array.data.table = function(x, dimcols, measure, dimnames, ...) {
     stopifnot(!missing(dimcols) | !missing(dimnames))

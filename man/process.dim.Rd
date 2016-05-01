@@ -8,9 +8,9 @@ process.dim(dim, x)
 \arguments{
 \item{dim}{character scalar name of dimension}
 
-\item{x}{list value for element *dim*}
+\item{x}{list value for element \emph{dim}}
 }
 \description{
-Helps in processing dimension data for results of *dimnames.array* function. It also check *key* and it's uniqueness.
+Helps in processing dimension data for results of \emph{dimnames.array} function. It also check \emph{key} and it's uniqueness.
 }
 

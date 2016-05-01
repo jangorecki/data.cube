@@ -10,7 +10,7 @@
 
 \item{...}{values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchies}
 
-\item{drop}{logical, default TRUE, drop redundant dimensions, same as *drop* argument in \code{[.array}.}
+\item{drop}{logical, default TRUE, drop redundant dimensions, same as \emph{drop} argument in \code{[.array}.}
 }
 \value{
 data.cube class object

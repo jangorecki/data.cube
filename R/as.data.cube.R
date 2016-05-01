@@ -31,6 +31,10 @@
 #' 
 #' # multidimensional hierarchical data from fact and dimensions
 #' X = populate_star(N = 1e3)
+#' sales = X$fact$sales
+#' time = X$dims$time
+#' geography = X$dims$geography
+#' # define hierarchies
 #' time.hierarchies = list( # 2 hierarchies in time dimension
 #'     "monthly" = list(
 #'         "time_year" = character(),
@@ -51,21 +55,24 @@
 #'         "geog_abb" = c("geog_name","geog_division_name","geog_region_name")
 #'     )
 #' )
+#' # create dimensions
 #' dims = list(
-#'     time = as.dimension(X$dims$time, 
+#'     time = as.dimension(x = time, 
 #'                         id.vars = "time_date", 
 #'                         hierarchies = time.hierarchies),
-#'     geography = as.dimension(X$dims$geography, 
+#'     geography = as.dimension(x = geography, 
 #'                              id.vars = "geog_abb", 
 #'                              hierarchies = geog.hierarchies)
 #' )
+#' # create fact
 #' ff = as.fact(
-#'     X$fact$sales,
+#'     x = sales,
 #'     id.vars = c("geog_abb","time_date"),
 #'     measure.vars = c("amount","value"),
 #'     fun.aggregate = sum,
 #'     na.rm = TRUE
 #' )
+#' # create data.cube
 #' dc = as.data.cube(ff, dims)
 #' str(dc)
 as.data.cube = function(x, ...) {

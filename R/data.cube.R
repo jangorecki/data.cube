@@ -13,7 +13,7 @@ NULL
 #' @title data.cube class
 #' @docType class
 #' @format An R6 class object.
-#' @details Class stores fact class and dimension classes. R6 class preview with \code{ls.str()}`. For model of the data cube use \code{str}.  
+#' @details Class stores fact class and dimension classes. R6 class preview with \code{ls.str()}. For all tables in the model of cube use \code{str()}.  
 #' @seealso \code{\link{as.data.cube}}, \code{\link{[.data.cube}}, \code{\link{fact}}, \code{\link{dimension}}
 data.cube = R6Class(
     classname = "data.cube",
@@ -318,7 +318,7 @@ is.data.cube = function(x) inherits(x, "data.cube")
 #' @title Subset data.cube
 #' @param x data.cube object
 #' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchies
-#' @param drop logical, default TRUE, drop redundant dimensions, same as *drop* argument in \code{[.array}.
+#' @param drop logical, default TRUE, drop redundant dimensions, same as \emph{drop} argument in \code{[.array}.
 #' @return data.cube class object
 "[.data.cube" = function(x, ..., drop = TRUE) {
     if (!is.logical(drop)) stop("`drop` argument to data.cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
@@ -345,7 +345,7 @@ is.data.cube = function(x) inherits(x, "data.cube")
 # @param x data.cube object
 # @param i list of values used to slice and dice on cube
 # @param j expression to evaluate on fact
-# @param by expression/character vector to aggregate measures accroding to *j* argument.
+# @param by expression/character vector to aggregate measures accroding to \emph{j} argument.
 # @return data.cube?? class object
 # "[[.data.cube" = function(x, i, j, by) {
 #     r = x$extract(by = by, .call = match.call())
@@ -400,7 +400,7 @@ dim.data.cube = function(x) as.integer(x$dim())
 #' @param X data.cube object
 #' @param MARGIN character or integer, dimensions by which aggregate is made
 #' @param FUN function, by default it will apply \code{fun.aggregate} defined for each measure
-#' @param ... arguments passed to *FUN*
+#' @param ... arguments passed to \emph{FUN}
 #' @description Wraps to \code{[.data.cube}.
 #' @note When \code{FUN} argument was used, new data.cube is created with new measures.
 apply.data.cube = function(X, MARGIN, FUN, ...) {

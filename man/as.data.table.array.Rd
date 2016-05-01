@@ -10,7 +10,7 @@
 
 \item{keep.rownames}{ignored}
 
-\item{na.rm}{logical default TRUE, `NA` value of a measure is not included into resulting data.table}
+\item{na.rm}{logical default TRUE, NA value of a measure is not included into resulting data.table}
 
 \item{\dots}{ignored}
 }
@@ -21,6 +21,6 @@ A data.table object with (by default) non-NA values of a measure for each dimens
 Convert array to data.table
 }
 \note{
-Array should not have a dimension named *value* because this name will be used for a measure in data.table.
+Array should not have a dimension named \emph{value} because this name will be used for a measure in data.table.
 }
 

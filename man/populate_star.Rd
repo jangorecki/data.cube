@@ -9,18 +9,18 @@ populate_star(N = 100000L, Y = c(2010L, 2014L), surrogate.keys = FALSE,
 \arguments{
 \item{N}{integer count of rows in fact table before sub-aggregation to all dimensions.}
 
-\item{Y}{integer vector of year range (scalar or length 2) to generate *time* dimension, default `c(2010L, 2014L)` results in 365 dim cardinality.}
+\item{Y}{integer vector of year range (scalar or length 2) to generate \emph{time} dimension, default \code{c(2010L, 2014L)} results in 365 dim cardinality.}
 
 \item{surrogate.keys}{logical if integer sequence column should be used or the lowest granularity natural key.}
 
 \item{hierarchies}{logical default FALSE, if TRUE the third element in list will be returned with hierarchy as list of character column names. List can be used when creating data.cube.}
 
-\item{seed}{integer used for `set.seed` when producing fact table from dimensions. Default fixed to `1L`.}
+\item{seed}{integer used for \code{set.seed} when producing fact table from dimensions. Default fixed to \code{1L}.}
 }
 \value{
-List of two list named *fact* and *dims*. The *fact* list keeps single fact data.table sub-aggregated to all dimensions. The *dims* list keeps five dimension data.tables.
+List of two list named \emph{fact} and \emph{dims}. The \emph{fact} list keeps single fact data.table sub-aggregated to all dimensions. The \emph{dims} list keeps five dimension data.tables.
 }
 \description{
-Populates example sales data based on *mtcars*, *state*, *HairEyeColor* datasets.
+Populates example sales data based on \emph{mtcars}, \emph{state}, \emph{HairEyeColor} datasets.
 }
 

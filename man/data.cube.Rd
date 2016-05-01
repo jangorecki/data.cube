@@ -2,13 +2,13 @@
 \docType{class}
 \name{data.cube}
 \alias{data.cube}
-\title{Data.cube class}
+\title{data.cube class}
 \format{An R6 class object.}
 \usage{
 data.cube
 }
 \description{
-Data.cube class
+data.cube class
 }
 \details{
 Class stores fact class and dimension classes. R6 class preview with \code{ls.str()}`. For model of the data cube use \code{str}.

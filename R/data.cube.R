@@ -1,4 +1,16 @@
-#' @title Data.cube class
+#' @title OLAP cube data type
+#' @description Extends array for OLAP operations on multidimensional hierarchical data powered by data.table.
+#' @details
+#' Implements OLAP cubes as data.cube object, set of data.tables objects. Aims for scalable real-time performance.
+#' @seealso \code{\link{as.data.cube}}, \code{\link{data.cube}}, \code{\link{[.data.cube}}, \code{\link{fact}}, \code{\link{dimension}}
+#' @docType package
+#' @author Jan Gorecki
+#' @references \href{https://stackoverflow.com/questions/35472639/star-schema-normalized-dimensions-denormalized-hierarchy-level-keys}{data model inside data.cube}
+#' @references \href{https://github.com/Rdatatable/data.table/wiki}{data.table}
+#' @name data.cube-package
+NULL
+
+#' @title data.cube class
 #' @docType class
 #' @format An R6 class object.
 #' @details Class stores fact class and dimension classes. R6 class preview with \code{ls.str()}`. For model of the data cube use \code{str}.  

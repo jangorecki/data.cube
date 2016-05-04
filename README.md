@@ -38,42 +38,6 @@ Read [manual](https://jangorecki.gitlab.io/data.cube/library/data.cube/html/00In
 
 ## Advanced
 
-### data.table indexes
-
-User can utilize data.table indexes which dramatically reduce query time.  
-
-```
-system.nanotime(filter_with_index(x, col = NULL, i = qi))
-#     user    system   elapsed 
-#       NA        NA 0.1294823
-system.nanotime(filter_with_index(x, col = "biggroup", i = qi))
-#Using existing index 'biggroup'
-#Starting bmerge ...done in 0 secs
-#       user      system     elapsed 
-#         NA          NA 0.001833093 
-```
-
-Full benchmark script available in [this gist](https://gist.github.com/jangorecki/e381c8783a210a89ae47).  
-Example usage of data.table index on cube object.  
-
-```r
-library(data.cube)
-
-cb = as.cube(populate_star(1e5))
-
-# use prod(dim()) attribute to see how long array would need to be for single measure
-prod(dim(cb))
-
-# binary search, index
-op = options("datatable.verbose" = TRUE, "datatable.auto.index" = TRUE)
-cb["Mazda RX4", c("1","6"), c("AZN","SEK")] # binary search
-cb["Mazda RX4",, c("AZN","SEK")] # binary search + vector scan/index
-cb["Mazda RX4",, .(curr_type = c("fiat","crypto"))] # lookup to currency hierarchy
-set2keyv(cb$env$dims$time, "time_year")
-cb["Mazda RX4",, .(curr_type = c("fiat","crypto")),, .(time_year = 2011:2012)] # use index
-options(op)
-```
-
 ### client-server
 
 Running as a services with data.cube can be run using [Rserve: TCP/IP or local sockets](https://github.com/s-u/Rserve), [httpuv: HTTP and WebSocket server](https://github.com/rstudio/httpuv) or [svSocket: R socket server](https://github.com/SciViews/svSocket).  

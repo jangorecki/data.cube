@@ -100,6 +100,7 @@ fact = R6Class(
                 r$id.vars = if (do.drop) {
                     setdiff(self$id.vars, c(names(dimlens)[dimlens==1L], collapse))
                 } else self$id.vars
+                # subset from fact
                 r$data = if (length(x)) { # `i` arg
                     if (length(r$id.vars)) self$data[II, eval(self$build.j()), by=c(r$id.vars)] # `by` arg
                     else self$data[II, eval(self$build.j())] # no `by` arg
@@ -107,6 +108,7 @@ fact = R6Class(
                     if (length(r$id.vars)) self$data[, eval(self$build.j()), by=c(r$id.vars)] # `by` arg
                     else self$data[, eval(self$build.j())] # no `by` arg
                 }
+                # sort data
                 if (length(r$id.vars)) setkeyv(r$data, r$id.vars)
             }
             if (!self$local) {
@@ -121,6 +123,39 @@ fact = R6Class(
                 stop("TODO")
             }
             invisible(self)
+        },
+        rollup = function(x,  grouping.sets=list(), ...) {
+            stopifnot(is.list(x), sapply(x, is.data.table), sapply(x, function(dt) names(dt)[1L]) %chin% names(self$id.vars), 
+                      is.list(grouping.sets))
+            if (self$local) {
+                browser()
+                # create new dimension with grouping sets or just query data
+                do.create = !!length(grouping.sets)
+                
+                if (length(x)) { # `i` arg
+                    browser()
+                    # lapply(grouping.sets, `[[`)
+                    
+                    self$data[II, eval(self$build.j())]
+                } else { # no `i` arg
+                    rollup.dims = names(ops)[ops=="+"]
+                    cube.dims = names(ops)[ops=="^"]
+                    if (length(rollup.dims) && length(cube.dims)) stop("Cannot use both rollup and cube in single call.")
+                    groupingcall = substitute(
+                        data.table:::`.fun`(self$data, j=.j, by=.by),
+                        list(.fun = as.name(if (length(rollup.dims)) "rollup.data.table" else if(length(cube.dims)) "cube.data.table"),
+                             .j = self$build.j(),
+                             .by = unique(unname(unlist(grouping.sets))))
+                    )
+                    browser()
+                    # - [ ] TODO did not lookup higher attributes YET!
+                    eval(groupingcall)
+                }
+                
+            }
+            if (!self$local) {
+                stop("distributed processing for data.cube not yet implemented")
+            }
         },
         # fact$query method to be removed - currently used only in tests-big.data.cube.R and tests-method-query.R - see data.cube#12
         query = function(i, i.dt, by, measure.vars = self$measure.vars) {

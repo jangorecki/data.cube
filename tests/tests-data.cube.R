@@ -161,35 +161,35 @@ stopifnot( # apply using `[.data.cube` with integers
     # MARGIN=1L
     all.equal(
         r <- apply.data.cube(dc, 1L),
-        dc[, +(.), +(.)]
+        dc[, `-`, `-`]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, 1L, sum, na.rm=TRUE)),
     # MARGIN=2:3
     all.equal(
         r <- apply.data.cube(dc, -1L),
-        dc[+(.)]
+        dc[`-`]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, 2:3, sum, na.rm=TRUE)),
-    all.equal(r, dc[+(.),]),
-    all.equal(r, dc[+(.),,]),
+    all.equal(r, dc[`-`,]),
+    all.equal(r, dc[`-`,,]),
     # MARGIN=c(1L, 3L)
     all.equal(
         r <- apply.data.cube(dc, -2L),
-        dc[, +(.)]
+        dc[, `-`]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, c(1L,3L), sum, na.rm=TRUE)),
-    all.equal(r, dc[, +(.),]),
+    all.equal(r, dc[, `-`,]),
     # MARGIN=3L
     all.equal(
         r <- apply.data.cube(dc, 3L),
-        dc[+(.), +(.)]
+        dc[`-`, `-`]
     ),
     all.equal(as.array(r, na.fill = 0), apply(ar, 3L, sum, na.rm=TRUE)),
-    all.equal(r, dc[+(.), +(.),]),
+    all.equal(r, dc[`-`, `-`,]),
     # MARGIN=integer()
     all.equal(
         r <- apply.data.cube(dc, integer()),
-        dc[+(.), +(.), +(.)]
+        dc[`-`, `-`, `-`]
     ),
     length(r) == 1L, # grand total
     all.equal(as.array(r, na.fill = 0), sum(ar, na.rm=TRUE)),

@@ -6,7 +6,7 @@ vignette: >
 ---
 
 # Subset and aggregate multidimensional data with `data.cube`
-*Jan Gorecki, 2016-04-10*
+*Jan Gorecki, 2016-05-04*
 
 R *data.cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cube) package.  
 
@@ -20,25 +20,22 @@ R *data.cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cu
 
 ### what's more than `[.array`
 
-- can subset on hierarchy of dimensions
+- can subset on hierarchy attributes of dimensions
 - scale with dimensions and their cardinalities
 - store multiple measures, predefined formatting
-- high performance thanks to data.table
+- high performance thanks to `data.table`
 - can aggregate measures by dropping chosen dimensions
 
 ### what's different to `[.array`
 
 - array can be subsetted by dimension keys but also by integer position
 - in data.cube subset directly by integer position is not possible, but you can have integer surrogate keys which can refer to any custom integer positions
-- when `drop=TRUE` the 0L length dims will also be dropped, not just length 1L
 - dimension levels are always ordered
 
 ## start session
 
 ```{r run}
-if (!"data.cube" %in% rownames(installed.packages())) utils::install.packages(
-    "data.cube", repos = paste0("https://", c("jangorecki.gitlab.io/data.cube","Rdatatable.github.io/data.table","cran.rstudio.com"))
-)
+# install.packages("data.cube", repos = paste0("https://", c("jangorecki.gitlab.io/data.cube","Rdatatable.github.io/data.table","cran.rstudio.com")))
 library(data.table)
 library(data.cube)
 ```
@@ -82,7 +79,7 @@ format(dc[,"2015",c("UK","IN")],
 X = populate_star(N=1e5)
 lapply(X[1:2], sapply, ncol)
 lapply(X[1:2], sapply, nrow)
-str(X[3L]) # hierarchy defined as list of levels and attributes on each level
+str(X[3L], max.level=3L) # hierarchy defined as list of levels and attributes on each level
 dc = as.data.cube(X)
 print(dc)
 
@@ -91,6 +88,9 @@ dc["Mazda RX4"]
 dc["Mazda RX4",,"BTC"]
 # dice
 dc[,, c("CNY","BTC"), c("GA","IA","AD")]
+
+# custom order of arguments matching by dimension name
+dc[geography = c("GA","IA","AD"), currency = c("CNY","BTC")]
 
 # check dimensions
 names(dc$dimensions)
@@ -115,12 +115,12 @@ dc[,,, .(geog_region_name = "North Central")
 ## Aggregates while subsetting
 
 ```{r aggregate}
-# aggregate by droppping dimension with `.` symbol, group by customer and currency
-dc[product = +(.),
+# aggregate by droppping dimension with `-` symbol, group by customer and currency
+dc[product = `-`,
    customer = .(),
    currency = .(curr_type="crypto"),
-   geography = +(.),
-   time = +(.)]
+   geography = `-`,
+   time = `-`(time_year = 2013:2014)]
 ```
 
 ## scalability
@@ -131,14 +131,14 @@ dc = as.data.cube(populate_star(N=1e5))
 ## estimated size of memory required to store an base R `array` for single numeric measure
 sprintf("array: %.2f GB", (prod(dim(dc)) * 8)/(1024^3))
 ## fact table of *cube* object having multiple measures
-sprintf("cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
+sprintf("data.cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
 
 # ~1e6 facts for 5 dims of cardinalities: 32, 32, 49, 50, 1826
 dc = as.data.cube(populate_star(N=1e6))
 ## estimated size of memory required to store an base R `array` for single numeric measure
 sprintf("array: %.2f GB", (prod(dim(dc)) * 8)/(1024^3))
 ## fact table of *cube* object having multiple measures
-sprintf("cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
+sprintf("data.cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
 
 # ~1e6 facts for 5 dims of cardinalities: 32, 32, 49, 50, 3652
 # twice bigger time dimension
@@ -146,5 +146,5 @@ dc = as.data.cube(populate_star(N=1e6, Y = c(2005L,2014L)))
 ## estimated size of memory required to store an base R `array` for single numeric measure
 sprintf("array: %.2f GB", (prod(dim(dc)) * 8)/(1024^3))
 ## fact table of *cube* object having multiple measures
-sprintf("cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
+sprintf("data.cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
 ```

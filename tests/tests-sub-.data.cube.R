@@ -127,7 +127,7 @@ stopifnot(
     identical(dimnames(dc[,NULL,NULL]), list(color = c("green","red","yellow"), year = NULL, status = NULL))
 )
 
-# - [x] filter dimensions `.()` ----
+# - [x] filter dimensions .() ----
 
 # - [x] missing slices equals to `.()`
 stopifnot(
@@ -167,43 +167,45 @@ stopifnot(
     identical(dimnames(dc[,.(NULL),.(NULL)]), list(color = c("green","red","yellow"), year = NULL, status = NULL))
 )
 
-# - [x] collapse dimensions ``+`()` ----
+# - [x] collapse dimensions `-`() ----
 
 stopifnot(
     # collapse dims
-    all.equal(apply(ar, 2:3, sum, na.rm=TRUE), as.array(dc[+(.)], na.fill=0)),
-    all.equal(apply(ar, 2:3, sum, na.rm=TRUE), as.array(dc[`+`()], na.fill=0)),
-    all.equal(apply(ar, 1:2, sum, na.rm=TRUE), as.array(dc[,,+(.)], na.fill=0)),
-    all.equal(apply(ar, 1:2, sum, na.rm=TRUE), as.array(dc[,,`+`()], na.fill=0)),
-    all.equal(apply(ar, 2L, sum, na.rm=TRUE), as.array(dc[+(.),,+(.)], na.fill=0)),
-    all.equal(apply(ar, 2L, sum, na.rm=TRUE), as.array(dc[`+`(),,`+`()], na.fill=0)),
+    all.equal(apply(ar, 2:3, sum, na.rm=TRUE), as.array(dc[`-`], na.fill=0)),
+    all.equal(apply(ar, 2:3, sum, na.rm=TRUE), as.array(dc[`-`()], na.fill=0)),
+    all.equal(apply(ar, 1:2, sum, na.rm=TRUE), as.array(dc[,,`-`], na.fill=0)),
+    all.equal(apply(ar, 1:2, sum, na.rm=TRUE), as.array(dc[,,`-`()], na.fill=0)),
+    all.equal(apply(ar, 2L, sum, na.rm=TRUE), as.array(dc[`-`,,`-`()], na.fill=0)),
+    all.equal(apply(ar, 2L, sum, na.rm=TRUE), as.array(dc[`-`(),,`-`()], na.fill=0)),
     # collapse dims with filters
-    all.equal(apply(ar[c("green","yellow"),,], 2:3, sum, na.rm=TRUE), as.array(dc[+(c("green","yellow"))], na.fill=0)),
-    all.equal(apply(ar[c("green","yellow"),,], 2:3, sum, na.rm=TRUE), as.array(dc[`+`(c("green","yellow"))], na.fill=0)),
+    all.equal(apply(ar[c("green","yellow"),,], 2:3, sum, na.rm=TRUE), as.array(dc[`-`(c("green","yellow"))], na.fill=0)),
+    all.equal(apply(ar[c("green","yellow"),,], 2:3, sum, na.rm=TRUE), as.array(dc[`-`(c("green","yellow"))], na.fill=0)),
     # collapse dims with filters multi
-    all.equal(apply(ar[, c("2012","2013"), c("active","inactive")], 1L, sum, na.rm=TRUE), as.array(dc[, +(c("2012","2013")), +(c("active","inactive"))], na.fill=0)),
-    all.equal(apply(ar[, c("2012","2013"), c("active","inactive")], 1L, sum, na.rm=TRUE), as.array(dc[, `+`(c("2012","2013")), +(c("active","inactive"))], na.fill=0)),
+    all.equal(apply(ar[, c("2012","2013"), c("active","inactive")], 1L, sum, na.rm=TRUE), as.array(dc[, `-`(c("2012","2013")), `-`(c("active","inactive"))], na.fill=0)),
+    all.equal(apply(ar[, c("2012","2013"), c("active","inactive")], 1L, sum, na.rm=TRUE), as.array(dc[, `-`(c("2012","2013")), `-`(c("active","inactive"))], na.fill=0)),
     # collapse one dim with filter, just filter another
-    all.equal(apply(ar[, c("2012","2013"), c("active","inactive")], c(1L,3L), sum, na.rm=TRUE), as.array(dc[, +(c("2012","2013")), c("active","inactive")], na.fill=0)),
-    all.equal(apply(ar[, c("2012","2013"), c("active","inactive")], c(1L,3L), sum, na.rm=TRUE), as.array(dc[, `+`(c("2012","2013")), .(c("active","inactive"))], na.fill=0))
+    all.equal(apply(ar[, c("2012","2013"), c("active","inactive")], c(1L,3L), sum, na.rm=TRUE), as.array(dc[, `-`(c("2012","2013")), c("active","inactive")], na.fill=0)),
+    all.equal(apply(ar[, c("2012","2013"), c("active","inactive")], c(1L,3L), sum, na.rm=TRUE), as.array(dc[, `-`(c("2012","2013")), .(c("active","inactive"))], na.fill=0))
 )
 
 # - [x] collapse dims with filters by variables
 var.color = c("green","red")
 var.status = c("active","inactive")
 stopifnot(
-    all.equal(apply(ar[var.color,,var.status], 2L, sum, na.rm=TRUE), as.array(dc[+(var.color),,+(var.status)])),
-    all.equal(apply(ar[var.color,,var.status], 1:2, sum, na.rm=TRUE), as.array(dc[.(var.color),,+(var.status)], na.fill=0))
+    all.equal(apply(ar[var.color,,var.status], 2L, sum, na.rm=TRUE), as.array(dc[`-`(var.color),,`-`(var.status)])),
+    all.equal(apply(ar[var.color,,var.status], 1:2, sum, na.rm=TRUE), as.array(dc[.(var.color),,`-`(var.status)], na.fill=0))
 )
 
 # - [x] NULL filter when collapse dim
 stopifnot(
-    identical(dim(dc[+(NULL)]), c(5L,4L)), # single collapse
-    identical(dim(dc[,NULL,+(NULL)]), c(3L,0L)), # partial collapse, partial filter
-    identical(dim(dc[,+(NULL),+(NULL)]), 3L) # double collapse
+    identical(dim(dc[`-`(NULL)]), c(5L,4L)), # single collapse
+    identical(dim(dc[,NULL,`-`(NULL)]), c(3L,0L)), # partial collapse, partial filter
+    identical(dim(dc[,`-`(NULL),`-`(NULL)]), 3L) # double collapse
 )
 
-# - [ ] rollup dimensions ``-`()`? ----
+# - [ ] rollup dimensions `+`()? ----
+
+# - [ ] cube dimensions `^`()? ----
 
 ## - [ ] multidimensional hierarchical data ----
 

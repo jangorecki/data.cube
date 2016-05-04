@@ -63,7 +63,7 @@ dimension = R6Class(
         # subset
         subset = function(i.sub) {
             stopifnot(is.list(i.sub))
-            if (identical(i.sub, vector("list"))) return(self)
+            if (identical(i.sub, vector("list"))) return(self) # for `list()` returns self
             r = new.env()
             # - [ ] iterate over levels in a dimension to subset those which are using in filter
             filter.cols = names(i.sub)
@@ -95,6 +95,10 @@ dimension = R6Class(
             setindexv(self$data, if (!drop) names(self$data)) # this is base of a dimensions so all columns!
             lapply(self$levels, function(x) x$setindex(drop=drop))
             invisible(self)
+        },
+        rollup = function(i.ops) {
+            stopifnot(is.character(i.ops))
+            browser()
         }
     )
 )

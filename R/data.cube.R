@@ -141,7 +141,7 @@ data.cube = R6Class(
             } else {
                 # - [x] fill dim names for partially unnamed dimensions, matching by position, validate non existing dims and unique dim names
                 named.dots.dims = dots.dims!=""
-                if (length(dots.dims[named.dots.dims]) != uniqueN(dots.dims[named.dots.dims])) stop("Dimension names of arguments provided to data.cube subset are not unique")
+                if (anyDuplicated(dots.dims[named.dots.dims])) stop("Dimension names of arguments provided to data.cube subset are not unique")
                 if (length(bad.dims <- setdiff(dots.dims[named.dots.dims], dims))) stop(sprintf("Dimension names of argument provided to data.cube subset does not exists for that data.cube: %s.", paste(bad.dims, collapse=", ")))
                 # skip if all dots.dims names provided
                 if (!all(named.dots.dims)) {
@@ -158,24 +158,23 @@ data.cube = R6Class(
                 dots.dims = dims
             }
             stopifnot(identical(names(dots), names(self$dimensions)))
-            # - [x] decode `.`/`+` to `list`
-            dot.to.list = sapply(dots, function(x) is.call(x) && as.character(x[[1L]]) %chin% ".")
-            plus.to.list = sapply(dots, function(x) is.call(x) && as.character(x[[1L]]) %chin% "+")
-            for (i in which(dot.to.list)) {
-                if (length(dots[[i]])==2L && identical(dots[[i]][[2L]], quote(`(`(`.`)))) {
-                    # - [x] support `dc[.(.)]` for consistency with `+(.)`
-                    dots[[i]] = quote(list())
-                } else {
-                    dots[[i]][[1L]] = quote(list)
-                }
+            # - [x] decode operations, change `.`, `+`, etc. to `list`
+            ops.detect = function(x, ops) {
+                stopifnot(is.character(ops), length(ops)==1L)
+                (is.symbol(x) && as.character(x) %chin% ops) || (is.call(x) && as.character(x[[1L]]) %chin% ops)
             }
-            for (i in which(plus.to.list)) {
-                if (length(dots[[i]])==2L && identical(dots[[i]][[2L]], quote(`(`(`.`)))) {
-                    # - [ ] allows to use `dc[+(.)]` - this is really `+`(`(`(`.`))
-                    dots[[i]] = quote(list())
-                } else {
+            select.op = sapply(dots, ops.detect, ops=".")
+            collapse.op = sapply(dots, ops.detect, ops="-")
+            rollup.op = sapply(dots, ops.detect, ops="+")
+            cube.op = sapply(dots, ops.detect, ops="^")
+            op.replace = c(which(select.op), which(collapse.op), which(rollup.op), which(cube.op))
+            stopifnot(!anyDuplicated(op.replace))
+            for (i in op.replace) {
+                if (is.call(dots[[i]])) {
                     dots[[i]][[1L]] = quote(list)
-                }
+                } else if(is.symbol(dots[[i]])) {
+                    dots[[i]] = quote(list())
+                } else stop("ops.detect should already filter out non special prefix expressions `.`, `-`, `+`, `^`.")
             }
             # - [x] array like slices: `dc["a", list(), "c"]` to `dc[list(dimakey = "a"), list(), list(dimckey = "c")]`
             # - [x] `dc[NULL, list(), list()]` to `dc[list(dimakey = NULL), list(), list()]`
@@ -196,8 +195,7 @@ data.cube = R6Class(
                     names(r) = ""
                 }
                 empty.field.names = names(r)==""
-                # - [ ] TODO change to `anyDuplicated`
-                if (length(field.names <- names(r)[!empty.field.names]) != uniqueN(field.names)) stop(sprintf("Fields to subset in '%s' dimension are not uniquely named.", dim), call.=FALSE)
+                if (anyDuplicated(field.names <- names(r)[!empty.field.names])) stop(sprintf("Fields to subset in '%s' dimension are not uniquely named.", dim), call.=FALSE)
                 if (sum(empty.field.names) > 1L) stop(sprintf("There are multiple unnamed fields provided to '%s' dimension on data.cube subset. Only one unnamed field is allowed which maps to dimension key.", dim))
                 if (sum(empty.field.names) == 1L) {
                     if (dimkey %chin% names(r)) stop(sprintf("When subset data.cube by '%s' dimension there can be only one unnamed field provided that maps to dimension key, so dimension key field must not be provided at the same time.", dim), call.=FALSE)
@@ -208,8 +206,16 @@ data.cube = R6Class(
             }, simplify=FALSE)
             
             # - [x] return operation (filter or dim collapse, potentially rollup?) and values
-            ops = c(".", "+")[plus.to.list + 1L]
-            list(ops = setNames(ops, dots.dims), sub = dots)
+            dots.ops = sapply(dots.dims, function(dim) {
+                if (!dim %chin% names(op.replace)) "." else {
+                    if (dim %chin% names(select.op)[select.op]) "."
+                    else if (dim %chin% names(collapse.op)[collapse.op]) "-"
+                    else if (dim %chin% names(rollup.op)[rollup.op]) "+"
+                    else if (dim %chin% names(cube.op)[cube.op]) "^"
+                    else stop("Unknown operator, should be already catched by 'op.replace'")
+                }
+            })
+            list(ops = dots.ops, sub = dots)
         },
         subset = function(..., .dots, drop = TRUE) {
             # - [x] catch dots, preprocess, evaluate
@@ -237,7 +243,7 @@ data.cube = R6Class(
             }, simplify=FALSE)
             r$id.vars = self$id.vars
             # - [x] filter fact - prepare index for subset fact
-            filter.dims = sapply(i.sub, function(x) length(x) || is.null(x))
+            filter.dims = sapply(i.sub, function(x) length(x) || is.null(x)) # NULL is valid empty subset notation, as in base R
             filter.dims = names(filter.dims)[as.logical(filter.dims)]
             # primary keys of dimensions after filtering
             dimkeys = sapply(names(r$dimensions)[names(r$dimensions) %chin% filter.dims], function(dim) {
@@ -254,17 +260,56 @@ data.cube = R6Class(
                 r$id.vars = r$id.vars[!if.drop]
             }
             # - [x] subset fact
+            # - [ ] support for: filter `.`, collapse dim `-`, rollup `+`, cube `^`
             dimcols = self$id.vars[names(self$dimensions) %chin% names(dimkeys)]
             stopifnot(length(dimcols) == length(dimkeys))
             setattr(dimkeys, "names", dimcols)
-            collapse.dims = names(i.ops)[i.ops=="+"]
+            # collapse dim - arguments passed to `-`(...) are used to filter out facts on that dimension before it is being dropped, default nothing
+            collapse.dims = names(i.ops)[i.ops %chin% c("-")]
             collapse.cols = self$id.vars[names(self$dimensions) %chin% collapse.dims]
-            r$fact = self$fact$subset(dimkeys, collapse=collapse.cols, drop=drop)
+            # groupingsets - arguments passed to `+`(...), default will rollup/cube on level keys in first hierarchy for a dimension
+            groupingsets.dims = names(i.ops)[i.ops %chin% c("+","^")]
+            # groupingsets.cols = self$id.vars[names(self$dimensions) %chin% groupingsets.dims]
+            # - [ ] force defaults currently
+            if (length(groupingsets.dims)) {
+                browser()
+                groupingsets.cols = sapply(groupingsets.dims,
+                                           function(dim) sapply(seq_along(self$dimensions[[dim]]$hierarchies), 
+                                                                function(i) names(self$dimensions[[dim]]$hierarchies[[i]]$levels),
+                                                                simplify=FALSE),
+                                           simplify=FALSE)
+                grouping.grain = lapply(groupingsets.cols, function(h) unique(sapply(h, tail, 1L)))
+                if (any(sapply(grouping.grain, length) > 1L)) {
+                    stop("Lack of common grain will result into creation new artificial level between all hierarchies within a dimension, just to combine groupings. This is not yet implemented in data.cube, working example in 'cube' class, see data.cube#7 for status on that.")
+                    # - [ ] create common dimension for two hierarchy without common grain
+                    #   - [ ] outsource the job to 'dimension' classes methods
+                }
+                # - [ ] check potential grain remapping to higher level
+                # we only really need a grain level mapping to new grain level for a fact table, all other stuff is kept in dimensions
+                remap.dims = sapply(intersect(names(self$dimensions), names(grouping.grain)),
+                                    function(d) {
+                                        new.grain = grouping.grain[[d]]
+                                        old.grain = self$dimensions[[d]]$id.vars
+                                        if (!identical(old.grain, new.grain)) {
+                                            browser()
+                                            # self$dimensions[[d]]$rollup()
+                                        } else NULL
+                                    },
+                                    simplify=FALSE)
+                remap.dims = remap.dims[!sapply(remap.dims, is.null)]
+                x = lapply(1:5, data.table)
+                # all fields used in grouping for each dimension
+                new.fact = self$fact$rollup(x, collapse=collapse.cols, grouping.sets=groupingsets.cols, ops=i.ops, drop=drop)
+                # r$fact = new.fact
+            } else {
+                r$fact = self$fact$subset(dimkeys, collapse=collapse.cols, drop=drop)
+            }
             stopifnot(ncol(r$fact$data) > 0L, length(collapse.cols)==length(collapse.dims))
             if (length(collapse.dims)) {
                 r$dimensions[collapse.dims] = NULL
                 r$id.vars = setdiff(r$id.vars, collapse.cols)
             }
+            
             # - [x] return cube with all dimensions filtered and fact filtered
             as.data.cube.environment(r)
         },
@@ -279,12 +324,26 @@ data.cube = R6Class(
             ) # r - not used further but evaluated on lower classes
             invisible(self)
         },
-        rollup = function(by) {
-            # get relevant dims
-            guess.dim = function(x) {
+        rollup = function(...) {
+            #if (missing(.dots)) 
+            .dots = match.call(expand.dots = FALSE)$`...`
+            browser()
+            i.meta = self$parse.dots(.dots)
+            i.ops = i.meta$ops
+            i.sub = i.meta$sub
+            
+            # get relevant dims based on character vector of columns
+            guess.dim = function(x, validate=TRUE) {
                 stopifnot(is.character(x))
                 if (!length(x)) return(character(0))
                 self$dime
+                if (validate) {
+                    if (any(sapply(guess.dim, length) > 1L)) {
+                        # attributes names used was matched by various dimensions
+                        stop(sprintf("Field(s) used in rollup 'by' match to multiple dimensions"))
+                    }
+                    
+                }
             }
             # for each dimension in 'by'
             ### outsource to dimension$rollup?
@@ -429,7 +488,7 @@ apply.data.cube = function(X, MARGIN, FUN, ...) {
             as.name("X")
         ),
         lapply(unname(X$id.vars), function(x) {
-            if (x %chin% MARGIN) substitute() else call("+")
+            if (x %chin% MARGIN) substitute() else call("-")
         }),
         list( # required for consistency of <= 1 element dims
             drop = FALSE

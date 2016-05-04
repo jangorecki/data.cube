@@ -103,7 +103,7 @@ rollup.cube = function(x, MARGIN, INDEX = NULL, FUN, ..., j, normalize = TRUE, d
     if(isTRUE(drop)) as.cube(r)$drop() else as.cube(r)
 }
 
-rollup.data.cube = function(x, by, ...) {
-    stopifnot(is.data.cube(x), is.character(by))
-    x$rollup()
+rollup.data.cube = function(x, ...) {
+    stopifnot(is.data.cube(x))
+    x$rollup(... = ...)
 }

@@ -52,22 +52,22 @@ ar = array(rnorm(8,10,5), rep(2,3),
 # cube normalized to star schema just on natural keys
 dc = as.data.cube(ar)
 # slice
-ar["green","2015",]
-dc["green","2015"]
-format(dc["green","2015"])
+ar["green", "2015",]
+dc["green", "2015"]
+format(dc["green", "2015"])
 # dice
-ar[c("green","red"),c("2014","2015"),]
-dc[c("green","red"),c("2014","2015")]
-format(dc[c("green","red"),c("2014","2015")])
+ar[c("green","red"), c("2014","2015"),]
+dc[c("green","red"), c("2014","2015")]
+format(dc[c("green","red"), c("2014","2015")])
 
 # exact tabular representation of array is just a formatting on the cube
-ar["green",c("2014","2015"),]
-format(dc["green",c("2014","2015")], 
+ar["green", c("2014","2015"),]
+format(dc["green", c("2014","2015")], 
        dcast = TRUE, 
        formula = year ~ country)
 
-ar[,"2015",c("UK","IN")]
-format(dc[,"2015",c("UK","IN")], 
+ar[,"2015", c("UK","IN")]
+format(dc[,"2015", c("UK","IN")], 
        dcast = TRUE, 
        formula = color ~ country) # sorted dimensions levels
 ```

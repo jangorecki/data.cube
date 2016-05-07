@@ -10,7 +10,8 @@ In-memory *OLAP cubes* R data type. Uses high performance C-implemented [data.ta
   - [x] `[.data.cube` uses base R `[.array` method API for *slice* and *dice* of dimension keys
 - [x] extends base R `array` query API
   - [x] *slice* and *dice* on dimension attributes of various levels in hierarchy with `.(time_year = 2011:2013)`
-  - [x] aggregate by collapse dimensions with ```+``()`, also with pre-filtering
+  - [x] aggregate by collapse dimensions with `` `-`() ``, also with pre-filtering
+  - [ ] rollup and cube over provided groupings with `` `+`() `` for rollup and `` `^`() `` for cube
 - [x] `apply.data.cube` uses base R `apply` like API
 - [ ] `rollup` for `data.cube`
   - [ ] bind *grouping* dimension to retain cube normalization and avoid double counting

@@ -203,15 +203,17 @@ stopifnot(
     identical(dim(dc[,`-`(NULL),`-`(NULL)]), 3L) # double collapse
 )
 
-# - [ ] rollup dimensions `+`()? ----
+# - [ ] rollup dimensions `+`() ----
 
-# - [ ] cube dimensions `^`()? ----
+# - [ ] cube dimensions `^`() ----
 
 ## - [ ] multidimensional hierarchical data ----
 
 X = populate_star(1e3)
 cb = as.cube(X)
 dc = as.data.cube(X)
+
+# - [x] slice and dice on keys and hierarchies, basic validation of input data, null sub, drop ----
 
 stopifnot( # expected dimensionality from as.data.table
     # .fact
@@ -304,3 +306,60 @@ stopifnot( # drop arg
     length(dim(dc["Mazda RX4"]))==4L,
     length(dim(dc["Mazda RX4", drop=FALSE]))==5L
 )
+
+# - [x] collapse dimensions `-`() ----
+
+# super ninja way to collapse every second dimension
+r1 = dc[`-`,, `-`,, `-`]
+# the same
+r2 = dc[`-`(), .(), `-`(), .(), `-`()]
+# the same
+r3 = dc[product = `-`, currency = `-`, time = `-`]
+stopifnot(
+    all.equal(r1, r2), all.equal(r1, r3), # identical
+    identical(names(r1$dimensions), c("customer","geography")), # no collapsed dims
+    identical(uniqueN(r1$fact$data, by=r1$fact$id.vars), nrow(r1$fact$data)) # facts aggregated to expected dims
+)
+
+# mixed hierarchical filters in `.` and `-`
+r1 = dc[`-`,, `-`(curr_type="crypto"), .(geog_division_name=c("East North Central","East South Central")), `-`]
+r2 = dc[`-`(), .(), `-`(curr_type="crypto"), .(geog_division_name=c("East North Central","East South Central")), `-`()]
+r3 = dc[product = `-`,
+        currency = `-`(curr_type="crypto"),
+        geography = .(geog_division_name=c("East North Central","East South Central")),
+        time = `-`]
+stopifnot(
+    all.equal(r1, r2), all.equal(r1, r3), # identical
+    identical(names(r1$dimensions), c("customer","geography")), # no collapsed dims
+    identical(uniqueN(r1$fact$data, by=r1$fact$id.vars), nrow(r1$fact$data)) # facts aggregated to expected dims
+)
+
+# check correctly filtered on group by geography with filters
+by.geog = as.data.table(dc[`-`,`-`,`-`, .(geog_division_name=c("East North Central","East South Central")), `-`])
+stopifnot(
+    identical(by.geog[, .N,, geog_division_name]$geog_division_name, c("East North Central","East South Central"))
+)
+
+# collapse dims with filters by variables
+var.time_year = 2013:2015
+var.time_month = 1:6
+var.curr_type = "crypto"
+r1 = dc[`-`,`-`, `.`(curr_type = var.curr_type),`-`, `-`(time_year = var.time_year, time_month = var.time_month)]
+r2 = dc[`-`,`-`, `.`(curr_type = var.curr_type),`-`, `.`(time_year = var.time_year, time_month = var.time_month)]
+stopifnot(
+    as.data.table(r1)[, uniqueN(curr_type)==1L],
+    as.data.table(r2)[, uniqueN(curr_type)==1L],
+    as.data.table(r2)[, uniqueN(time_year)==2L],
+    as.data.table(r2)[, uniqueN(time_month)==6L]
+)
+
+# - [x] NULL filter when collapse dim
+stopifnot(
+    identical(dim(dc[`-`(NULL)]), c(32L,49L,50L,1826L)), # single collapse
+    identical(dim(dc[,NULL,`-`(NULL)]), c(32L,0L,50L,1826L)), # partial collapse, partial filter
+    identical(dim(dc[,`-`(NULL),`-`(NULL)]), c(32L,50L,1826L)) # double collapse
+)
+
+# - [ ] rollup dimensions `+`() ----
+
+# - [ ] cube dimensions `^`() ----

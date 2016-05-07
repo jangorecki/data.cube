@@ -10,7 +10,7 @@ vignette: >
 
 R *data.cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cube) package.  
 
-## characteristic of `[.data.cube`
+## Characteristic of `[.data.cube`
 
 ### what's the same in `[.array`
 
@@ -32,7 +32,7 @@ R *data.cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cu
 - in data.cube subset directly by integer position is not possible, but you can have integer surrogate keys which can refer to any custom integer positions
 - dimension levels are always ordered
 
-## start session
+## Start session
 
 ```{r run}
 # install.packages("data.cube", repos = paste0("https://", c("jangorecki.gitlab.io/data.cube","Rdatatable.github.io/data.table","cran.rstudio.com")))
@@ -112,18 +112,18 @@ dc[,,, .(geog_region_name = "North Central")
      ]
 ```
 
-## Aggregates while subsetting
+## Aggregates
 
-```{r aggregate}
-# aggregate by droppping dimension with `-` symbol, group by customer and currency
+```{r aggregate_collapse}
+# aggregate by collapse dimension with `-` symbol, group by customer and currency
 dc[product = `-`,
    customer = .(),
-   currency = .(curr_type="crypto"),
+   currency = .(curr_type = "crypto"),
    geography = `-`,
    time = `-`(time_year = 2013:2014)]
 ```
 
-## scalability
+## Scalability
 
 ```{r scalability}
 # ~1e5 facts for 5 dims of cardinalities: 32, 32, 49, 50, 1826

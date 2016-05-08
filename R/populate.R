@@ -18,11 +18,11 @@ populate_star = function(N = 1e5L, Y = c(2010L,2014L), surrogate.keys = FALSE, h
     stopifnot(length(Y) %in% 1:2)
     `.` = prod_name = cyl = vs = am = gear = Hair = Eye = Sex = time_date = time_month = time_quarter = NULL
     # produce dimension based on mtcars dataset
-    product = as.data.table(mtcars, keep.rownames = "prod_name")[, .(prod_name, prod_cyl = as.integer(cyl), prod_vs = as.integer(vs), prod_am = as.integer(am), prod_gear = as.integer(gear))]
+    product = as.data.table(datasets::mtcars, keep.rownames = "prod_name")[, .(prod_name, prod_cyl = as.integer(cyl), prod_vs = as.integer(vs), prod_am = as.integer(am), prod_gear = as.integer(gear))]
     # customer dimension based on HairEyeColor dataset
-    customer = as.data.table.array(HairEyeColor)[, .(cust_profile = as.character(.I), cust_hair = Hair, cust_eye = Eye, cust_sex = Sex)]
+    customer = as.data.table.array(datasets::HairEyeColor)[, .(cust_profile = as.character(.I), cust_hair = Hair, cust_eye = Eye, cust_sex = Sex)]
     # geography dimension based on state.* dataset
-    geography = data.table(geog_abb = state.abb, geog_name = state.name, geog_division_name = as.character(state.division), geog_region_name = as.character(state.region))
+    geography = data.table(geog_abb = datasets::state.abb, geog_name = datasets::state.name, geog_division_name = as.character(datasets::state.division), geog_region_name = as.character(datasets::state.region))
     # time dimension based on sequence of Dates
     monthday = c("01-01","12-31")
     dates = as.Date(paste(sort(Y), monthday, sep="-"))

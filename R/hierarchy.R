@@ -16,6 +16,13 @@ hierarchy = R6Class(
             hierarchy.str = capture.output(str(self$levels, give.attr = FALSE))
             cat(c("<hierarchy>", hierarchy.str), sep="\n")
             invisible(self)
+        },
+        rollup = function(x) {
+            # all higher attributes in hierarchy are taken
+            # if not used, it won't be calculated in facts
+            
+            
+            browser()
         }
     )
 )

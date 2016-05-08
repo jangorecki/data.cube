@@ -125,7 +125,8 @@ fact = R6Class(
             invisible(self)
         },
         rollup = function(x,  grouping.sets=list(), ...) {
-            stopifnot(is.list(x), sapply(x, is.data.table), sapply(x, function(dt) names(dt)[1L]) %chin% names(self$id.vars), 
+            stopifnot(is.list(x), sapply(x, is.data.table),
+                      #if (length(x)) sapply(x, function(dt) names(dt)[1L]) %chin% names(self$id.vars) else TRUE, 
                       is.list(grouping.sets))
             if (self$local) {
                 browser()
@@ -155,6 +156,8 @@ fact = R6Class(
             }
             if (!self$local) {
                 stop("distributed processing for data.cube not yet implemented")
+                # - [ ] must bind by grouping dimension when downloading from nodes
+                # - [ ] double check validation of totals re-calculated vs existing from nodes
             }
         },
         # fact$query method to be removed - currently used only in tests-big.data.cube.R and tests-method-query.R - see data.cube#12

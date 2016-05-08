@@ -96,9 +96,17 @@ dimension = R6Class(
             lapply(self$levels, function(x) x$setindex(drop=drop))
             invisible(self)
         },
-        rollup = function(i.ops) {
+        rollup = function(x, i.ops) {
             stopifnot(is.character(i.ops))
+            r = new.env()
             browser()
+            if (is.list(x)) {
+                stopifnot(names(x) %chin% names(self$hierarchies))
+                r$hierarchies = sapply(self$hierarchies, function(h) h$rollup(x), simplify=FALSE)
+                
+            } else {
+                
+            }
         }
     )
 )

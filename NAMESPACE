@@ -1,7 +1,9 @@
 # imports ----
 
-importFrom(stats, aggregate) # to be removed when aggregate.cube deprecated
-importFrom(utils, head)
+importFrom("stats", "aggregate") # to be removed when aggregate.cube deprecated
+importFrom("utils", "head")
+importFrom("stats", "runif", "setNames")
+importFrom("utils", "object.size", "str")
 import(data.table)
 import(R6)
 

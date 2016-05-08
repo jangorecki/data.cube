@@ -215,7 +215,16 @@ data.cube = R6Class(
                     else stop("Unknown operator, should be already catched by 'op.replace'")
                 }
             })
-            list(ops = dots.ops, sub = dots)
+            
+            # - [ ] handle grouping detection for `+` and `^`
+            grp.dims = names(dots.ops)[dots.ops %chin% c("+","^")]
+            grp = dots[grp.dims]
+            dots[grp.dims] = sapply(grp.dims, function(x) list())
+            
+            # return
+            list(ops = dots.ops,
+                 sub = dots[setdiff(names(dots), names(grp))],
+                 grp = grp)
         },
         subset = function(..., .dots, drop = TRUE) {
             # - [x] catch dots, preprocess, evaluate
@@ -223,6 +232,7 @@ data.cube = R6Class(
             i.meta = self$parse.dots(.dots)
             i.ops = i.meta$ops
             i.sub = i.meta$sub
+            i.grp = i.meta$grp # aggregation sets - rollup, cube
             # exit on `dc[.(),.(),.()]` considering drop, exit from `dc[]` wont use drop and is handled in "[.data.cube" function
             if (all(sapply(i.sub, identical, list())) && all(i.ops==".")) return(
                 if (drop) {
@@ -238,8 +248,9 @@ data.cube = R6Class(
             # returned object
             r = new.env()
             # - [x] filter dimensions and levels while quering them to new environment
-            r$dimensions = sapply(names(i.sub), function(dim) {
-                self$dimensions[[dim]]$subset(i.sub = i.sub[[dim]])
+            r$dimensions = sapply(names(self$dimensions), function(dim) {
+                if (dim %chin% names(i.sub)) self$dimensions[[dim]]$subset(i.sub = i.sub[[dim]])
+                else if (dim %chin% names(i.grp)) self$dimensions[[dim]]$rollup(i.grp[[dim]])
             }, simplify=FALSE)
             r$id.vars = self$id.vars
             # - [x] filter fact - prepare index for subset fact
@@ -272,10 +283,10 @@ data.cube = R6Class(
             # groupingsets.cols = self$id.vars[names(self$dimensions) %chin% groupingsets.dims]
             # - [ ] force defaults currently
             if (length(groupingsets.dims)) {
-                browser()
+                # browser()
                 groupingsets.cols = sapply(groupingsets.dims,
-                                           function(dim) sapply(seq_along(self$dimensions[[dim]]$hierarchies), 
-                                                                function(i) names(self$dimensions[[dim]]$hierarchies[[i]]$levels),
+                                           function(dim) sapply(self$dimensions[[dim]]$hierarchies, 
+                                                                function(h) names(h$levels),
                                                                 simplify=FALSE),
                                            simplify=FALSE)
                 grouping.grain = lapply(groupingsets.cols, function(h) unique(sapply(h, tail, 1L)))
@@ -285,7 +296,7 @@ data.cube = R6Class(
                     #   - [ ] outsource the job to 'dimension' classes methods
                 }
                 # - [ ] check potential grain remapping to higher level
-                # we only really need a grain level mapping to new grain level for a fact table, all other stuff is kept in dimensions
+                # we only really need a grain level mapping to new grain level for a fact table and dimension base, all non-level-keys are normalized
                 remap.dims = sapply(intersect(names(self$dimensions), names(grouping.grain)),
                                     function(d) {
                                         new.grain = grouping.grain[[d]]
@@ -297,7 +308,8 @@ data.cube = R6Class(
                                     },
                                     simplify=FALSE)
                 remap.dims = remap.dims[!sapply(remap.dims, is.null)]
-                x = lapply(1:5, data.table)
+                # rollup dimensions
+                x = sapply(names(self$dimensions), function(x) self$dimensions[[x]]$rollup(i.ops = i.ops[[x]]), simplify=FALSE)
                 # all fields used in grouping for each dimension
                 new.fact = self$fact$rollup(x, collapse=collapse.cols, grouping.sets=groupingsets.cols, ops=i.ops, drop=drop)
                 # r$fact = new.fact

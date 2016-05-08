@@ -362,4 +362,9 @@ stopifnot(
 
 # - [ ] rollup dimensions `+`() ----
 
+# api
+# r1 = dc[,,,, `+`]
+# expected data.cube
+# r2
+
 # - [ ] cube dimensions `^`() ----

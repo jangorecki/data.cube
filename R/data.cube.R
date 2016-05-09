@@ -219,7 +219,7 @@ data.cube = R6Class(
             # - [ ] handle grouping detection for `+` and `^`
             grp.dims = names(dots.ops)[dots.ops %chin% c("+","^")]
             grp = dots[grp.dims]
-            dots[grp.dims] = sapply(grp.dims, function(x) list())
+            dots[grp.dims] = sapply(grp.dims, function(x) list(), simplify=FALSE)
             
             # return
             list(ops = dots.ops,
@@ -230,8 +230,8 @@ data.cube = R6Class(
             # - [x] catch dots, preprocess, evaluate
             if (missing(.dots)) .dots = match.call(expand.dots = FALSE)$`...`
             i.meta = self$parse.dots(.dots)
-            i.ops = i.meta$ops
-            i.sub = i.meta$sub
+            i.ops = i.meta$ops # operation type: ., -, +, ^
+            i.sub = i.meta$sub # subset filtering conditions
             i.grp = i.meta$grp # aggregation sets - rollup, cube
             # exit on `dc[.(),.(),.()]` considering drop, exit from `dc[]` wont use drop and is handled in "[.data.cube" function
             if (all(sapply(i.sub, identical, list())) && all(i.ops==".")) return(

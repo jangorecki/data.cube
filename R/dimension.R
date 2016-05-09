@@ -97,16 +97,13 @@ dimension = R6Class(
             invisible(self)
         },
         rollup = function(x, i.ops) {
-            stopifnot(is.character(i.ops))
-            r = new.env()
             browser()
-            if (is.list(x)) {
-                stopifnot(names(x) %chin% names(self$hierarchies))
-                r$hierarchies = sapply(self$hierarchies, function(h) h$rollup(x), simplify=FALSE)
-                
-            } else {
-                
-            }
+            stopifnot(is.character(x), is.character(i.ops))
+            r = new.env()
+            r$hierarchies = sapply(self$hierarchies, function(h) h$rollup(x), simplify=FALSE)
+            
+            browser()
+            as.data.cube.environment(r)
         }
     )
 )

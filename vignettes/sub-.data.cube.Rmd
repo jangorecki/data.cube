@@ -34,13 +34,16 @@ R *data.cube* class defined in [data.cube](https://gitlab.com/jangorecki/data.cu
 
 ## Start session
 
+If not installed use `install.packages("data.cube", repos = paste0("https://", c("jangorecki.gitlab.io/data.cube","Rdatatable.github.io/data.table","cran.rstudio.com")))`.
+
 ```{r run}
-# install.packages("data.cube", repos = paste0("https://", c("jangorecki.gitlab.io/data.cube","Rdatatable.github.io/data.table","cran.rstudio.com")))
 library(data.table)
 library(data.cube)
 ```
 
 ## Tiny example
+
+2x2x2 array vs data.cube.
 
 ```{r tiny}
 set.seed(1)
@@ -74,13 +77,15 @@ format(dc[,"2015", c("UK","IN")],
 
 ## Hierarchies example
 
+Filtering on attributes in hierarchies of dimension.
+
 ```{r hierarchies}
-# as.data.cube.list - investigate X to see structure
+# populate fact, dimensions and hierarchies
 X = populate_star(N=1e5)
 lapply(X[1:2], sapply, ncol)
 lapply(X[1:2], sapply, nrow)
 str(X[3L], max.level=3L) # hierarchy defined as list of levels and attributes on each level
-dc = as.data.cube(X)
+dc = as.data.cube(X) # as.data.cube.list
 print(dc)
 
 # slice
@@ -114,8 +119,10 @@ dc[,,, .(geog_region_name = "North Central")
 
 ## Aggregates
 
+Collapse dimension to sub-aggregate cube can be done with `` `-` `` quoted symbol. It is possible to filter out on that dimension before collapsing it using filter similarly to `.(...)` as  `` `-`(...) ``.  
+Filtering on attributes and group by customer and currency.
+
 ```{r aggregate_collapse}
-# aggregate by collapse dimension with `-` symbol, group by customer and currency
 dc[product = `-`,
    customer = .(),
    currency = .(curr_type = "crypto"),
@@ -125,7 +132,9 @@ dc[product = `-`,
 
 ## Scalability
 
-```{r scalability}
+Memory data.cube vs array.
+
+```{r memory_efficiency}
 # ~1e5 facts for 5 dims of cardinalities: 32, 32, 49, 50, 1826
 dc = as.data.cube(populate_star(N=1e5))
 ## estimated size of memory required to store an base R `array` for single numeric measure
@@ -148,3 +157,9 @@ sprintf("array: %.2f GB", (prod(dim(dc)) * 8)/(1024^3))
 ## fact table of *cube* object having multiple measures
 sprintf("data.cube: %.2f GB", as.numeric(object.size(dc$fact$data))/(1024^3))
 ```
+
+Memory cap is the most common issue on scalability. The is addressed by sharding fact table using [`big.data.table`](https://github.com/jangorecki/big.data.table) class instead of `data.table` in `fact` class object. CI process includes basic testing of that feature on old `cube` class, it wasn't yet implemented for `data.cube`.
+
+R single CPU limitation is now being addressed by parallelizing some data.table calls. This is now being developed in quite a low level and pretty well scalable way.  
+Sharding can also outsource CPU computation to nodes.  
+

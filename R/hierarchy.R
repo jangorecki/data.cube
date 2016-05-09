@@ -18,11 +18,22 @@ hierarchy = R6Class(
             invisible(self)
         },
         rollup = function(x) {
+            stopifnot(is.character(x))
             # all higher attributes in hierarchy are taken
             # if not used, it won't be calculated in facts
-            
-            
             browser()
+            # time.calendar = as.hierarchy(list(
+            #     year = character(),
+            #     quarter = character(),
+            #     month = character(),
+            #     date = c("year","quarter","month")
+            # ))
+            # define grain
+            lvl.match = chmatch(x, names(self$levels))
+            
+            grain.lvl = names(time.calendar)[max(lvl.match)]
+            
+           
         }
     )
 )

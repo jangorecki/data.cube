@@ -71,6 +71,29 @@ test-r-release: # R-release most comprehensive tests, force all suggests
     paths:
       - bus
 
+test-r-release-cran: # R-release CRAN check
+  stage: test
+  tags:
+    - linux
+  image: docker.io/jangorecki/r-builder
+  variables:
+    _R_CHECK_CRAN_INCOMING_: "TRUE"
+    _R_CHECK_CRAN_INCOMING_REMOTE_: "TRUE"
+  dependencies:
+  - mirror-packages
+  - build
+  script:
+    - mkdir -p bus/$CI_BUILD_NAME
+    - Rscript -e 'source(Sys.getenv("CI_TOOLS")); if (length(pkgs<-packages.dcf("DESCRIPTION", "all"))) install.packages(pkgs, repos=file.path("file:",normalizePath("bus/mirror-packages/cran")))'
+    - cd bus/$CI_BUILD_NAME
+    - Rscript -e 'file.copy(download.packages("data.cube", repos=file.path("file:",normalizePath("../build/cran")))[,2], ".")'
+    - R CMD check --as-cran $(ls -1t data.cube_*.tar.gz | head -n 1)
+  artifacts:
+    expire_in: 2 weeks
+    when: always
+    paths:
+      - bus
+
 test-r-3.1.0-cran:
   stage: test
   tags:
@@ -106,12 +129,41 @@ integration:
   - mirror-packages
   - build
   - test-r-release
+  - test-r-release-cran
   - test-r-3.1.0-cran
   script:
     - mkdir -p bus/$CI_BUILD_NAME
+    # integration helpers, not in tools4pkgs branch, for multi pkgs use: pkg<-strsplit(job, "-", fixed=TRUE)[[1L]][2L]
+    - echo 'test.jobs<-c("test-r-release"="data.cube","test-r-release-cran"="data.cube","test-r-3.1.0-cran"="data.cube")' > integration.R
+    - echo 'lib.copy<-function(lib.from, repodir="bus/integration/cran"){ pkgs.from<-list.dirs(lib.from, recursive=FALSE); pkgs.to<-list.dirs(lib.to<-file.path(repodir,"library"), recursive=FALSE); pkg.copy<-function(pkg.from, lib.to){ pkg<-basename(pkg.from); dir.create(file.path(lib.to, pkg), recursive=TRUE); lib.dirs<-intersect(c("html","doc"), all.lib.dirs<-list.dirs(pkg.from, full.names=FALSE)); ans1<-setNames(file.copy(file.path(pkg.from, lib.dirs), file.path(lib.to, pkg), recursive=TRUE), lib.dirs); lib.files<-setdiff(list.files(pkg.from), all.lib.dirs); ans2<-setNames(file.copy(file.path(pkg.from, lib.files), file.path(lib.to, pkg)), lib.files); all(ans1, ans2)}; pkgs.from.new<-pkgs.from[!basename(pkgs.from) %in% basename(pkgs.to)]; setNames(sapply(pkgs.from.new, pkg.copy, lib.to=lib.to), basename(pkgs.from.new)) }' >> integration.R
+    - echo 'doc.copy<-function(repodir="bus/integration/cran"){ cp1<-c("COPYING","AUTHORS","THANKS"); ans1<-setNames(file.copy(file.path(R.home("doc"), cp1), file.path(repodir, "doc", cp1)), cp1); cp2<-c("html","manual"); ans2<-setNames(file.copy(file.path(R.home("doc"), cp2), file.path(repodir,"doc"), recursive=TRUE), cp2); c(ans1, ans2) }' >> integration.R
+    - echo 'check.copy<-function(job, repodir="bus/integration/cran"){ dir.create(job.checks<-file.path(repodir, "web", "checks", pkg<-"data.table", job), recursive=TRUE); all(file.copy(file.path("bus", sprintf("%s/%s.Rcheck", job, pkg), c("00install.out","00check.log")), job.checks)) }' >> integration.R
+    - echo 'pdf.copy<-function(job, repodir="bus/integration/cran"){ dir.create(pkg.to<-file.path(repodir,"web","packages",pkg<-"data.cube"), recursive=TRUE); file.copy(file.path("bus", job, sprintf("%s.Rcheck", pkg), sprintf("%s-manual.pdf",pkg)), to=file.path(pkg.to, sprintf("%s.pdf",pkg))) }' >> integration.R
+    - echo 'check.test<-function(job) { check<-readLines(file.path("bus", job, sprintf("%s.Rcheck", pkg<-"data.cube"), "00check.log")); check[length(check)] }' >> integration.R
+    #- echo '' >> integration.R
+    # TODO: testing CRAN check results raise error so deploy wont start if there are check issues
+    - Rscript -e 'source("integration.R"); sapply(names(test.jobs), check.test, simplify=FALSE)'
+    # merge mirror-packages and R devel packages
     - cp -R bus/mirror-packages/cran bus/$CI_BUILD_NAME/
+    - mkdir -p bus/$CI_BUILD_NAME/cran/library bus/$CI_BUILD_NAME/cran/doc
     - mv $(ls -1t bus/build/cran/src/contrib/data.cube_*.tar.gz | head -n 1) bus/$CI_BUILD_NAME/cran/src/contrib
     - Rscript -e 'tools::write_PACKAGES(contrib.url("bus/integration/cran"), addFiles=TRUE, fields="Revision")'
+    # install all pkgs to render html and double check successful installation of all devel packages
+    - mkdir -p /tmp/opencran/library /tmp/opencran/doc/html
+    - Rscript -e 'install.packages("data.cube", dependencies=TRUE, lib="/tmp/opencran/library", repos=file.path("file:",normalizePath("bus/integration/cran")), INSTALL_opts="--html", quiet=TRUE)'
+    - Rscript -e 'sapply("data.table", packageVersion, lib.loc="/tmp/opencran/library", simplify=FALSE)'
+    # R docs, html, css, icons
+    - Rscript -e 'source("integration.R"); doc.copy(repodir="/tmp/opencran")'
+    # Update packages.html, rewrite file:/ to relative path
+    - Rscript -e 'setwd("/tmp/opencran/doc/html"); make.packages.html(lib.loc="../../library", docdir="/tmp/opencran/doc"); tmp<-readLines(f<-"/tmp/opencran/doc/html/packages.html"); writeLines(gsub("file:///../../library","../../library", tmp, fixed=TRUE), f)'
+    - mv /tmp/opencran/doc bus/integration/cran/
+    # library
+    - Rscript -e 'source("integration.R"); lib.copy(lib.from="/tmp/opencran/library")'
+    # web/checks/$pkg/$job: 00install.out, 00check.log
+    - Rscript -e 'source("integration.R"); sapply(names(test.jobs), check.copy)'
+    # web/packages - here is only single package
+    #- Rscript -e 'source("integration.R"); sapply(sprintf("test-%s-r-release", unique(test.jobs)), pdf.copy)'
+    - Rscript -e 'source("integration.R"); pdf.copy("test-r-release")'
   artifacts:
     expire_in: 2 weeks
     paths:

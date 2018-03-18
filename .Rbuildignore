@@ -1,3 +1,5 @@
+^\.emacs\.desktop
+^\.emacs\.desktop\.lock
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^\..+

@@ -35,31 +35,8 @@ as.fact.data.table = function(x, id.vars = as.character(key(x)), measure.vars = 
                     list(.fun.aggregate = sub.fun)))
 }
 
-#' @rdname as.fact
-#' @method as.fact list
-as.fact.list = function(x, id.vars = as.character(key(x)), measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ..., measures = NULL) {
-    sub.fun = substitute(fun.aggregate)
-    stopifnot(requireNamespace("big.data.table", quietly = TRUE), big.data.table::is.rscl(x))
-    eval(substitute(fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = .fun.aggregate, ... = ..., measures = measures),
-                    list(.fun.aggregate = sub.fun)))
-}
-
-#' @rdname as.fact
-#' @method as.fact big.data.table
-as.fact.big.data.table = function(x, id.vars, measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ..., measures = NULL) {
-    sub.fun = substitute(fun.aggregate)
-    stopifnot(requireNamespace("big.data.table", quietly = TRUE), big.data.table::is.big.data.table(x), is.character(id.vars))
-    eval(substitute(fact$new(x, id.vars = id.vars, measure.vars = measure.vars, fun.aggregate = .fun.aggregate, ... = ..., measures = measures),
-                    list(.fun.aggregate = sub.fun)))
-}
-
-as.fact.environment = function(x, ...) {
-    fact$new(.env = x)
-}
-
 null.fact = function(...) {
     env = new.env()
-    env$local = TRUE
     env$id.vars = character()
     env$measure.vars = character()
     env$measures = list()
@@ -72,4 +49,8 @@ null.fact = function(...) {
 as.data.table.fact = function(x, ...) {
     stopifnot(is.fact(x))
     copy(x$data)
+}
+
+as.fact.environment = function(x, ...) {
+    fact$new(.env = x)
 }

@@ -81,14 +81,14 @@ data.cube = R6Class(
             dict = self$schema()
             prnt = character()
             prnt["header"] = "<data.cube>"
-            #prnt["distributed"] = 
             n.measures = length(self$fact$measure.vars)
             prnt["fact"] = dict[type=="fact",
-                                sprintf("fact%s:\n  %s rows x %s dimensions x %s measures (%.2f MB)", 
-                                        if(!self$fact$local) sprintf(" (distributed on %s nodes)", length(attr(self$fact$data, "rscl"))) else "",
+                                sprintf("fact:\n  %s rows x %s dimensions x %s measures (%.2f MB)", 
                                         nrow, ncol - n.measures, n.measures, mb)]
             if (length(self$dimensions)) {
-                dt = dict[type=="dimension", .(nrow = nrow[is.na(entity)], ncol = ncol[is.na(entity)], mb = sum(mb, na.rm = TRUE)), .(name)]
+                size = dict[type=="dimension", .(mb = sum(mb, na.rm = TRUE)), .(name)]
+                nrnc = dict[type=="dimension" & is.na(entity), .(nrow, ncol), .(name)]
+                dt = nrnc[size, on="name"]
                 prnt["dims"] = paste0("dimensions:\n", paste(dt[, sprintf("  %s : %s entities x %s levels (%.2f MB)", name, nrow, ncol, mb)], collapse="\n"))
             }
             prnt["size"] = sprintf("total size: %.2f MB", dict[,sum(mb)])
@@ -96,17 +96,17 @@ data.cube = R6Class(
             invisible(self)
         },
         denormalize = function(na.fill = FALSE, dims = names(self$dimensions)) {
-            r = as.data.table(self$fact)
+            ans = as.data.table.fact(self$fact)
             if (isTRUE(na.fill)) {
                 # `nomatch` to be extended to raise error if fact has values not in dims, after data.table#857 resolved
                 dn = dimnames(self)
-                r = r[i=do.call(CJ, c(dn, list(sorted=TRUE, unique=TRUE))),
-                      nomatch=NA,
-                      on=setNames(names(dn), nm=self$fact$id.vars)]
+                ans = ans[i=do.call(CJ, c(dn, list(sorted=TRUE, unique=TRUE))),
+                          nomatch=NA,
+                          on=setNames(names(dn), nm=self$fact$id.vars)]
             }
-            # lookup
-            lookupv(dims = lapply(self$dimensions[dims], as.data.table.dimension), r)
-            if (length(self$fact$id.vars)) setkeyv(r, self$fact$id.vars)[] else r[]
+            lookupv(dims = lapply(self$dimensions[dims], as.data.table.dimension), ans)
+            if (length(self$fact$id.vars)) setkeyv(ans, self$fact$id.vars)
+            ans[]
         },
         schema = function() {
             rbindlist(list(
@@ -246,32 +246,32 @@ data.cube = R6Class(
                 } else self
             )
             # returned object
-            r = new.env()
+            ans = new.env()
             # - [x] filter dimensions and levels while quering them to new environment
-            r$dimensions = sapply(names(self$dimensions), function(dim) {
-                if (dim %chin% names(i.sub)) self$dimensions[[dim]]$subset(i.sub = i.sub[[dim]])
-                else if (dim %chin% names(i.grp)) self$dimensions[[dim]]$rollup(i.grp[[dim]])
+            ans$dimensions = sapply(names(self$dimensions), function(dim) {
+                  if (dim %chin% names(i.sub)) self$dimensions[[dim]]$subset(i.sub = i.sub[[dim]])
+                  else if (dim %chin% names(i.grp)) self$dimensions[[dim]]$rollup(i.grp[[dim]])
             }, simplify=FALSE)
-            r$id.vars = self$id.vars
+            ans$id.vars = self$id.vars
             # - [x] filter fact - prepare index for subset fact
             filter.dims = sapply(i.sub, function(x) length(x) || is.null(x)) # NULL is valid empty subset notation, as in base R
             filter.dims = names(filter.dims)[as.logical(filter.dims)]
             # primary keys of dimensions after filtering
-            dimkeys = sapply(names(r$dimensions)[names(r$dimensions) %chin% filter.dims], function(dim) {
-                r$dimensions[[dim]]$data[[r$dimensions[[dim]]$id.vars]]
+            dimkeys = sapply(names(ans$dimensions)[names(ans$dimensions) %chin% filter.dims], function(dim) {
+                ans$dimensions[[dim]]$data[[ans$dimensions[[dim]]$id.vars]]
             }, simplify=FALSE)
-            stopifnot(names(dimkeys) %chin% names(r$dimensions)) # all names must match, before drop dims
+            stopifnot(names(dimkeys) %chin% names(ans$dimensions)) # all names must match, before drop dims
             # - [x] drop sliced dimensions
             if (drop) {
                 len1.dims = names(dimkeys)[sapply(dimkeys, length)==1L]
                 # if user provides multiple values to dimension filter key, it should not drop that dim even when only 1L was matched, base::array raises error on nomatch
-                filter.multkey = len1.dims[sapply(len1.dims, function(dim) length(i.sub[[dim]][[r$dimensions[[dim]]$id.vars]])) > 1L]
-                if.drop = names(r$dimensions) %chin% setdiff(len1.dims, filter.multkey)
-                r$dimensions[if.drop] = NULL
-                r$id.vars = r$id.vars[!if.drop]
+                filter.multkey = len1.dims[sapply(len1.dims, function(dim) length(i.sub[[dim]][[ans$dimensions[[dim]]$id.vars]])) > 1L]
+                if.drop = names(ans$dimensions) %chin% setdiff(len1.dims, filter.multkey)
+                ans$dimensions[if.drop] = NULL
+                ans$id.vars = ans$id.vars[!if.drop]
             }
             # - [x] subset fact
-            # - [ ] support for: filter `.`, collapse dim `-`, rollup `+`, cube `^`
+            # - [ ] support for:filter `.`, collapse dim `-`, rollup `+`, cube `^`
             dimcols = self$id.vars[names(self$dimensions) %chin% names(dimkeys)]
             stopifnot(length(dimcols) == length(dimkeys))
             setattr(dimkeys, "names", dimcols)
@@ -312,28 +312,23 @@ data.cube = R6Class(
                 x = sapply(names(self$dimensions), function(x) self$dimensions[[x]]$rollup(i.ops = i.ops[[x]]), simplify=FALSE)
                 # all fields used in grouping for each dimension
                 new.fact = self$fact$rollup(x, collapse=collapse.cols, grouping.sets=groupingsets.cols, ops=i.ops, drop=drop)
-                # r$fact = new.fact
+                # ans$fact = new.fact
             } else {
-                r$fact = self$fact$subset(dimkeys, collapse=collapse.cols, drop=drop)
+                ans$fact = self$fact$subset(dimkeys, collapse=collapse.cols, drop=drop)
             }
-            stopifnot(ncol(r$fact$data) > 0L, length(collapse.cols)==length(collapse.dims))
+            stopifnot(ncol(ans$fact$data) > 0L, length(collapse.cols)==length(collapse.dims))
             if (length(collapse.dims)) {
-                r$dimensions[collapse.dims] = NULL
-                r$id.vars = setdiff(r$id.vars, collapse.cols)
+                ans$dimensions[collapse.dims] = NULL
+                ans$id.vars = setdiff(ans$id.vars, collapse.cols)
             }
             
             # - [x] return cube with all dimensions filtered and fact filtered
-            as.data.cube.environment(r)
+            as.data.cube.environment(ans)
         },
         # setindex
         setindex = function(drop = FALSE) {
-            optional.logR = function(x, .log = getOption("datacube.log")) {
-                if(isTRUE(.log)) eval.parent(substitute(logR(x), list(x = substitute(x)))) else x
-            }
-            r = list(
-                fact = optional.logR(self$fact$setindex(drop=drop)),
-                dimensions = lapply(self$dimensions, function(x) optional.logR(x$setindex(drop=drop)))
-            ) # r - not used further but evaluated on lower classes
+            self$fact$setindex(drop=drop)
+            lapply(self$dimensions, function(x) x$setindex(drop=drop))
             invisible(self)
         },
         rollup = function(...) {
@@ -390,6 +385,7 @@ is.data.cube = function(x) inherits(x, "data.cube")
 #' @param x data.cube object
 #' @param ... values to subset on corresponding dimensions, when wrapping in list it will refer to dimension hierarchies
 #' @param drop logical, default TRUE, drop redundant dimensions, same as \emph{drop} argument in \code{[.array}.
+#' @details The following syntax has been propose to subset data.cube: TODO #6
 #' @return data.cube class object
 "[.data.cube" = function(x, ..., drop = TRUE) {
     if (!is.logical(drop)) stop("`drop` argument to data.cube subset must be logical. If argument name conflicts with your dimension name then provide it without name, elements in ... are matched by positions - as in array method - not names.")
@@ -408,8 +404,8 @@ is.data.cube = function(x) inherits(x, "data.cube")
         return(x)
     }
     # proceed subset, also proceed empty subset `dc[,]` or `dc[, drop=.]`
-    r = x$subset(.dots = .dots, drop = drop)
-    r
+    ans = x$subset(.dots = .dots, drop = drop)
+    ans
 }
 
 # @title Extract data.cube
@@ -419,14 +415,14 @@ is.data.cube = function(x) inherits(x, "data.cube")
 # @param by expression/character vector to aggregate measures accroding to \emph{j} argument.
 # @return data.cube?? class object
 # "[[.data.cube" = function(x, i, j, by) {
-#     r = x$extract(by = by, .call = match.call())
-#     r
+#     ans = x$extract(by = by, .call = match.call())
+#     ans
 # }
 
 dimnames.data.cube = function(x) {
-    r = sapply(x$dimensions, dimnames, simplify=FALSE)
-    if (!length(r)) return(NULL)
-    r
+    ans = sapply(x$dimensions, dimnames, simplify=FALSE)
+    if (!length(ans)) return(NULL)
+    ans
 }
 
 str.data.cube = function(object, ...) {
@@ -443,25 +439,25 @@ format.data.cube = function(x, na.fill = FALSE, measure.format = list(), dots.fo
         length(names(measure.format))==length(measure.format),
         names(measure.format) %in% measure.vars
     )
-    r = x$denormalize(dims = character(0), na.fill = na.fill)
-    if (length(id.vars)) r = setorderv(r, cols = id.vars, order=1L, na.last=TRUE) 
+    ans = x$denormalize(dims = character(0), na.fill = na.fill)
+    if (length(id.vars)) ans = setorderv(ans, cols = id.vars, order=1L, na.last=TRUE) 
     if (!is.null(measure.format)) { # measure.format=NULL will stop any formatting
         for (mv in measure.vars) {
             if (mv %chin% names(measure.format)) {
                 FUN = measure.format[[mv]]
-                set(r, i = NULL, j = mv, value = FUN(r[[mv]], ... = dots.format[[mv]]))
+                set(ans, i = NULL, j = mv, value = FUN(ans[[mv]], ... = dots.format[[mv]]))
             } else {
                 if (!is.null(FUN <- x$fact$measures[[mv]]$fun.format)) {
-                    set(r, i = NULL, j = mv, value = FUN(r[[mv]], ... = dots.format[[mv]]))
+                    set(ans, i = NULL, j = mv, value = FUN(ans[[mv]], ... = dots.format[[mv]]))
                 }
             }
         }
     }
-    if (isTRUE(dcast)) r = dcast.data.table(r, ...)
-    r[]
+    if (isTRUE(dcast)) ans = dcast.data.table(ans, ...)
+    ans[]
 }
 
-head.data.cube = function(x, n = 6L, ...) x$head(n)
+head.data.cube = function(x, n = 6L, ...) x$head(n = n)
 
 length.data.cube = function(x) as.integer(nrow(x$fact))
 names.data.cube = function(x) as.character(names(x$fact))

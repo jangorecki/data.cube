@@ -58,7 +58,7 @@ dimension = R6Class(
             rbindlist(list(dimension_data_schema, levels_schema))
         },
         head = function(n = 6L) {
-            list(base = head(self$data, n), levels = lapply(self$levels, function(x) x$head(n = n)))
+            list(base = head(self$data, n = n), levels = lapply(self$levels, function(x) x$head(n = n)))
         },
         # subset
         subset = function(i.sub) {
@@ -97,6 +97,7 @@ dimension = R6Class(
             invisible(self)
         },
         rollup = function(x, i.ops) {
+            # TO DO reuse data.table
             browser()
             stopifnot(is.character(x), is.character(i.ops))
             r = new.env()

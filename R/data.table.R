@@ -1,3 +1,6 @@
+
+## data.table helper to be not dependend on data.cube pkg
+
 #' @title Convert array to data.table
 #' @param x array
 #' @param keep.rownames ignored
@@ -105,3 +108,4 @@ lookupv = function(dims, fact) {
         lookup(fact, dim, setdiff(nd, nf))
     })
 }
+

@@ -112,8 +112,6 @@ S3method(as.data.table, dimension)
 export(as.fact)
 S3method(as.fact, default)
 S3method(as.fact, data.table)
-S3method(as.fact, list)
-S3method(as.fact, big.data.table)
 
 # *.fact
 S3method(length, fact)

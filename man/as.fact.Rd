@@ -15,13 +15,6 @@ as.fact(x, ...)
 \method{as.fact}{data.table}(x, id.vars = as.character(key(x)),
   measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ...,
   measures = NULL)
-
-\method{as.fact}{list}(x, id.vars = as.character(key(x)),
-  measure.vars = setdiff(names(x), id.vars), fun.aggregate = sum, ...,
-  measures = NULL)
-
-\method{as.fact}{big.data.table}(x, id.vars, measure.vars = setdiff(names(x),
-  id.vars), fun.aggregate = sum, ..., measures = NULL)
 }
 \arguments{
 \item{x}{data.table build dimension based on that dataset.}

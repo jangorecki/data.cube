@@ -54,20 +54,20 @@ as.dimension.environment = function(x, ...){
 }
 
 null.dimension = function(...){
-    env = new.env()
-    env$data = data.table(NULL)
-    env$id.vars = character()
-    env$hierarchies = list()
-    env$levels = list()
-    env$fields = character()
-    as.dimension.environment(env)
+    ans = new.env()
+    ans$data = data.table(NULL)
+    ans$id.vars = character()
+    ans$hierarchies = list()
+    ans$levels = list()
+    ans$fields = character()
+    as.dimension.environment(ans)
 }
 
 # export
 
 as.data.table.dimension = function(x, lvls = names(x$levels), ...) {
     stopifnot(is.dimension(x))
-    r = copy(x$data)
-    lookupv(dims = lapply(x$levels[lvls], as.data.table.level), r)
-    r[]
+    ans = copy(x$data)
+    lookupv(dims = lapply(x$levels[lvls], as.data.table.level), ans)
+    ans[]
 }

@@ -1,14 +1,13 @@
 Package: data.cube
 Type: Package
 Title: OLAP cube data type
-Version: 0.3.0
-Date: 2016-04-27
+Version: 0.4.0
+Date: 2018-03-17
 Author: Jan Gorecki
 Maintainer: Jan Gorecki <j.gorecki@wit.edu.pl>
 Description: Extends array for OLAP operations on multidimensional hierarchical data powered by data.table.
 Depends: R (>= 3.1.0)
-Imports: data.table (>= 1.9.7), R6
-Suggests: big.data.table (>= 0.3.4), RSclient, Rserve, logR (>= 2.1.4), knitr, rmarkdown
+Imports: data.table (>= 1.9.8), R6
+Suggests: knitr
 License: GPL-3
-Additional_repositories: https://jangorecki.gitlab.io/big.data.table, https://jangorecki.gitlab.io/logR, https://Rdatatable.github.io/data.table
 VignetteBuilder: knitr

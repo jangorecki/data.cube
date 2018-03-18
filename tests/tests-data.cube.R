@@ -107,8 +107,7 @@ print.equal = function(x, dt) {
         x = lapply(strsplit(x, " +"), `[`, -1L)
         x[[2L]] = as.num(x[[2L]])
         dt = lapply(strsplit(dt, " +"), `[`, -1L)
-        dt[[2L]] = as.num(dt[[2L]])
-        
+        dt[[2L]] = as.num(dt[[2L]])    
     } else if (length(xdim) == 2L) {
         x = strsplit(x, " +")[-1L]
         x[[1L]] = c("", x[[1L]]) # match first line for below line processing

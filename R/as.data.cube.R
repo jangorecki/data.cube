@@ -197,7 +197,6 @@ as.data.table.data.cube = function(x, na.fill = FALSE, dcast = FALSE, ...) {
 }
 
 as.array.data.cube = function(x, measure, na.fill = NA, ...) {
-    if (!x$fact$local) stop("Only local data.cube, not distributed ones, can be converted to array")
     if (missing(measure)) measure = x$fact$measure.vars[1L]
     if (length(measure) > 1L) stop("Your cube seems to have multiple measures, you must provide scalar column name as 'measure' argument to as.array.")
     dimcols = lapply(x$dimensions, function(x) x$id.vars)
